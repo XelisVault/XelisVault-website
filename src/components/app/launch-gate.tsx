@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Rocket, AlertCircle, Github, Wrench, Heart, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { CinematicCountdown } from '@/components/site/cinematic-countdown'
 
 // New target: August 30, 2026 at 14:00 UTC
 const LAUNCH_DATE = new Date('2026-08-30T14:00:00Z').getTime()
@@ -319,7 +320,7 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
       </motion.div>
 
       <div className="relative mb-8">
-        <CountdownTimer />
+        <CinematicCountdown />
       </div>
 
       <motion.div

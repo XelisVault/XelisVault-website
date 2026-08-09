@@ -4,6 +4,7 @@ import { motion, useScroll, useTransform } from 'framer-motion'
 import { useRef } from 'react'
 import { Reveal, SectionLabel } from '@/components/site/reveal'
 import { Lock, Key, Server, Anchor, Zap, Users, MessageSquare, ShieldCheck, Radio, FileLock2, Coins, ArrowRight, Star, TrendingUp } from 'lucide-react'
+import { VaultChatCinematic } from '@/components/site/vaultchat-cinematic'
 
 export function VaultChatSection() {
   const ref = useRef<HTMLDivElement>(null)
@@ -47,6 +48,13 @@ export function VaultChatSection() {
             </p>
           </Reveal>
         </div>
+
+        {/* Cinematic animation */}
+        <Reveal delay={0.2}>
+          <div className="mb-16">
+            <VaultChatCinematic />
+          </div>
+        </Reveal>
 
         {/* How it works */}
         <Reveal delay={0.2}>
