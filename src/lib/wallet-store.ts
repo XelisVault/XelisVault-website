@@ -1,11 +1,18 @@
 // XELIS Vault — Wallet Connection (TESTNET)
-// Uses local wallet RPC directly for testing
-// The wallet (xelis_wallet) must be running on 127.0.0.1:18082
+// Primary connection method: XSWD (official XELIS wallet protocol)
+// Fallback: view-only address
+// Legacy: local-rpc (for advanced users with xelis_wallet daemon)
 
 import { create } from 'zustand'
 import { CONTRACTS, ENTRIES, XEL_ASSET, toAtomic, fromAtomic, u64Param, hashParam, addressParam, stringParam } from './contract-config'
 
-// New: web wallet imports (encrypted seed storage + XELIS mnemonic)
+// XSWD client (official XELIS wallet protocol via WebSocket)
+import { getXSWDClient } from './wallet/xswd-client'
+
+// Note: web wallet (encrypted seed storage + XELIS mnemonic) modules are kept
+// in ./wallet/ for reference, but the create/import/unlock UI has been removed.
+// XSWD is now the primary and recommended connection method.
+// The web wallet code remains available if we ever need to reactivate it.
 import {
   storeWallet,
   loadWallet,
@@ -22,8 +29,8 @@ import {
   parseMnemonicString,
 } from './wallet/mnemonic'
 
-export type WalletConnectionType = 'web-wallet' | 'local-rpc' | 'view-only' | null
-export type WalletConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error' | 'locked'
+export type WalletConnectionType = 'xswd' | 'web-wallet' | 'local-rpc' | 'view-only' | null
+export type WalletConnectionState = 'disconnected' | 'connecting' | 'awaiting-approval' | 'connected' | 'error' | 'locked'
 
 interface WalletState {
   connectionType: WalletConnectionType
@@ -32,7 +39,7 @@ interface WalletState {
   error: string | null
   showConnectModal: boolean
 
-  // Web wallet session state
+  // Web wallet session state (kept for compatibility, unused in current UI)
   walletName: string | null
   isLocked: boolean
   storedWallets: WalletMeta[]
@@ -45,11 +52,12 @@ interface WalletState {
 
   // Core actions
   setShowConnectModal: (show: boolean) => void
-  connect: () => Promise<void>
+  connect: () => Promise<void>           // legacy local-rpc (advanced)
+  connectXSWD: () => Promise<void>       // primary — Genesix via XSWD
   disconnect: () => void
   refreshBalances: () => Promise<void>
 
-  // Web wallet actions (new)
+  // Web wallet actions (kept for reference, not exposed in current UI)
   refreshStoredWallets: () => void
   createWebWallet: (name: string, password: string, mnemonic?: string[]) => Promise<{ mnemonic: string[] }>
   importWebWalletFromMnemonic: (name: string, password: string, mnemonic: string[]) => Promise<void>
@@ -88,7 +96,7 @@ async function walletRpc(method: string, params: any = {}): Promise<any> {
   return data.result
 }
 
-// Build and send a transaction via wallet RPC
+// Build and send a transaction. Routes via XSWD if connected, otherwise local RPC.
 export async function sendTransaction(invoke: {
   contract: string
   entry_id: number
@@ -96,6 +104,18 @@ export async function sendTransaction(invoke: {
   deposits?: Record<string, { amount: number }>
   max_gas?: number
 }): Promise<string> {
+  // Check if XSWD client is connected — if so, route through it
+  const xswdClient = getXSWDClient()
+  if (xswdClient.getState() === 'connected') {
+    return xswdClient.invokeContract(
+      invoke.contract,
+      invoke.entry_id,
+      invoke.parameters,
+      invoke.deposits || {}
+    )
+  }
+
+  // Fallback: local wallet RPC (legacy)
   const txParams: any = {
     invoke_contract: {
       contract: invoke.contract,
@@ -156,6 +176,61 @@ export const useWallet = create<WalletState>((set, get) => ({
 
   setShowConnectModal: (show) => set({ showConnectModal: show, error: null }),
 
+  // ===== XSWD — primary connection method =====
+  connectXSWD: async () => {
+    set({ connectionState: 'connecting', error: null })
+    const client = getXSWDClient()
+
+    // Subscribe to state changes to reflect "awaiting-approval" in the UI
+    const unsub = client.onStateChange((state) => {
+      if (state === 'awaiting-approval') {
+        set({ connectionState: 'awaiting-approval' })
+      } else if (state === 'connected') {
+        set({ connectionState: 'connected' })
+      } else if (state === 'error') {
+        set({ connectionState: 'error' })
+      }
+    })
+
+    try {
+      await client.connect()
+
+      // Wait for the connection to actually be approved (state = connected)
+      // The client moves to 'awaiting-approval' first, then 'connected' once the user accepts
+      let waited = 0
+      while (client.getState() === 'awaiting-approval' && waited < 120_000) {
+        await new Promise(r => setTimeout(r, 500))
+        waited += 500
+      }
+
+      if (client.getState() !== 'connected') {
+        throw new Error('Connection was not approved. Please accept the popup in Genesix wallet.')
+      }
+
+      // Get the wallet address
+      const address = await client.getAddress()
+
+      set({
+        connectionType: 'xswd',
+        connectionState: 'connected',
+        address,
+        error: null,
+        showConnectModal: false,
+        isLocked: false,
+      })
+
+      // Refresh balances
+      get().refreshBalances()
+    } catch (e) {
+      unsub()
+      set({
+        connectionState: 'error',
+        error: e instanceof Error ? e.message : 'Failed to connect via XSWD',
+      })
+      throw e
+    }
+  },
+
   connect: async () => {
     set({ connectionState: 'connecting', error: null })
 
@@ -188,12 +263,51 @@ export const useWallet = create<WalletState>((set, get) => ({
   },
 
   refreshBalances: async () => {
+    const { connectionType, address } = get()
+    if (!address && connectionType !== 'local-rpc') return
+
     try {
-      // Get XEL balance
+      // If connected via XSWD, use the XSWD client
+      if (connectionType === 'xswd') {
+        const client = getXSWDClient()
+        if (client.getState() !== 'connected') return
+
+        const xelBal = await client.getBalance().catch(() => 0)
+        const xusdBal = await client.getBalance(CONTRACTS.xUSDAsset).catch(() => 0)
+        const vltBal = await client.getBalance(CONTRACTS.VLTAsset).catch(() => 0)
+
+        // Get XEL price from oracle (read-only call)
+        let price = 0
+        try {
+          const priceResult = await client.callContractView(CONTRACTS.PriceOracle, ENTRIES.PriceOracle.get_price, [XEL_ASSET])
+          if (priceResult) price = fromAtomic(Number(priceResult))
+        } catch {}
+
+        set({
+          xelBalance: fromAtomic(Number(xelBal)),
+          xusdBalance: fromAtomic(Number(xusdBal)),
+          vltBalance: fromAtomic(Number(vltBal)),
+          xelPrice: price || 0.311763,
+        })
+        return
+      }
+
+      // View-only: query the daemon RPC directly for the address balance
+      if (connectionType === 'view-only') {
+        try {
+          const xelBal = await readContract(CONTRACTS.PriceOracle, 0, [address])
+          set({
+            xelBalance: xelBal ? fromAtomic(Number(xelBal)) : 0,
+            xelPrice: 0.311763,
+          })
+        } catch {}
+        return
+      }
+
+      // Local RPC (legacy)
       const xelBal = await walletRpc('get_balance', {})
       const xel = fromAtomic(Number(xelBal))
 
-      // Get xUSD balance (need to track asset first)
       try { await walletRpc('track_asset', { asset: CONTRACTS.xUSDAsset }) } catch {}
       let xusd = 0
       try {
@@ -201,7 +315,6 @@ export const useWallet = create<WalletState>((set, get) => ({
         xusd = fromAtomic(Number(xusdBal))
       } catch {}
 
-      // Get VLT balance
       try { await walletRpc('track_asset', { asset: CONTRACTS.VLTAsset }) } catch {}
       let vlt = 0
       try {
@@ -209,7 +322,6 @@ export const useWallet = create<WalletState>((set, get) => ({
         vlt = fromAtomic(Number(vltBal))
       } catch {}
 
-      // Get XEL price from oracle (daemon RPC)
       let price = 0
       try {
         const priceResult = await readContract(CONTRACTS.PriceOracle, ENTRIES.PriceOracle.get_price, [XEL_ASSET])
@@ -220,10 +332,10 @@ export const useWallet = create<WalletState>((set, get) => ({
         xelBalance: xel,
         xusdBalance: xusd,
         vltBalance: vlt,
-        xelPrice: price || 0.311763, // fallback to known price
+        xelPrice: price || 0.311763,
       })
     } catch {
-      // Silently fail
+      // Silently fail — balances will show as 0
     }
   },
 
@@ -361,6 +473,14 @@ export const useWallet = create<WalletState>((set, get) => ({
   },
 
   disconnect: () => {
+    // Close XSWD connection if active
+    try {
+      const client = getXSWDClient()
+      if (client.getState() !== 'disconnected') {
+        client.disconnect()
+      }
+    } catch {}
+
     set({
       connectionType: null,
       connectionState: 'disconnected',
