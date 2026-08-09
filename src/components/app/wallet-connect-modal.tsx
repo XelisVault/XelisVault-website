@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X, Wallet, Loader2, AlertCircle, Server, Eye, ExternalLink,
-  Download, Shield, ChevronDown, ChevronUp, Link2,
+  Download, Shield, ChevronDown, ChevronUp, Link2, Terminal, Copy, Check,
 } from 'lucide-react'
 import { useWallet } from '@/lib/wallet-store'
 import { getXSWDClient, type XSWDConnectionState } from '@/lib/wallet/xswd-client'
@@ -17,10 +17,12 @@ export function WalletConnectModal() {
     connectionState, error,
   } = useWallet()
   const [showGenesixGuide, setShowGenesixGuide] = useState(false)
+  const [showCliFallback, setShowCliFallback] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [xswdState, setXswdState] = useState<XSWDConnectionState>('disconnected')
   const [viewOnlyAddress, setViewOnlyAddress] = useState('')
   const [viewOnlyError, setViewOnlyError] = useState<string | null>(null)
+  const [cliCopied, setCliCopied] = useState<string | null>(null)
 
   // Subscribe to XSWD state changes for live status display
   useEffect(() => {
@@ -44,8 +46,17 @@ export function WalletConnectModal() {
     try {
       await connectXSWD()
     } catch {
-      // error is set in store
+      // error is set in store — auto-show CLI fallback if XSWD failed
+      setShowCliFallback(true)
     }
+  }
+
+  const copyCliCommand = async (cmd: string) => {
+    try {
+      await navigator.clipboard.writeText(cmd)
+      setCliCopied(cmd)
+      setTimeout(() => setCliCopied(null), 2000)
+    } catch {}
   }
 
   const handleViewOnly = async () => {
@@ -233,6 +244,109 @@ export function WalletConnectModal() {
                   {viewOnlyError && (
                     <div className="mt-2 text-[11px] text-red-400">{viewOnlyError}</div>
                   )}
+                </div>
+
+                {/* CLI fallback — shown automatically if XSWD failed, or manually toggled */}
+                <div className="rounded-xl border border-border bg-card/20 overflow-hidden">
+                  <button
+                    onClick={() => setShowCliFallback(!showCliFallback)}
+                    className="w-full flex items-center justify-between p-3 hover:bg-card/40 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 text-sm">
+                      <Terminal className="w-4 h-4 text-vault" />
+                      <span>XSWD not working? Use the CLI</span>
+                      {(error || showCliFallback) && (
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 uppercase tracking-wider">
+                          fallback
+                        </span>
+                      )}
+                    </div>
+                    {showCliFallback ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+                  <AnimatePresence>
+                    {showCliFallback && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-4 pb-4 space-y-3">
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            If XSWD connection fails (Genesix not running, XSWD disabled, or browser WebSocket blocked),
+                            you can interact with the protocol directly from your terminal using the official CLI tools.
+                            Both <code className="text-vault">xvault</code> (community CLI) and <code className="text-vault">xvault-miner</code> (miner dashboard)
+                            work without any browser.
+                          </p>
+
+                          {/* Install commands */}
+                          <div className="space-y-2">
+                            <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+                              Install (Linux &amp; macOS)
+                            </div>
+                            <div className="relative">
+                              <pre className="rounded-lg bg-black/40 border border-border p-3 pr-20 text-[11px] font-mono text-foreground/90 overflow-x-auto">
+                                <code>curl -fsSL https://xelisvault.github.io/xelis-vault/install | bash</code>
+                              </pre>
+                              <button
+                                onClick={() => copyCliCommand('curl -fsSL https://xelisvault.github.io/xelis-vault/install | bash')}
+                                className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-md border border-border bg-card/80 hover:bg-card hover:border-vault/40 px-2 py-1 text-[10px] font-mono transition-all"
+                              >
+                                {cliCopied === 'curl -fsSL https://xelisvault.github.io/xelis-vault/install | bash' ? (
+                                  <><Check className="w-3 h-3 text-emerald-400" />Copied</>
+                                ) : (
+                                  <><Copy className="w-3 h-3" />Copy</>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+                              Install (Windows PowerShell)
+                            </div>
+                            <div className="relative">
+                              <pre className="rounded-lg bg-black/40 border border-border p-3 pr-20 text-[11px] font-mono text-foreground/90 overflow-x-auto">
+                                <code>irm https://xelisvault.github.io/xelis-vault/install.ps1 | iex</code>
+                              </pre>
+                              <button
+                                onClick={() => copyCliCommand('irm https://xelisvault.github.io/xelis-vault/install.ps1 | iex')}
+                                className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-md border border-border bg-card/80 hover:bg-card hover:border-vault/40 px-2 py-1 text-[10px] font-mono transition-all"
+                              >
+                                {cliCopied === 'irm https://xelisvault.github.io/xelis-vault/install.ps1 | iex' ? (
+                                  <><Check className="w-3 h-3 text-emerald-400" />Copied</>
+                                ) : (
+                                  <><Copy className="w-3 h-3" />Copy</>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* What you can do */}
+                          <div className="rounded-lg bg-vault/5 border border-vault/20 p-3">
+                            <div className="text-[10px] font-mono uppercase tracking-wider text-vault mb-2">
+                              Once installed, run:
+                            </div>
+                            <div className="space-y-1 text-[11px] font-mono text-muted-foreground">
+                              <div><span className="text-vault">xvault</span> — community CLI (wallet, vaults, swaps, governance, mixer, chat)</div>
+                              <div><span className="text-vault">xvault-miner</span> — miner dashboard (reputation, rewards, stats)</div>
+                              <div><span className="text-vault">xvault-relayer</span> — run a VaultChat relayer node</div>
+                            </div>
+                          </div>
+
+                          <a
+                            href="https://github.com/XelisVault/xelis-vault"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-vault hover:underline"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            View full CLI documentation on GitHub
+                          </a>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* Security note */}

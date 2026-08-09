@@ -1,16 +1,34 @@
 'use client'
 
 import { motion, useMotionValue, useSpring } from 'framer-motion'
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { ArrowDown, Shield, Lock, Zap, Github } from 'lucide-react'
 import { useDemo } from '@/lib/demo-store'
 import { CinematicCountdown } from '@/components/site/cinematic-countdown'
 import { ProgressiveLaunchButton, useLaunchProgress } from '@/components/site/progressive-launch-button'
+import { LaunchCelebration } from '@/components/site/launch-celebration'
 
 export function Hero() {
   const ref = useRef<HTMLDivElement>(null)
   const openApp = useDemo((s) => s.openApp)
   const { progress, isLaunched } = useLaunchProgress()
+
+  // Track if we should show the launch celebration (only once, at the exact launch moment)
+  const [showCelebration, setShowCelebration] = useState(false)
+  const [celebrationPlayed, setCelebrationPlayed] = useState(false)
+
+  // Check if we just hit launch time this session
+  useEffect(() => {
+    if (isLaunched && !celebrationPlayed) {
+      // Check sessionStorage to only play once per browser session
+      const played = sessionStorage.getItem('xv-launch-celebration-played')
+      if (!played) {
+        setShowCelebration(true)
+        sessionStorage.setItem('xv-launch-celebration-played', '1')
+      }
+      setCelebrationPlayed(true)
+    }
+  }, [isLaunched, celebrationPlayed])
 
   // mouse parallax for background glow only
   const mx = useMotionValue(0)
@@ -35,6 +53,11 @@ export function Hero() {
       id="top"
       className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-background pt-28 pb-16"
     >
+      {/* Launch celebration overlay (plays once at launch moment) */}
+      {showCelebration && (
+        <LaunchCelebration onComplete={() => setShowCelebration(false)} />
+      )}
+
       {/* Background layers */}
       <div className="absolute inset-0 bg-grid opacity-50" />
       <div className="absolute inset-0 bg-noise opacity-[0.025]" />
@@ -48,43 +71,116 @@ export function Hero() {
         <div className="absolute inset-[15%] rounded-full bg-vault/10 blur-[80px]" />
       </motion.div>
 
-      {/* Subtle orbital rings in background */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-25">
-        <div className="relative w-[700px] h-[700px] md:w-[1000px] md:h-[1000px]">
-          {[0, 1, 2].map((i) => (
+      {/* When launched: restore the beautiful hero logo + orbital rings */}
+      {isLaunched && (
+        <>
+          {/* Center logo (restored when launched) */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5, rotate: -20 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 150, delay: 0.2 }}
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0"
+          >
             <motion.div
-              key={`hero-orbit-${i}`}
-              animate={{ rotate: i % 2 === 0 ? 360 : -360 }}
-              transition={{ duration: 80 + i * 30, repeat: Infinity, ease: 'linear' }}
-              className="absolute inset-0 rounded-full border border-vault/10"
-              style={{ transform: `scale(${1 - i * 0.18})` }}
+              animate={{
+                boxShadow: [
+                  '0 0 40px -10px var(--vault)',
+                  '0 0 70px -10px var(--vault)',
+                  '0 0 40px -10px var(--vault)',
+                ],
+              }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              className="relative w-24 h-24 md:w-32 md:h-32 rounded-2xl overflow-hidden ring-2 ring-vault/40"
             >
-              <div
-                className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-vault/60"
-                style={{ boxShadow: '0 0 12px var(--vault)' }}
+              <img
+                src="/images/xelisvault-logo.png"
+                alt="Xelis Vault"
+                className="w-full h-full object-cover"
               />
-              {i === 0 && (
-                <div
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-1 h-1 rounded-full bg-xusd/60"
-                  style={{ boxShadow: '0 0 10px var(--xusd)' }}
-                />
-              )}
             </motion.div>
-          ))}
-        </div>
-      </div>
+          </motion.div>
 
-      {/* Main content — no scroll fade, stays fully visible */}
+          {/* Orbital rings (restored, more visible when launched) */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-50">
+            <div className="relative w-[700px] h-[700px] md:w-[1000px] md:h-[1000px]">
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={`hero-orbit-${i}`}
+                  animate={{ rotate: i % 2 === 0 ? 360 : -360 }}
+                  transition={{ duration: 60 + i * 30, repeat: Infinity, ease: 'linear' }}
+                  className="absolute inset-0 rounded-full border border-vault/20"
+                  style={{ transform: `scale(${1 - i * 0.18})` }}
+                >
+                  <div
+                    className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-vault"
+                    style={{ boxShadow: '0 0 20px var(--vault)' }}
+                  />
+                  {i === 0 && (
+                    <div
+                      className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-1.5 h-1.5 rounded-full bg-xusd"
+                      style={{ boxShadow: '0 0 16px var(--xusd)' }}
+                    />
+                  )}
+                  {i === 1 && (
+                    <div
+                      className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 w-1.5 h-1.5 rounded-full bg-vlt"
+                      style={{ boxShadow: '0 0 16px var(--vlt)' }}
+                    />
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* When NOT launched: dimmer orbital rings behind countdown */}
+      {!isLaunched && (
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-25">
+          <div className="relative w-[700px] h-[700px] md:w-[1000px] md:h-[1000px]">
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={`hero-orbit-${i}`}
+                animate={{ rotate: i % 2 === 0 ? 360 : -360 }}
+                transition={{ duration: 80 + i * 30, repeat: Infinity, ease: 'linear' }}
+                className="absolute inset-0 rounded-full border border-vault/10"
+                style={{ transform: `scale(${1 - i * 0.18})` }}
+              >
+                <div
+                  className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-vault/60"
+                  style={{ boxShadow: '0 0 12px var(--vault)' }}
+                />
+                {i === 0 && (
+                  <div
+                    className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-1 h-1 rounded-full bg-xusd/60"
+                    style={{ boxShadow: '0 0 10px var(--xusd)' }}
+                  />
+                )}
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Main content */}
       <div className="relative z-10 max-w-5xl mx-auto px-5 text-center flex flex-col items-center">
-        {/* Version badge */}
+        {/* Version badge / Live badge */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.2 }}
-          className="flex items-center gap-2 rounded-full glass-panel px-3.5 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground mb-8"
+          className={`flex items-center gap-2 rounded-full glass-panel px-3.5 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] mb-8 ${
+            isLaunched ? 'text-emerald-400' : 'text-muted-foreground'
+          }`}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-vault animate-pulse" />
-          v10.2 · 46 contracts · XELIS BlockDAG
+          <motion.span
+            animate={{ opacity: isLaunched ? [0.4, 1, 0.4] : [0.4, 1, 0.4] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className={`w-1.5 h-1.5 rounded-full ${isLaunched ? 'bg-emerald-400' : 'bg-vault'}`}
+          />
+          {isLaunched
+            ? 'Testnet LIVE · Connect your wallet'
+            : 'v10.2 · 46 contracts · XELIS BlockDAG'}
         </motion.div>
 
         {/* Title */}
@@ -110,38 +206,23 @@ export function Hero() {
           and govern privately — secured by native Twisted ElGamal encryption.
         </motion.p>
 
-        {/* THE COUNTDOWN — hero centerpiece with logo in the ring */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1.2, delay: 0.8, ease: [0.21, 0.47, 0.32, 0.98] }}
-          className="mt-10 mb-6"
-        >
-          {isLaunched ? (
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="inline-flex items-center gap-3 rounded-full bg-emerald-500/15 border border-emerald-500/40 px-8 py-4"
-            >
-              <motion.span
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                className="w-2.5 h-2.5 rounded-full bg-emerald-400"
-              />
-              <span className="font-display text-lg font-semibold text-emerald-300">
-                Testnet is LIVE — Connect your wallet
-              </span>
-            </motion.div>
-          ) : (
+        {/* COUNTDOWN (when not launched) — with logo in the ring */}
+        {!isLaunched && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1.2, delay: 0.8, ease: [0.21, 0.47, 0.32, 0.98] }}
+            className="mt-10 mb-6"
+          >
             <CinematicCountdown />
-          )}
-        </motion.div>
+          </motion.div>
+        )}
 
         {/* CTA buttons — progressive launch button */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 1 }}
+          transition={{ duration: 1, delay: isLaunched ? 0.8 : 1 }}
           className="mt-8 flex flex-wrap items-center justify-center gap-3"
         >
           <ProgressiveLaunchButton
