@@ -1,26 +1,18 @@
 'use client'
 
-import { motion, useScroll, useTransform, useMotionValue, useSpring } from 'framer-motion'
+import { motion, useMotionValue, useSpring } from 'framer-motion'
 import { useRef, useEffect } from 'react'
-import { ArrowDown, Shield, Lock, Zap, Rocket, Github } from 'lucide-react'
+import { ArrowDown, Shield, Lock, Zap, Github } from 'lucide-react'
 import { useDemo } from '@/lib/demo-store'
-import { useLaunchStatus } from '@/components/app/launch-gate'
 import { CinematicCountdown } from '@/components/site/cinematic-countdown'
+import { ProgressiveLaunchButton, useLaunchProgress } from '@/components/site/progressive-launch-button'
 
 export function Hero() {
   const ref = useRef<HTMLDivElement>(null)
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ['start start', 'end start'],
-  })
   const openApp = useDemo((s) => s.openApp)
-  const { isLaunched } = useLaunchStatus()
+  const { progress, isLaunched } = useLaunchProgress()
 
-  const titleY = useTransform(scrollYProgress, [0, 1], [0, -80])
-  const titleOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0])
-  const subY = useTransform(scrollYProgress, [0, 1], [0, -40])
-
-  // mouse parallax for background glow
+  // mouse parallax for background glow only
   const mx = useMotionValue(0)
   const my = useMotionValue(0)
   const smx = useSpring(mx, { stiffness: 80, damping: 20 })
@@ -41,7 +33,7 @@ export function Hero() {
     <section
       ref={ref}
       id="top"
-      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-background pt-24 pb-12"
+      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-background pt-28 pb-16"
     >
       {/* Background layers */}
       <div className="absolute inset-0 bg-grid opacity-50" />
@@ -56,12 +48,9 @@ export function Hero() {
         <div className="absolute inset-[15%] rounded-full bg-vault/10 blur-[80px]" />
       </motion.div>
 
-      {/* Subtle orbital rings in background (behind countdown) */}
-      <motion.div
-        style={{ opacity: titleOpacity }}
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-      >
-        <div className="relative w-[700px] h-[700px] md:w-[1000px] md:h-[1000px] opacity-30">
+      {/* Subtle orbital rings in background */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-25">
+        <div className="relative w-[700px] h-[700px] md:w-[1000px] md:h-[1000px]">
           {[0, 1, 2].map((i) => (
             <motion.div
               key={`hero-orbit-${i}`}
@@ -83,13 +72,10 @@ export function Hero() {
             </motion.div>
           ))}
         </div>
-      </motion.div>
+      </div>
 
-      {/* Main content */}
-      <motion.div
-        style={{ y: titleY, opacity: titleOpacity }}
-        className="relative z-10 max-w-5xl mx-auto px-5 text-center flex flex-col items-center"
-      >
+      {/* Main content — no scroll fade, stays fully visible */}
+      <div className="relative z-10 max-w-5xl mx-auto px-5 text-center flex flex-col items-center">
         {/* Version badge */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -114,7 +100,6 @@ export function Hero() {
 
         {/* Subtitle */}
         <motion.p
-          style={{ y: subY }}
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.6, ease: [0.21, 0.47, 0.32, 0.98] }}
@@ -125,7 +110,7 @@ export function Hero() {
           and govern privately — secured by native Twisted ElGamal encryption.
         </motion.p>
 
-        {/* THE COUNTDOWN — hero centerpiece */}
+        {/* THE COUNTDOWN — hero centerpiece with logo in the ring */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -152,21 +137,18 @@ export function Hero() {
           )}
         </motion.div>
 
-        {/* CTA buttons */}
+        {/* CTA buttons — progressive launch button */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 1 }}
           className="mt-8 flex flex-wrap items-center justify-center gap-3"
         >
-          <button
-            onClick={openApp}
-            disabled={!isLaunched}
-            className="group inline-flex h-12 items-center gap-2 rounded-full bg-vault px-7 text-sm font-semibold text-white hover:bg-vault/85 transition-all hover:shadow-[0_0_36px_-6px_var(--vault)] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Rocket className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-            {isLaunched ? 'Launch App' : 'Launches Aug 30'}
-          </button>
+          <ProgressiveLaunchButton
+            progress={progress}
+            isLaunched={isLaunched}
+            onLaunch={openApp}
+          />
           <a
             href="https://github.com/XelisVault/xelis-vault"
             target="_blank"
@@ -214,14 +196,13 @@ export function Hero() {
             </motion.div>
           ))}
         </motion.div>
-      </motion.div>
+      </div>
 
       {/* Scroll hint */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.8, duration: 1 }}
-        style={{ opacity: titleOpacity }}
         className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-xs text-muted-foreground"
       >
         <span className="font-mono uppercase tracking-[0.3em]">Scroll</span>

@@ -187,7 +187,7 @@ function CipherDigit({ value, label }: { value: number; label: string }) {
         key={display}
         initial={{ opacity: 0.6 }}
         animate={{ opacity: 1 }}
-        className="font-mono font-bold text-3xl md:text-5xl tabular-nums tracking-tight"
+        className="font-mono font-bold text-2xl md:text-4xl tabular-nums tracking-tight"
         style={{
           color: scrambling ? 'oklch(0.65 0.15 295 / 0.7)' : 'var(--vault)',
           textShadow: scrambling
@@ -395,9 +395,36 @@ export function CinematicCountdown({ compact = false }: { compact?: boolean }) {
           />
         </motion.svg>
 
-        {/* Digits overlay (centered) */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="flex items-center gap-3 md:gap-5">
+        {/* Center overlay: logo + digits + percentage */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+          {/* Logo in the heart of the vault */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.6, rotate: -20 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            transition={{ delay: 0.6, type: 'spring', stiffness: 200 }}
+            className="relative"
+          >
+            <motion.div
+              animate={{
+                boxShadow: [
+                  '0 0 20px -4px var(--vault)',
+                  '0 0 32px -2px var(--vault)',
+                  '0 0 20px -4px var(--vault)',
+                ],
+              }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              className="relative w-11 h-11 md:w-12 md:h-12 rounded-lg overflow-hidden ring-1 ring-vault/50"
+            >
+              <img
+                src="/images/xelisvault-logo.png"
+                alt="Xelis Vault"
+                className="w-full h-full object-cover"
+              />
+            </motion.div>
+          </motion.div>
+
+          {/* Digits */}
+          <div className="flex items-center gap-2 md:gap-4 mt-1">
             <CipherDigit value={days} label="Days" />
             <Separator />
             <CipherDigit value={hours} label="Hours" />
@@ -412,7 +439,7 @@ export function CinematicCountdown({ compact = false }: { compact?: boolean }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
-            className="mt-4 text-[10px] font-mono uppercase tracking-[0.3em] text-muted-foreground/60"
+            className="mt-1 text-[10px] font-mono uppercase tracking-[0.3em] text-muted-foreground/60"
           >
             <span className="text-vault/80">{(progress * 100).toFixed(2)}%</span> sealed
           </motion.div>
