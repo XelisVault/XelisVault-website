@@ -6,7 +6,6 @@ import { Reveal, RevealStagger, RevealItem, SectionLabel } from '@/components/si
 import { useDemo } from '@/lib/demo-store'
 import { QuestLogoTrigger } from '@/components/quest/quest-logo-trigger'
 import { CountdownTimer, useLaunchStatus } from '@/components/app/launch-gate'
-import { CinematicCountdown } from '@/components/site/cinematic-countdown'
 
 const MILESTONES = [
   {
@@ -247,15 +246,6 @@ export function CTA() {
               : 'Final integration testing in progress · Testnet launches August 30, 2026 · 14:00 UTC'}
           </div>
         </Reveal>
-
-        {/* Cinematic countdown — only when not yet launched */}
-        {!isLaunched && (
-          <Reveal delay={0.5}>
-            <div className="mt-16">
-              <CinematicCountdown />
-            </div>
-          </Reveal>
-        )}
 
         {/* Quick stats */}
         <RevealStagger className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-px rounded-2xl glass-panel overflow-hidden max-w-4xl mx-auto">
