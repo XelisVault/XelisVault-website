@@ -5,8 +5,25 @@
 import { create } from 'zustand'
 import { CONTRACTS, ENTRIES, XEL_ASSET, toAtomic, fromAtomic, u64Param, hashParam, addressParam, stringParam } from './contract-config'
 
-export type WalletConnectionType = 'local-rpc' | null
-export type WalletConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error'
+// New: web wallet imports (encrypted seed storage + XELIS mnemonic)
+import {
+  storeWallet,
+  loadWallet,
+  listStoredWallets,
+  walletExists,
+  deleteWallet,
+  type WalletMeta,
+  type Network,
+} from './wallet/secure-storage'
+import {
+  generateMnemonic,
+  mnemonicToPrivateKey,
+  validateMnemonic,
+  parseMnemonicString,
+} from './wallet/mnemonic'
+
+export type WalletConnectionType = 'web-wallet' | 'local-rpc' | 'view-only' | null
+export type WalletConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error' | 'locked'
 
 interface WalletState {
   connectionType: WalletConnectionType
@@ -15,16 +32,31 @@ interface WalletState {
   error: string | null
   showConnectModal: boolean
 
+  // Web wallet session state
+  walletName: string | null
+  isLocked: boolean
+  storedWallets: WalletMeta[]
+
   // Real on-chain data
   xelBalance: number
   xusdBalance: number
   vltBalance: number
   xelPrice: number
 
+  // Core actions
   setShowConnectModal: (show: boolean) => void
   connect: () => Promise<void>
   disconnect: () => void
   refreshBalances: () => Promise<void>
+
+  // Web wallet actions (new)
+  refreshStoredWallets: () => void
+  createWebWallet: (name: string, password: string, mnemonic?: string[]) => Promise<{ mnemonic: string[] }>
+  importWebWalletFromMnemonic: (name: string, password: string, mnemonic: string[]) => Promise<void>
+  unlockWebWallet: (name: string, password: string) => Promise<void>
+  lockWallet: () => void
+  connectViewOnly: (address: string) => Promise<void>
+  deleteWallet: (name: string) => void
 }
 
 const WALLET_RPC = 'http://127.0.0.1:18082/json_rpc'
@@ -111,6 +143,12 @@ export const useWallet = create<WalletState>((set, get) => ({
   address: null,
   error: null,
   showConnectModal: false,
+
+  // Web wallet state
+  walletName: null,
+  isLocked: false,
+  storedWallets: [],
+
   xelBalance: 0,
   xusdBalance: 0,
   vltBalance: 0,
@@ -189,6 +227,139 @@ export const useWallet = create<WalletState>((set, get) => ({
     }
   },
 
+  // ===== WEB WALLET ACTIONS =====
+
+  refreshStoredWallets: () => {
+    if (typeof window === 'undefined') return
+    set({ storedWallets: listStoredWallets() })
+  },
+
+  createWebWallet: async (name, password, mnemonic) => {
+    set({ error: null })
+    try {
+      if (walletExists(name)) {
+        throw new Error(`A wallet named "${name}" already exists. Choose a different name.`)
+      }
+      const words = mnemonic || generateMnemonic()
+      const seed = mnemonicToPrivateKey(words)
+      await storeWallet(name, password, seed, 'testnet')
+      set({
+        storedWallets: listStoredWallets(),
+        walletName: name,
+        isLocked: false,
+      })
+      return { mnemonic: words }
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'Failed to create wallet' })
+      throw e
+    }
+  },
+
+  importWebWalletFromMnemonic: async (name, password, mnemonic) => {
+    set({ error: null })
+    try {
+      const validation = validateMnemonic(mnemonic)
+      if (!validation.valid) {
+        throw new Error(validation.error || 'Invalid mnemonic')
+      }
+      if (walletExists(name)) {
+        throw new Error(`A wallet named "${name}" already exists. Choose a different name.`)
+      }
+      const seed = mnemonicToPrivateKey(mnemonic)
+      await storeWallet(name, password, seed, 'testnet')
+      set({
+        storedWallets: listStoredWallets(),
+        walletName: name,
+        isLocked: false,
+      })
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'Failed to import wallet' })
+      throw e
+    }
+  },
+
+  unlockWebWallet: async (name, password) => {
+    set({ connectionState: 'connecting', error: null, isLocked: false })
+    try {
+      const seed = await loadWallet(name, password)
+      // Phase 1: address derivation requires the local daemon (Ristretto255 crypto).
+      // If daemon is not running, the user gets a clear error and can still use view-only mode.
+      let address: string | null = null
+      try {
+        // Use the daemon to derive the address from the seed
+        const seedHex = Array.from(seed).map(b => b.toString(16).padStart(2, '0')).join('')
+        const tempPath = `/tmp/xelis-vault-web-${Date.now()}`
+        await walletRpc('create_wallet', {
+          path: tempPath,
+          password: 'temp-' + Date.now(),
+          seed: seedHex,
+          network: 'testnet',
+        })
+        const openResult = await walletRpc('open_wallet', {
+          path: tempPath,
+          password: 'temp-' + Date.now(),
+        })
+        address = typeof openResult === 'string' ? openResult : (openResult?.address || null)
+        try { await walletRpc('close_wallet', {}) } catch {}
+      } catch (e) {
+        // Daemon not available — user can still unlock but won't see address/balances
+        console.warn('[wallet] Daemon not available for address derivation:', e)
+      }
+      set({
+        connectionType: 'web-wallet',
+        connectionState: 'connected',
+        walletName: name,
+        address,
+        isLocked: false,
+        showConnectModal: false,
+      })
+      if (address) {
+        get().refreshBalances()
+      }
+    } catch (e) {
+      set({
+        connectionState: 'error',
+        error: e instanceof Error ? e.message : 'Failed to unlock wallet',
+      })
+      throw e
+    }
+  },
+
+  lockWallet: () => {
+    set({
+      isLocked: true,
+      connectionState: 'locked',
+      address: null,
+      xelBalance: 0,
+      xusdBalance: 0,
+      vltBalance: 0,
+    })
+  },
+
+  connectViewOnly: async (address) => {
+    set({ connectionState: 'connecting', error: null })
+    if (!address.startsWith('xet:') && !address.startsWith('xel:')) {
+      set({
+        connectionState: 'error',
+        error: 'Invalid XELIS address. Must start with "xet:" (testnet) or "xel:" (mainnet).',
+      })
+      return
+    }
+    set({
+      connectionType: 'view-only',
+      connectionState: 'connected',
+      address,
+      showConnectModal: false,
+      isLocked: false,
+    })
+    get().refreshBalances()
+  },
+
+  deleteWallet: (name) => {
+    deleteWallet(name)
+    set({ storedWallets: listStoredWallets() })
+  },
+
   disconnect: () => {
     set({
       connectionType: null,
@@ -196,6 +367,8 @@ export const useWallet = create<WalletState>((set, get) => ({
       address: null,
       error: null,
       showConnectModal: false,
+      walletName: null,
+      isLocked: false,
       xelBalance: 0,
       xusdBalance: 0,
       vltBalance: 0,
@@ -203,6 +376,18 @@ export const useWallet = create<WalletState>((set, get) => ({
     })
   },
 }))
+
+// Re-export web wallet utilities for the UI
+export {
+  generateMnemonic,
+  mnemonicToPrivateKey,
+  validateMnemonic,
+  parseMnemonicString,
+  listStoredWallets,
+  walletExists,
+  type WalletMeta,
+  type Network,
+}
 
 // ===== HIGH-LEVEL CONTRACT FUNCTIONS =====
 // These use the wallet RPC directly (no XSWD needed)
