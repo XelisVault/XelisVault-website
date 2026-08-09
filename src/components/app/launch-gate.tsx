@@ -137,18 +137,18 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
         <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/15 border border-amber-500/40 px-4 py-2 mb-6">
           <AlertCircle className="w-4 h-4 text-amber-400" />
           <span className="text-xs font-mono font-bold text-amber-300 uppercase tracking-wider">
-            Testnet Launch Delayed
+            Testnet Launching August 30
           </span>
         </div>
 
         <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-4">
-          We owe you an <span className="text-gradient-vault">apology</span>
+          One more <span className="text-gradient-vault">stretch</span>
         </h1>
 
         <p className="text-muted-foreground leading-relaxed mb-8 text-sm md:text-base max-w-xl mx-auto">
-          Today was supposed to be the day. We know many of you cleared your schedules,
-          set reminders, and told your communities. We are deeply sorry that we could not
-          deliver the testnet today as promised.
+          We promised the testnet today. We are not quite ready. Here is exactly
+          what happened, what we are doing about it, and when you can expect to
+          connect your wallet and start interacting with real contracts.
         </p>
 
         {/* Bouton cliquable pour voir les détails */}
@@ -159,7 +159,7 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
           whileTap={{ scale: 0.98 }}
         >
           <AlertCircle className="w-4 h-4" />
-          {showDetails ? 'Hide details' : 'Read what happened'}
+          {showDetails ? 'Hide details' : 'Read the full update'}
           {showDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </motion.button>
 
@@ -297,14 +297,15 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
                 {/* Apology */}
                 <div className="border-t border-border pt-4 mt-4">
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    We know you have been waiting for a long time. We know delays are frustrating.
-                    We also know that launching broken contracts would be worse than waiting a few
-                    more weeks. The privacy and security of your funds is not something we will
-                    compromise on, even if it means disappointing you today.
+                    We know you have been waiting for a long time. We also know that launching
+                    broken contracts would be worse than waiting a few more weeks. The privacy
+                    and security of your funds is not something we will compromise on, even if
+                    it means disappointing you today.
                   </p>
                   <p className="text-sm text-muted-foreground leading-relaxed mt-3">
-                    The protocol is real. The contracts work. The testnet will launch. We just
-                    need a little more time to make sure everything is perfect.
+                    The protocol is real. The contracts work. The testnet will launch on
+                    August 30, 2026 at 14:00 UTC. We just need a little more time to make
+                    sure everything is perfect.
                   </p>
                   <div className="flex items-center gap-2 mt-4 text-sm">
                     <Heart className="w-4 h-4 text-vault" />

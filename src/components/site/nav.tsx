@@ -2,25 +2,37 @@
 
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { Menu, X, Github, ExternalLink, Rocket } from 'lucide-react'
+import { Menu, X, Github, ExternalLink, Rocket, ChevronDown } from 'lucide-react'
 import { useDemo } from '@/lib/demo-store'
 import { useLaunchStatus } from '@/components/app/launch-gate'
 
 const LINKS = [
-  { label: 'Vision', href: '#vision' },
-  { label: 'Protocol', href: '#protocol' },
-  { label: 'Architecture', href: '#architecture' },
-  { label: 'xUSD', href: '#xusd' },
-  { label: 'VLT', href: '#vlt' },
-  { label: 'Oracle', href: '#oracle' },
-  { label: 'Contracts', href: '#contracts' },
-  { label: 'VaultChat', href: '#vaultchat' },
-  { label: 'Roadmap', href: '#roadmap' },
+  { label: 'Vision', href: '/#vision' },
+  { label: 'Protocol', href: '/#protocol' },
+  { label: 'Architecture', href: '/#architecture' },
+  { label: 'xUSD', href: '/#xusd' },
+  { label: 'VLT', href: '/#vlt' },
+  { label: 'Oracle', href: '/#oracle' },
+  { label: 'Contracts', href: '/#contracts' },
+  { label: 'VaultChat', href: '/#vaultchat' },
+  { label: 'Roadmap', href: '/#roadmap' },
+]
+
+// Resources shown in a dropdown on desktop and inline on mobile
+const RESOURCES = [
+  { label: 'Vault Simulator', href: '/vault-simulator', desc: 'Practice before testnet launches' },
+  { label: 'Security', href: '/security', desc: 'Audits, bug bounty, security model' },
+  { label: 'Learn', href: '/learn', desc: 'Cryptography and DeFi concepts' },
+  { label: 'Developers', href: '/developers', desc: 'SDKs, code examples, bounties' },
+  { label: 'Compare', href: '/compare', desc: 'vs Aztec, Railgun, Secret Network' },
+  { label: 'Community', href: '/community', desc: 'Discord, grants, ecosystem' },
+  { label: 'About', href: '/about', desc: 'Mission, team, principles' },
 ]
 
 export function Nav() {
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
+  const [resourcesOpen, setResourcesOpen] = useState(false)
   const { scrollY } = useScroll()
   const openApp = useDemo((s) => s.openApp)
   const { isLaunched } = useLaunchStatus()
@@ -44,7 +56,7 @@ export function Nav() {
         }`}
       >
         <div className="mx-auto max-w-7xl px-5 md:px-8 flex items-center justify-between">
-          <a href="#top" className="flex items-center gap-2.5 group">
+          <a href="/" className="flex items-center gap-2.5 group">
             <div className="relative w-8 h-8 rounded-md overflow-hidden ring-1 ring-vault/40 group-hover:ring-vault transition-all">
               <img
                 src="/images/xelisvault-logo.png"
@@ -68,6 +80,44 @@ export function Nav() {
                 <span className="absolute -bottom-1 left-0 right-0 h-px bg-vault scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
               </a>
             ))}
+
+            {/* Resources dropdown */}
+            <div
+              className="relative"
+              onMouseEnter={() => setResourcesOpen(true)}
+              onMouseLeave={() => setResourcesOpen(false)}
+            >
+              <button
+                className="inline-flex items-center gap-1 text-[13px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Resources
+                <ChevronDown className={`w-3 h-3 transition-transform ${resourcesOpen ? 'rotate-180' : ''}`} />
+              </button>
+              <AnimatePresence>
+                {resourcesOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full right-0 pt-2 w-80"
+                  >
+                    <div className="rounded-2xl glass-panel p-2 shadow-2xl">
+                      {RESOURCES.map((r) => (
+                        <a
+                          key={r.href}
+                          href={r.href}
+                          className="block rounded-xl px-3 py-2.5 hover:bg-card/60 transition-colors"
+                        >
+                          <div className="text-sm font-medium">{r.label}</div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5">{r.desc}</div>
+                        </a>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </nav>
 
           <div className="flex items-center gap-2">
@@ -87,7 +137,7 @@ export function Nav() {
               className="hidden md:inline-flex h-9 items-center gap-2 rounded-full bg-vault px-4 text-[13px] font-semibold text-white hover:bg-vault/85 transition-all hover:shadow-[0_0_24px_-4px_var(--vault)] disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Rocket className="w-3.5 h-3.5" />
-              {isLaunched ? 'Launch App' : 'Delayed'}
+              {isLaunched ? 'Launch App' : 'Aug 30'}
             </button>
             <button
               onClick={() => setOpen(true)}
@@ -106,7 +156,7 @@ export function Nav() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[70] lg:hidden bg-background/95 backdrop-blur-xl"
+            className="fixed inset-0 z-[70] lg:hidden bg-background/95 backdrop-blur-xl overflow-y-auto"
           >
             <div className="flex items-center justify-between px-5 py-5">
               <span className="font-display font-semibold text-[15px]">Menu</span>
@@ -119,6 +169,7 @@ export function Nav() {
               </button>
             </div>
             <nav className="flex flex-col px-5 mt-4">
+              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground/60 mb-2 mt-4">Home sections</div>
               {LINKS.map((l, i) => (
                 <motion.a
                   key={l.href}
@@ -126,13 +177,30 @@ export function Nav() {
                   onClick={() => setOpen(false)}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.05 * i }}
-                  className="py-4 text-2xl font-display font-medium border-b border-border"
+                  transition={{ delay: 0.03 * i }}
+                  className="py-3 text-xl font-display font-medium border-b border-border/60"
                 >
                   {l.label}
                 </motion.a>
               ))}
-              <div className="flex gap-3 mt-8">
+
+              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground/60 mb-2 mt-6">Resources</div>
+              {RESOURCES.map((r, i) => (
+                <motion.a
+                  key={r.href}
+                  href={r.href}
+                  onClick={() => setOpen(false)}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.03 * (i + LINKS.length) }}
+                  className="py-3 border-b border-border/60"
+                >
+                  <div className="text-xl font-display font-medium">{r.label}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{r.desc}</div>
+                </motion.a>
+              ))}
+
+              <div className="flex gap-3 mt-8 mb-12">
                 <a
                   href="https://github.com/XelisVault/xelis-vault"
                   target="_blank"
@@ -146,7 +214,7 @@ export function Nav() {
                   disabled={!isLaunched}
                   className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-vault text-white font-semibold disabled:opacity-40"
                 >
-                  <Rocket className="w-4 h-4" /> {isLaunched ? 'Launch App' : 'Delayed'}
+                  <Rocket className="w-4 h-4" /> {isLaunched ? 'Launch App' : 'Aug 30'}
                 </button>
               </div>
             </nav>

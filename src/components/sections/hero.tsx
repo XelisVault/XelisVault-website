@@ -126,7 +126,7 @@ export function Hero() {
         className="absolute top-24 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full glass-panel px-3.5 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground"
       >
         <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-        v7.0 · Testnet delayed — new target Aug 30
+        v10.2 · Testnet launching August 30
       </motion.div>
 
       {/* Main content */}
@@ -174,7 +174,7 @@ export function Hero() {
             <div className="flex flex-col items-center gap-3">
               <div className="inline-flex h-12 items-center gap-3 rounded-full border border-amber-500/40 bg-amber-500/10 px-6">
                 <AlertCircle className="w-4 h-4 text-amber-400" />
-                <span className="text-sm font-mono text-amber-200">Launch delayed — working on it</span>
+                <span className="text-sm font-mono text-amber-200">Testnet launching August 30</span>
               </div>
               <span className="text-xs text-muted-foreground/60 font-mono">New target: August 30, 2026 · 14:00 UTC</span>
             </div>

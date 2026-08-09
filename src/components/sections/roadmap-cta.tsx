@@ -11,12 +11,13 @@ const MILESTONES = [
   {
     phase: 'Complete',
     status: 'done',
-    title: 'Core Protocol v5.0',
+    title: 'Core Protocol v10.2',
     items: [
-      '33 contracts · 630 entry functions · MIT license',
-      'VaultEngineV3 · VaultSwapV2 · PSM · StakedOracle',
-      '5-tier reputation system + circuit breakers',
-      'Unified miner script + price providers',
+      '46 contracts total · 855+ entry functions · MIT license',
+      '33 core contracts deployed at testnet launch',
+      '13 Phase 5+ contracts written, gated behind governance vote',
+      'VaultEngineV3 confidential mode · StakedOracle v10 · VaultSwapV2',
+      'Progressive slashing · trimmed median · anti-Sybil stake',
     ],
     date: 'Q1–Q2 2026',
   },
@@ -27,22 +28,23 @@ const MILESTONES = [
     items: [
       '15 vulnerabilities fixed (5 critical, 4 high, 4 medium, 2 low)',
       '2-step emergency withdraw on all fund-holding contracts',
-      'Two-layer guardian (EOA + multisig)',
+      'Two-layer guardian (EOA + 3-of-5 multisig)',
       'Reentrancy guard pattern (RG_STATUS_KEY)',
+      '4 additional critical fixes in v5.1 pre-launch review',
     ],
     date: 'Q2 2026',
   },
   {
-    phase: 'Live',
-    status: 'done',
+    phase: 'Planned',
+    status: 'pending',
     title: 'Testnet Deployment',
     items: [
-      'Contracts deployed and verified on testnet',
-      'PriceOracle, VaultEngine, PSM, VaultSwapV2 live',
-      'xUSD stablecoin with full mint→redeem cycle',
-      'Connect your wallet to interact',
+      'Contracts redeployed with v5.1 patches (4 critical fixes)',
+      'XSWD integration rewrite (cross-contract permissions)',
+      'CLI tool + miner script released on GitHub',
+      'Wallet connection — Genesix + local RPC',
     ],
-    date: 'LIVE NOW',
+    date: 'Aug 30, 2026 · 14:00 UTC',
   },
   {
     phase: 'Planned',
@@ -177,7 +179,7 @@ export function CTA() {
         <Reveal>
           <div className="inline-flex items-center gap-2 rounded-full glass-panel px-4 py-1.5 text-xs font-mono uppercase tracking-[0.2em] text-vault mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-vault animate-pulse" />
-            {isLaunched ? 'Testnet is LIVE' : 'Launch delayed — new target Aug 30'}
+            {isLaunched ? 'Testnet is LIVE' : 'Testnet launching August 30, 2026 · 14:00 UTC'}
           </div>
         </Reveal>
 
@@ -210,8 +212,8 @@ export function CTA() {
             ) : (
               <div className="inline-flex h-13 items-center gap-3 rounded-full border border-amber-500/40 bg-amber-500/10 px-8 py-3.5">
                 <AlertCircle className="w-5 h-5 text-amber-400" />
-                <span className="text-base font-semibold text-amber-200">Launch delayed</span>
-                <span className="text-sm font-mono text-amber-300/60">— new target Aug 30</span>
+                <span className="text-base font-semibold text-amber-200">Testnet launching August 30</span>
+                <span className="text-sm font-mono text-amber-300/60">— 14:00 UTC</span>
               </div>
             )}
             <a
@@ -241,14 +243,14 @@ export function CTA() {
             <span className="w-1.5 h-1.5 rounded-full bg-vault animate-pulse" />
             {isLaunched
               ? 'Testnet live · Connect your Xelis wallet to interact with real contracts'
-              : 'We encountered issues with XSWD integration. New target: August 25-30. Thank you for your patience.'}
+              : 'Final integration testing in progress · Testnet launches August 30, 2026 · 14:00 UTC'}
           </div>
         </Reveal>
 
         {/* Quick stats */}
         <RevealStagger className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-px rounded-2xl glass-panel overflow-hidden max-w-4xl mx-auto">
           {[
-            { value: '33', label: 'Smart Contracts' },
+            { value: '46', label: 'Smart Contracts' },
             { value: '14', label: 'Categories' },
             { value: '10M', label: 'VLT Supply' },
             { value: '5s', label: 'Block Time' },
@@ -271,12 +273,56 @@ export function CTA() {
 }
 
 export function Footer() {
+  const columns = [
+    {
+      title: 'Protocol',
+      links: [
+        { label: 'Vision', href: '/#vision' },
+        { label: 'Architecture', href: '/#architecture' },
+        { label: 'xUSD', href: '/#xusd' },
+        { label: 'VLT Token', href: '/#vlt' },
+        { label: 'VaultChat', href: '/#vaultchat' },
+        { label: 'Contracts', href: '/#contracts' },
+      ],
+    },
+    {
+      title: 'Resources',
+      links: [
+        { label: 'Security', href: '/security' },
+        { label: 'Learn', href: '/learn' },
+        { label: 'Developers', href: '/developers' },
+        { label: 'Compare', href: '/compare' },
+        { label: 'Vault Simulator', href: '/vault-simulator' },
+      ],
+    },
+    {
+      title: 'Community',
+      links: [
+        { label: 'Community Hub', href: '/community' },
+        { label: 'About', href: '/about' },
+        { label: 'Discord', href: 'https://discord.gg/UHpYAWbG', ext: true },
+        { label: 'Twitter / X', href: 'https://x.com/xelisvault', ext: true },
+        { label: 'GitHub', href: 'https://github.com/XelisVault/xelis-vault', ext: true },
+      ],
+    },
+    {
+      title: 'Documentation',
+      links: [
+        { label: 'Whitepaper', href: 'https://github.com/XelisVault/xelis-vault/blob/main/docs/WHITEPAPER.md', ext: true },
+        { label: 'Audit Report', href: 'https://github.com/XelisVault/xelis-vault/blob/main/docs/AUDIT.md', ext: true },
+        { label: 'XELIS Docs', href: 'https://docs.xelis.io', ext: true },
+        { label: 'XSWD Protocol', href: 'https://docs.xelis.io/features/wallet/xswd', ext: true },
+        { label: 'Silex Language', href: 'https://docs.xelis.io/features/smart-contracts/silex', ext: true },
+      ],
+    },
+  ]
+
   return (
     <footer className="relative border-t border-border bg-background">
       <div className="max-w-7xl mx-auto px-5 md:px-8 py-16">
-        <div className="grid md:grid-cols-[1.5fr_1fr_1fr_1fr] gap-10">
+        <div className="grid grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_1fr_1fr] gap-10">
           {/* Brand */}
-          <div>
+          <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2.5">
               <QuestLogoTrigger />
               <span className="font-display font-semibold text-base tracking-tight">
@@ -305,38 +351,14 @@ export function Footer() {
                 </a>
               ))}
             </div>
+            <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-vault/10 border border-vault/30 px-3 py-1.5 text-xs font-mono text-vault">
+              <span className="w-1.5 h-1.5 rounded-full bg-vault animate-pulse" />
+              Built on XELIS BlockDAG
+            </div>
           </div>
 
-          {/* Links */}
-          {[
-            {
-              title: 'Protocol',
-              links: [
-                { label: 'Vision', href: '#vision' },
-                { label: 'Architecture', href: '#architecture' },
-                { label: 'xUSD', href: '#xusd' },
-                { label: 'VLT Token', href: '#vlt' },
-              ],
-            },
-            {
-              title: 'Resources',
-              links: [
-                { label: 'GitHub', href: 'https://github.com/XelisVault/xelis-vault', ext: true },
-                { label: 'Whitepaper', href: 'https://github.com/XelisVault/xelis-vault/blob/main/docs/WHITEPAPER.md', ext: true },
-                { label: 'Audit Report', href: 'https://github.com/XelisVault/xelis-vault/blob/main/docs/AUDIT.md', ext: true },
-                { label: 'Roadmap', href: '#roadmap' },
-              ],
-            },
-            {
-              title: 'Community',
-              links: [
-                { label: 'Discord', href: 'https://discord.gg/UHpYAWbG', ext: true },
-                { label: 'Twitter / X', href: 'https://x.com/xelisvault', ext: true },
-                { label: 'XELIS BlockDAG', href: 'https://xelis.io', ext: true },
-                { label: 'XELIS Docs', href: 'https://docs.xelis.io', ext: true },
-              ],
-            },
-          ].map((col, i) => (
+          {/* Link columns */}
+          {columns.map((col, i) => (
             <div key={`footer-link-${i}`}>
               <div className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
                 {col.title}
@@ -363,12 +385,10 @@ export function Footer() {
         {/* Bottom */}
         <div className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="text-xs text-muted-foreground font-mono">
-            © 2026 XELIS Vault · MIT · Confidential Finance for the Privacy Era
+            © 2026 XELIS Vault · MIT License · Confidential Finance for the Privacy Era
           </div>
-          <div className="text-xs text-muted-foreground">
-            <span className="font-mono">
-              Testnet contracts deployed. App launches August 25-30, 2026.
-            </span>
+          <div className="text-xs text-muted-foreground font-mono">
+            Testnet launch: August 30, 2026 · 14:00 UTC
           </div>
         </div>
       </div>
