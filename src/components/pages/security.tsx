@@ -100,13 +100,13 @@ const BOUNTY_TIERS = [
   },
   {
     severity: 'High',
-    reward: 'Up to 25,000 VLT',
+    reward: 'Up to 30,000 VLT',
     description: 'Partial theft of funds, governance attack vectors, bypass of the 2-step emergency withdraw, breaking of the reentrancy guard.',
     color: 'orange',
   },
   {
     severity: 'Medium',
-    reward: 'Up to 10,000 VLT',
+    reward: 'Up to 15,000 VLT',
     description: 'Denial of service, information disclosure across encrypted balances, minor fund loss through edge-case rounding.',
     color: 'amber',
   },
@@ -316,10 +316,10 @@ export function SecurityPage() {
                   Bug bounty program
                 </h2>
               </div>
-              <p className="text-sm text-muted-foreground max-w-2xl">
-                Up to 50,000 VLT for critical findings. Open to everyone. Payouts are made on mainnet
-                launch. Responsible disclosure only — public disclosure of an unpatched vulnerability
-                voids the bounty.
+              <p className="mt-8 text-sm text-muted-foreground leading-relaxed">
+                Up to 50,000 VLT for critical findings. Total allocation: 100,000 VLT (1% of fixed supply),
+                split 50% critical / 30% high / 15% medium / 5% low, distributed over 2 years on Immunefi.
+                Responsible disclosure only — public disclosure of an unpatched vulnerability voids the bounty.
               </p>
             </Reveal>
 
@@ -350,13 +350,13 @@ export function SecurityPage() {
               <div className="mt-8 rounded-2xl glass-panel p-6">
                 <h3 className="font-display text-lg font-semibold">Report a vulnerability</h3>
                 <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                  Email <a href="mailto:security@xelisvault.com" className="text-vault hover:underline">security@xelisvault.com</a> with a
+                  Email <a href="mailto:xelisvault@protonmail.org" className="text-vault hover:underline">xelisvault@protonmail.org</a> with a
                   detailed writeup and proof of concept. We acknowledge every report within 48 hours.
                   PGP-encrypted reports are preferred.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3">
                   <a
-                    href="mailto:security@xelisvault.com"
+                    href="mailto:xelisvault@protonmail.org"
                     className="inline-flex h-10 items-center gap-2 rounded-full bg-vault px-5 text-sm font-semibold text-white hover:bg-vault/85 transition-all"
                   >
                     <Mail className="w-4 h-4" />

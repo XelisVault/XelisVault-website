@@ -1,10 +1,22 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ArrowLeft, Check, X, AlertCircle, FileText } from 'lucide-react'
+import { ArrowLeft, AlertCircle, FileText } from 'lucide-react'
 import { Nav } from '@/components/site/nav'
 import { Footer } from '@/components/sections/roadmap-cta'
 import { Reveal, SectionLabel } from '@/components/site/reveal'
+
+// Important: XELIS Vault is a DeFi protocol, NOT a blockchain.
+// It is built ON the XELIS BlockDAG (the L1 chain).
+// This comparison compares the XELIS ECOSYSTEM (chain + Vault DeFi suite)
+// against other privacy-focused DeFi ecosystems.
+//
+// Sources:
+//  - XELIS: https://xelis.io, https://docs.xelis.io
+//  - XELIS Vault whitepaper: https://github.com/XelisVault/xelis-vault/blob/main/docs/WHITEPAPER.md
+//  - Aztec: https://aztec.network (zk-rollup L2 on Ethereum)
+//  - Railgun: https://railgun.org (privacy protocol on Ethereum/BNB/Polygon)
+//  - Secret Network: https://scrt.network (L1 with SGX-based privacy)
 
 interface Row {
   feature: string
@@ -16,20 +28,28 @@ interface Row {
 }
 
 const ROWS: Row[] = [
-  { feature: 'Privacy level', xelis: 'Full (default)', aztec: 'Full (opt-in)', railgun: 'Full (opt-in)', secret: 'Partial', xelisHighlight: true },
-  { feature: 'Native encryption', xelis: 'Twisted ElGamal', aztec: 'No (zk-snark)', railgun: 'No (zk-snark)', secret: 'AES + SGX', xelisHighlight: true },
-  { feature: 'Block time', xelis: '5s', aztec: '12s', railgun: '12s (host chain)', secret: '6s' },
-  { feature: 'Smart contracts', xelis: 'Silex (Turing-complete)', aztec: 'Noir (zk-circuits)', railgun: 'Cairo (zk-circuits)', secret: 'CosmWasm (Rust)' },
-  { feature: 'Oracle system', xelis: 'StakedOracle (5-tier reputation)', aztec: 'None native', railgun: 'None native', secret: 'Band Protocol', xelisHighlight: true },
-  { feature: 'AMM with MEV protection', xelis: 'VaultSwapV2', aztec: 'L2 sequencer', railgun: 'L2 host', secret: 'No' },
-  { feature: 'Native stablecoin', xelis: 'xUSD (PSM + collateralized)', aztec: 'No', railgun: 'No', secret: 'No', xelisHighlight: true },
-  { feature: 'Governance', xelis: 'On-chain VLT + Timelock', aztec: 'Off-chain', railgun: 'Off-chain', secret: 'On-chain (SCRT)' },
-  { feature: 'Encrypted messaging', xelis: 'VaultChat (E2E)', aztec: 'No', railgun: 'No', secret: 'No', xelisHighlight: true },
-  { feature: 'Privacy mixer', xelis: 'Native ZK denominations', aztec: 'No', railgun: 'Native', secret: 'No' },
-  { feature: 'Token supply', xelis: '10M fixed', aztec: 'Variable', railgun: 'Variable', secret: 'Variable', xelisHighlight: true },
-  { feature: 'Deflationary mechanism', xelis: '3 burn vectors', aztec: 'No', railgun: 'No', secret: 'No', xelisHighlight: true },
-  { feature: 'Open source license', xelis: 'MIT', aztec: 'BSL', railgun: 'BSL', secret: 'MIT' },
-  { feature: 'VC funding', xelis: 'None', aztec: 'a16z, Paradigm', railgun: 'Digital Currency Group', secret: 'Multiple VCs', xelisHighlight: true },
+  // Chain-level comparison
+  { feature: 'Type', xelis: 'L1 BlockDAG', aztec: 'L2 zk-rollup (Ethereum)', railgun: 'Privacy protocol (on Ethereum/BNB/Polygon)', secret: 'L1 blockchain (Cosmos SDK)' },
+  { feature: 'Privacy mechanism', xelis: 'Native Twisted ElGamal homomorphic encryption', aztec: 'zk-SNARKs (client-side proving)', railgun: 'zk-SNARKs (client-side proving)', secret: 'Trusted execution environment (Intel SGX)', xelisHighlight: true },
+  { feature: 'Block time', xelis: '5s', aztec: '~12s (L1 settles slower)', railgun: '= host chain (~12s on Ethereum)', secret: '~6s' },
+  { feature: 'Smart contracts', xelis: 'Silex (Turing-complete, native)', aztec: 'Noir (zk-circuits)', railgun: 'Cairo (zk-circuits, limited)', secret: 'CosmWasm (Rust)' },
+  { feature: 'Trust assumption', xelis: 'None (cryptographic)', aztec: 'None (zk proofs)', railgun: 'None (zk proofs)', secret: 'Intel SGX hardware trust' },
+
+  // DeFi ecosystem comparison (what XELIS Vault provides on XELIS)
+  { feature: 'CDP stablecoin (xUSD)', xelis: 'Yes (VaultEngine + PSM)', aztec: 'No native', railgun: 'No native', secret: 'No native', xelisHighlight: true },
+  { feature: 'AMM with MEV protection', xelis: 'VaultSwapV2 (TWAP + vol fees)', aztec: 'L2 sequencer (single block)', railgun: 'L2 host', secret: 'No native AMM' },
+  { feature: 'Decentralized oracle', xelis: 'StakedOracle (5-tier reputation, slashing)', aztec: 'No native', railgun: 'No native', secret: 'Band Protocol (external)', xelisHighlight: true },
+  { feature: 'Encrypted messaging', xelis: 'VaultChat (E2E, Merkle anchoring)', aztec: 'No', railgun: 'No', secret: 'No', xelisHighlight: true },
+  { feature: 'Privacy mixer', xelis: 'PrivacyMixer (native ZK)', aztec: 'Native (shielded addresses)', railgun: 'Native (shielded pools)', secret: 'No native' },
+  { feature: 'Governance', xelis: 'On-chain VLT + 48h Timelock', aztec: 'Off-chain', railgun: 'Off-chain (DAO)', secret: 'On-chain (SCRT staking)' },
+
+  // Tokenomics
+  { feature: 'Governance token supply', xelis: 'VLT — 10M fixed', aztec: 'Variable', railgun: 'RAIL — variable', secret: 'SCRT — variable', xelisHighlight: true },
+  { feature: 'Deflationary mechanism', xelis: '3 burn vectors (slash + fees + governance)', aztec: 'No', railgun: 'No', secret: 'No', xelisHighlight: true },
+
+  // Project
+  { feature: 'Open source license', xelis: 'MIT', aztec: 'BSL (source-available)', railgun: 'BSL (source-available)', secret: 'MIT' },
+  { feature: 'Funding model', xelis: 'No VC, team 10% transparent vesting', aztec: 'VC-backed (a16z, Paradigm)', railgun: 'VC-backed (DCG)', secret: 'VC-backed (multiple)', xelisHighlight: true },
 ]
 
 function Cell({ value, highlight }: { value: string; highlight?: boolean }) {
@@ -63,29 +83,53 @@ export function ComparePage() {
           </Reveal>
           <Reveal delay={0.1}>
             <h1 className="mt-6 font-display text-4xl md:text-6xl font-semibold tracking-[-0.03em] leading-[1]">
-              Why XELIS Vault,
+              XELIS ecosystem
               <br />
-              <span className="text-gradient-vault">and not the others.</span>
+              <span className="text-gradient-vault">vs the alternatives.</span>
             </h1>
           </Reveal>
           <Reveal delay={0.2}>
             <p className="mt-6 text-lg text-muted-foreground leading-relaxed max-w-3xl">
-              Privacy in DeFi is not a single feature — it is a stack. Native encryption, an oracle
-              that respects confidentiality, an AMM that cannot be sandwiched, a stablecoin that
-              holds its peg without leaking your balance, and governance that does not require you to
-              reveal your votes. Here is how XELIS Vault stacks up against the alternatives.
+              <strong className="text-foreground">Important:</strong> XELIS Vault is a DeFi protocol,
+              not a blockchain. It runs on the <strong className="text-foreground">XELIS BlockDAG</strong>{' '}
+              (an L1 with native Twisted ElGamal encryption). The comparison below covers both the chain
+              layer and the DeFi ecosystem built on top — because privacy in DeFi requires both.
             </p>
           </Reveal>
 
-          {/* Comparison table */}
+          {/* What XELIS Vault IS vs IS NOT */}
           <Reveal delay={0.3}>
-            <div className="mt-12 rounded-2xl glass-panel overflow-hidden">
+            <div className="mt-8 rounded-xl border border-vault/30 bg-vault/5 p-5">
+              <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="text-xs font-mono uppercase tracking-wider text-vault mb-1">XELIS Vault IS</div>
+                  <ul className="space-y-1 text-muted-foreground">
+                    <li>· A DeFi protocol suite (46 Silex contracts)</li>
+                    <li>· Built on top of the XELIS BlockDAG</li>
+                    <li>· CDP stablecoin, AMM, oracle, governance, chat, mixer</li>
+                  </ul>
+                </div>
+                <div>
+                  <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-1">XELIS Vault IS NOT</div>
+                  <ul className="space-y-1 text-muted-foreground">
+                    <li>· A blockchain (that is XELIS)</li>
+                    <li>· A wallet (that is Genesix)</li>
+                    <li>· A token (the tokens are VLT and xUSD)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </Reveal>
+
+          {/* Comparison table */}
+          <Reveal delay={0.4}>
+            <div className="mt-8 rounded-2xl glass-panel overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px]">
+                <table className="w-full min-w-[820px]">
                   <thead>
                     <tr className="border-b border-border">
                       <th className="px-4 py-4 text-left text-xs font-mono uppercase tracking-wider text-muted-foreground">Feature</th>
-                      <th className="px-4 py-4 text-left text-xs font-mono uppercase tracking-wider text-vault bg-vault/5">XELIS Vault</th>
+                      <th className="px-4 py-4 text-left text-xs font-mono uppercase tracking-wider text-vault bg-vault/5">XELIS ecosystem</th>
                       <th className="px-4 py-4 text-left text-xs font-mono uppercase tracking-wider text-muted-foreground">Aztec</th>
                       <th className="px-4 py-4 text-left text-xs font-mono uppercase tracking-wider text-muted-foreground">Railgun</th>
                       <th className="px-4 py-4 text-left text-xs font-mono uppercase tracking-wider text-muted-foreground">Secret Network</th>
@@ -108,28 +152,28 @@ export function ComparePage() {
           </Reveal>
 
           {/* Caveat / honesty */}
-          <Reveal delay={0.4}>
+          <Reveal delay={0.5}>
             <div className="mt-8 rounded-xl border border-border bg-card/30 p-4 flex items-start gap-3">
               <AlertCircle className="w-4 h-4 text-vault shrink-0 mt-0.5" />
               <div className="text-xs text-muted-foreground leading-relaxed">
                 <strong className="text-foreground">A note on fairness.</strong> Aztec, Railgun, and
                 Secret Network are all genuinely good projects pushing privacy forward. They each
                 chose different tradeoffs — Aztec on Ethereum L2, Railgun as a privacy overlay, Secret
-                on a Tendermint chain with SGX. XELIS Vault chose to build on a layer-1 with native
-                homomorphic encryption, which lets us offer default-private smart contracts without
-                SGX trust assumptions or L2 sequencer risk. The right tool depends on your threat
-                model. We encourage you to read each project&apos;s documentation before deciding.
+                on a Tendermint chain with SGX. XELIS chose to build a layer-1 with native homomorphic
+                encryption, which lets XELIS Vault offer default-private smart contracts without SGX
+                trust assumptions or L2 sequencer risk. The right tool depends on your threat model.
+                We encourage you to read each project&apos;s documentation before deciding.
               </div>
             </div>
           </Reveal>
 
           {/* Deep dive CTA */}
-          <Reveal delay={0.5}>
+          <Reveal delay={0.6}>
             <div className="mt-12 rounded-2xl glass-panel p-8 text-center">
               <h2 className="font-display text-2xl font-semibold">Want the technical deep dive?</h2>
               <p className="mt-3 text-sm text-muted-foreground max-w-xl mx-auto">
-                The whitepaper covers the cryptographic primitives, the threat model, and the
-                comparative analysis against each of the projects above.
+                The XELIS Vault whitepaper covers the cryptographic primitives, the threat model, and
+                the comparative analysis against each of the projects above.
               </p>
               <a
                 href="https://github.com/XelisVault/xelis-vault/blob/main/docs/WHITEPAPER.md"

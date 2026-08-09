@@ -6,100 +6,61 @@ import {
   MessageCircle,
   Twitter,
   Github,
-  Star,
-  Users,
-  Sparkles,
   ExternalLink,
-  Trophy,
   Wrench,
+  Globe,
 } from 'lucide-react'
 import { Nav } from '@/components/site/nav'
 import { Footer } from '@/components/sections/roadmap-cta'
-import { Reveal, RevealStagger, RevealItem, SectionLabel } from '@/components/site/reveal'
+import { Reveal, SectionLabel } from '@/components/site/reveal'
 
 const CHANNELS = [
   {
     icon: MessageCircle,
     label: 'Discord',
-    value: '1,247',
-    sublabel: 'members',
     href: 'https://discord.gg/UHpYAWbG',
-    color: 'text-[#5865F2]',
+    desc: 'Real-time chat, support, and announcements',
   },
   {
     icon: Twitter,
     label: 'Twitter / X',
-    value: '5,420',
-    sublabel: 'followers',
     href: 'https://x.com/xelisvault',
-    color: 'text-foreground',
+    desc: 'Public updates and testnet launch alerts',
   },
   {
-    icon: Users,
-    label: 'GitHub contributors',
-    value: '23',
-    sublabel: 'committers',
+    icon: Github,
+    label: 'GitHub',
     href: 'https://github.com/XelisVault/xelis-vault',
-    color: 'text-foreground',
+    desc: 'Source code, issues, pull requests',
   },
   {
-    icon: Star,
-    label: 'GitHub stars',
-    value: '892',
-    sublabel: 'stargazers',
-    href: 'https://github.com/XelisVault/xelis-vault',
-    color: 'text-amber-400',
+    icon: Globe,
+    label: 'XELIS Blockchain',
+    href: 'https://xelis.io',
+    desc: 'The underlying BlockDAG chain',
   },
 ]
 
-const GRANTS = [
+const REAL_RESOURCES = [
   {
-    title: 'Build a frontend',
-    reward: '50,000 VLT',
-    description: 'Create an alternative React/Next.js frontend for XELIS Vault. Must support all 10 modules.',
-    skills: 'React · TypeScript · XELIS RPC',
+    title: 'Protocol repository',
+    desc: '46 Silex contracts, whitepaper, audit report, CLI tools',
+    href: 'https://github.com/XelisVault/xelis-vault',
   },
   {
-    title: 'Analytics dashboard',
-    reward: '75,000 VLT',
-    description: 'Build a Dune-like analytics platform indexing encrypted events from the chain.',
-    skills: 'Indexer · SQL · Recharts',
+    title: 'Testnet explorer',
+    desc: 'Live blocks, transactions, and contract calls',
+    href: 'https://testnet-explorer.xelis.io/',
   },
   {
-    title: 'Mobile companion app',
-    reward: '100,000 VLT',
-    description: 'Native iOS/Android app for read-only vault monitoring and push notifications.',
-    skills: 'React Native · Push API',
+    title: 'XELIS documentation',
+    desc: 'BlockDAG, XSWD wallet protocol, Silex language guide',
+    href: 'https://docs.xelis.io',
   },
   {
-    title: 'Educational content',
-    reward: '25,000 VLT',
-    description: 'Create tutorials, video walkthroughs, and articles explaining confidential DeFi.',
-    skills: 'Writing · Video · Teaching',
-  },
-]
-
-const PROJECTS = [
-  {
-    name: 'VaultStats',
-    description: 'Real-time TVL, volume, and health-factor analytics for XELIS Vault.',
-    author: '@builder1',
-    status: 'Live',
-    href: '#',
-  },
-  {
-    name: 'VaultBot',
-    description: 'Telegram bot for vault monitoring and liquidation alerts.',
-    author: '@builder2',
-    status: 'Beta',
-    href: '#',
-  },
-  {
-    name: 'VaultAcademy',
-    description: 'Interactive learning platform for privacy-preserving DeFi concepts.',
-    author: '@builder3',
-    status: 'In progress',
-    href: '#',
+    title: 'Genesix wallet',
+    desc: 'Official XELIS desktop wallet (needed to connect to the dApp)',
+    href: 'https://github.com/xelis-project/xelis-genesix-wallet',
   },
 ]
 
@@ -131,136 +92,115 @@ export function CommunityPage() {
           <Reveal delay={0.2}>
             <p className="mt-6 text-lg text-muted-foreground leading-relaxed max-w-3xl">
               XELIS Vault is community-owned and community-built. No VC allocation, no insider
-              presale, no closed-door decisions. Every VLT in circulation is earned through mining,
-              airdropped to active community members, or distributed through the grants program
-              below. Pick a channel and join us.
+              presale. Pick a channel below and join us — the team is most active on Discord.
             </p>
           </Reveal>
 
-          {/* Channels */}
+          {/* Channels — NO fake member counts */}
           <section className="mt-16">
             <Reveal>
               <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">Join the community</h2>
             </Reveal>
-            <RevealStagger className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="mt-8 grid sm:grid-cols-2 gap-4">
               {CHANNELS.map((c) => (
-                <RevealItem key={c.label}>
+                <Reveal key={c.label}>
                   <a
                     href={c.href}
                     target="_blank"
                     rel="noreferrer"
                     className="block rounded-2xl glass-panel p-6 hover:border-vault/40 hover:bg-card/60 transition-all"
                   >
-                    <c.icon className={`w-6 h-6 ${c.color}`} />
-                    <div className="mt-4 font-display text-2xl md:text-3xl font-semibold text-gradient-vault tabular-nums">
-                      {c.value}
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-vault/10 border border-vault/30 flex items-center justify-center">
+                        <c.icon className="w-5 h-5 text-vault" />
+                      </div>
+                      <div>
+                        <div className="font-display text-lg font-semibold">{c.label}</div>
+                        <div className="text-xs font-mono text-muted-foreground/70">external link</div>
+                      </div>
                     </div>
-                    <div className="mt-1 text-xs font-mono uppercase tracking-wider text-muted-foreground">
-                      {c.sublabel}
-                    </div>
-                    <div className="mt-3 text-sm font-medium">{c.label}</div>
+                    <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{c.desc}</p>
                   </a>
-                </RevealItem>
+                </Reveal>
               ))}
-            </RevealStagger>
+            </div>
           </section>
 
-          {/* Grants */}
+          {/* Real resources — replaces fake grants + fake ecosystem projects */}
           <section className="mt-20">
             <Reveal>
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-vault" />
-                <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">Grants program</h2>
-              </div>
+              <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">Resources</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                500,000 VLT reserved for builders. Apply on Discord with a 1-page proposal.
+                Verified links to the actual protocol ecosystem.
               </p>
             </Reveal>
-
-            <RevealStagger className="mt-8 grid sm:grid-cols-2 gap-4">
-              {GRANTS.map((g) => (
-                <RevealItem key={g.title}>
-                  <motion.div whileHover={{ y: -4 }} className="rounded-2xl glass-panel p-6 h-full flex flex-col">
+            <div className="mt-8 grid sm:grid-cols-2 gap-4">
+              {REAL_RESOURCES.map((r, i) => (
+                <Reveal key={r.title} delay={0.05 * i}>
+                  <a
+                    href={r.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block rounded-2xl glass-panel p-6 hover:border-vault/40 hover:bg-card/60 transition-all h-full"
+                  >
                     <div className="flex items-start justify-between gap-3">
-                      <h3 className="font-display text-lg font-semibold">{g.title}</h3>
-                      <span className="shrink-0 inline-flex items-center rounded-full bg-vault/10 border border-vault/30 px-3 py-1 text-xs font-mono text-vault">
-                        {g.reward}
-                      </span>
+                      <h3 className="font-display text-lg font-semibold">{r.title}</h3>
+                      <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
                     </div>
-                    <p className="mt-3 text-sm text-muted-foreground leading-relaxed flex-1">{g.description}</p>
-                    <div className="mt-4 text-[11px] font-mono text-muted-foreground/70">{g.skills}</div>
-                  </motion.div>
-                </RevealItem>
+                    <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{r.desc}</p>
+                  </a>
+                </Reveal>
               ))}
-            </RevealStagger>
-
-            <Reveal delay={0.3}>
-              <a
-                href="https://discord.gg/UHpYAWbG"
-                target="_blank"
-                rel="noreferrer"
-                className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-vault px-6 text-sm font-semibold text-white hover:bg-vault/85 transition-all hover:shadow-[0_0_24px_-4px_var(--vault)]"
-              >
-                <Sparkles className="w-4 h-4" />
-                Apply on Discord
-                <ExternalLink className="w-3 h-3 opacity-50" />
-              </a>
-            </Reveal>
+            </div>
           </section>
 
-          {/* Built on XELIS Vault */}
+          {/* Build with us — honest framing, no fake bounty amounts */}
           <section className="mt-20">
             <Reveal>
               <div className="flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-vault" />
-                <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">Built on XELIS Vault</h2>
+                <Wrench className="w-5 h-5 text-vault" />
+                <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">Build on XELIS Vault</h2>
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Projects shipping on top of the protocol. Submit yours on Discord to be featured here.
+              <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
+                The protocol is MIT-licensed and every contract is open source. If you are building
+                something on top — a frontend, an indexer, a mobile app, a bot — let us know on
+                Discord. We feature community projects here as they ship.
               </p>
             </Reveal>
 
-            <RevealStagger className="mt-8 grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {PROJECTS.map((p) => (
-                <RevealItem key={p.name}>
-                  <motion.div whileHover={{ y: -4 }} className="rounded-2xl glass-panel p-6 h-full flex flex-col">
-                    <div className="flex items-start justify-between">
-                      <h3 className="font-display text-lg font-semibold">{p.name}</h3>
-                      <span className={`text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full border ${
-                        p.status === 'Live'
-                          ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5'
-                          : p.status === 'Beta'
-                          ? 'border-amber-500/30 text-amber-400 bg-amber-500/5'
-                          : 'border-border text-muted-foreground bg-card/30'
-                      }`}>
-                        {p.status}
-                      </span>
-                    </div>
-                    <p className="mt-3 text-sm text-muted-foreground leading-relaxed flex-1">{p.description}</p>
-                    <div className="mt-4 text-xs font-mono text-muted-foreground/70">by {p.author}</div>
-                  </motion.div>
-                </RevealItem>
-              ))}
-            </RevealStagger>
-
-            <Reveal delay={0.3}>
-              <div className="mt-8 rounded-2xl border border-dashed border-border p-6 text-center">
-                <Wrench className="w-5 h-5 text-muted-foreground mx-auto" />
-                <p className="mt-3 text-sm text-muted-foreground">
-                  Building something on XELIS Vault? Let us know — we feature community projects every week.
+            <Reveal delay={0.2}>
+              <div className="mt-6 rounded-2xl border border-dashed border-border p-8 text-center">
+                <Wrench className="w-6 h-6 text-muted-foreground mx-auto" />
+                <p className="mt-4 text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
+                  No community projects to showcase yet — the testnet has not launched. After August 30,
+                  this section will list real projects built by real community members, submitted via
+                  Discord and verified before publication.
                 </p>
                 <a
                   href="https://discord.gg/UHpYAWbG"
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-4 inline-flex h-10 items-center gap-2 rounded-full border border-border bg-card/40 hover:bg-card/80 hover:border-vault/40 px-5 text-sm font-medium transition-all"
+                  className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-vault px-6 text-sm font-semibold text-white hover:bg-vault/85 transition-all hover:shadow-[0_0_24px_-4px_var(--vault)]"
                 >
-                  Submit your project
+                  <MessageCircle className="w-4 h-4" />
+                  Join the Discord
                   <ExternalLink className="w-3 h-3 opacity-50" />
                 </a>
               </div>
             </Reveal>
           </section>
+
+          {/* Contact */}
+          <Reveal>
+            <div className="mt-20 rounded-2xl glass-panel p-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                For partnerships, press, or private enquiries:{' '}
+                <a href="mailto:xelisvault@protonmail.org" className="text-vault hover:underline font-mono">
+                  xelisvault@protonmail.org
+                </a>
+              </p>
+            </div>
+          </Reveal>
         </div>
       </main>
 

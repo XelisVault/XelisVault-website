@@ -108,12 +108,9 @@ await wallet.sendTransaction(tx)`,
   },
 ]
 
-const BOUNTIES = [
-  { title: 'Build an alternative React frontend', reward: '50,000 VLT', skills: 'React · TypeScript' },
-  { title: 'Create a mobile companion app', reward: '100,000 VLT', skills: 'React Native' },
-  { title: 'Write an integration test suite', reward: '25,000 VLT', skills: 'Rust · Silex' },
-  { title: 'Indexer for encrypted events', reward: '75,000 VLT', skills: 'Indexer · SQL' },
-]
+// No fabricated bounties. The only real bounty program is the security bug bounty
+// on /security — 100,000 VLT total, 1% of supply, on Immunefi.
+// If the team opens developer grants later, they will be announced on Discord.
 
 export function DevelopersPage() {
   return (
@@ -234,79 +231,66 @@ export function DevelopersPage() {
             </div>
           </section>
 
-          {/* Hackathons / events */}
+          {/* Hackathons & events — honest: nothing scheduled yet */}
           <section className="mt-20">
             <Reveal>
               <div className="flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-vault" />
                 <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">Hackathons &amp; events</h2>
               </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Nothing scheduled yet. After testnet launch, hackathons and developer calls will be
+                announced on Discord first.
+              </p>
             </Reveal>
-            <RevealStagger className="mt-8 grid sm:grid-cols-2 gap-4">
-              <RevealItem>
-                <div className="rounded-2xl border border-vault/30 bg-vault/5 p-6 h-full">
-                  <div className="text-xs font-mono uppercase tracking-wider text-vault">Q4 2026</div>
-                  <h3 className="mt-2 font-display text-lg font-semibold">First XELIS Vault hackathon</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">Prize pool: 200,000 VLT</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Tracks: Frontend, Analytics, Mobile, Privacy</p>
-                  <a href="https://discord.gg/UHpYAWbG" target="_blank" rel="noreferrer" className="mt-4 inline-flex h-9 items-center gap-2 rounded-full bg-vault px-4 text-xs font-semibold text-white hover:bg-vault/85 transition-all">
-                    Register on Discord <ArrowUpRight className="w-3 h-3 opacity-50" />
-                  </a>
-                </div>
-              </RevealItem>
-              <RevealItem>
-                <div className="rounded-2xl glass-panel p-6 h-full">
-                  <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Monthly</div>
-                  <h3 className="mt-2 font-display text-lg font-semibold">Developer calls</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">First Thursday of every month, 16:00 UTC</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Open agenda. Anyone can join.</p>
-                  <a href="https://discord.gg/UHpYAWbG" target="_blank" rel="noreferrer" className="mt-4 inline-flex h-9 items-center gap-2 rounded-full border border-border bg-card/40 hover:bg-card/80 hover:border-vault/40 px-4 text-xs font-medium transition-all">
-                    Get the calendar link <ArrowUpRight className="w-3 h-3 opacity-50" />
-                  </a>
-                </div>
-              </RevealItem>
-            </RevealStagger>
+            <Reveal delay={0.1}>
+              <div className="mt-6 rounded-2xl border border-dashed border-border p-6 text-center">
+                <Calendar className="w-6 h-6 text-muted-foreground mx-auto" />
+                <p className="mt-3 text-sm text-muted-foreground max-w-md mx-auto">
+                  No hackathons or developer calls are scheduled right now. Join the Discord to be
+                  notified when the first events are announced.
+                </p>
+                <a
+                  href="https://discord.gg/UHpYAWbG"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-5 inline-flex h-10 items-center gap-2 rounded-full border border-border bg-card/40 hover:bg-card/80 hover:border-vault/40 px-5 text-sm font-medium transition-all"
+                >
+                  Join Discord for event updates
+                  <ArrowUpRight className="w-3 h-3 opacity-50" />
+                </a>
+              </div>
+            </Reveal>
           </section>
 
-          {/* Bounties */}
+          {/* Security bug bounty — real, points to /security */}
           <section className="mt-20">
             <Reveal>
               <div className="flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-vault" />
-                <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">Open bounties</h2>
+                <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">Bug bounty program</h2>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                Paid in VLT on mainnet launch. Claim on Discord with a 1-page proposal.
+                The only active bounty program right now is the security bug bounty. 100,000 VLT
+                total (1% of fixed supply), split 50% critical / 30% high / 15% medium / 5% low,
+                running on Immunefi for 2 years.
               </p>
             </Reveal>
             <Reveal delay={0.1}>
-              <div className="mt-8 rounded-2xl glass-panel overflow-hidden">
-                <div className="divide-y divide-border">
-                  {BOUNTIES.map((b) => (
-                    <div key={b.title} className="flex items-center justify-between gap-4 p-5 hover:bg-card/30 transition-colors">
-                      <div className="min-w-0">
-                        <div className="font-medium text-sm">{b.title}</div>
-                        <div className="mt-0.5 text-[11px] font-mono text-muted-foreground/70">{b.skills}</div>
-                      </div>
-                      <span className="shrink-0 inline-flex items-center rounded-full bg-vault/10 border border-vault/30 px-3 py-1 text-xs font-mono text-vault">
-                        {b.reward}
-                      </span>
-                    </div>
-                  ))}
+              <div className="mt-6 rounded-2xl glass-panel p-6 flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <h3 className="font-display text-lg font-semibold">Security bug bounty</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Up to 50,000 VLT per critical finding · responsible disclosure only
+                  </p>
                 </div>
+                <a
+                  href="/security"
+                  className="inline-flex h-11 items-center gap-2 rounded-full bg-vault px-6 text-sm font-semibold text-white hover:bg-vault/85 transition-all hover:shadow-[0_0_24px_-4px_var(--vault)]"
+                >
+                  View bounty details
+                </a>
               </div>
-            </Reveal>
-            <Reveal delay={0.2}>
-              <a
-                href="https://discord.gg/UHpYAWbG"
-                target="_blank"
-                rel="noreferrer"
-                className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-vault px-6 text-sm font-semibold text-white hover:bg-vault/85 transition-all hover:shadow-[0_0_24px_-4px_var(--vault)]"
-              >
-                <Wrench className="w-4 h-4" />
-                Claim a bounty
-                <ArrowUpRight className="w-3 h-3 opacity-50" />
-              </a>
             </Reveal>
           </section>
         </div>

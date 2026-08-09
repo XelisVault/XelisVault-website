@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ArrowLeft, Code, Vote, Eye, Ban, Mail, Shield, Handshake, Newspaper, Heart } from 'lucide-react'
+import { ArrowLeft, Code, Vote, Eye, Ban, Mail, Heart } from 'lucide-react'
 import { Nav } from '@/components/site/nav'
 import { Footer } from '@/components/sections/roadmap-cta'
 import { Reveal, RevealStagger, RevealItem, SectionLabel } from '@/components/site/reveal'
@@ -27,24 +27,16 @@ const PRINCIPLES = [
   },
   {
     icon: Ban,
-    title: 'No VC funding, no presale, no insiders',
+    title: 'No VC funding, no presale',
     description:
-      'XELIS Vault has no investors, no allocation to the team that vests behind closed doors, no pre-sale to selected friends. The 10M VLT supply is fully distributed through mining, community airdrops, and protocol incentives. The team holds VLT only by buying it on the open market or earning it through mining.',
+      'XELIS Vault has no venture investors and no pre-sale to selected friends. The founding team holds 10% (1,000,000 VLT, 4-year vesting with 1-year cliff), transparently disclosed on-chain at deployment. The remaining 90% is distributed through mining rewards (60%), DEX liquidity (12%), treasury (10%), community airdrops (7%), and the bug bounty (1%).',
   },
 ]
 
-const TEAM_STATS = [
-  { value: '5', label: 'Core developers', note: 'anonymous, GitHub-verified' },
-  { value: '3', label: 'Security researchers', note: 'internal audit + bounty triage' },
-  { value: '2', label: 'Community managers', note: 'Discord + multilingual' },
-  { value: '23+', label: 'Open-source contributors', note: 'PRs merged' },
-]
+const TEAM_STATS: never[] = []  // removed — team is anonymous, no fabricated stats
 
 const CONTACTS = [
-  { icon: Mail, label: 'General', email: 'hello@xelisvault.com' },
-  { icon: Shield, label: 'Security', email: 'security@xelisvault.com' },
-  { icon: Handshake, label: 'Partnerships', email: 'partnerships@xelisvault.com' },
-  { icon: Newspaper, label: 'Media', email: 'media@xelisvault.com' },
+  { icon: Mail, label: 'All enquiries', email: 'xelisvault@protonmail.org' },
 ]
 
 export function AboutPage() {
@@ -86,7 +78,7 @@ export function AboutPage() {
             </p>
           </Reveal>
 
-          {/* Team stats */}
+          {/* Team */}
           <section className="mt-20">
             <Reveal>
               <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">Team</h2>
@@ -95,19 +87,27 @@ export function AboutPage() {
               </p>
             </Reveal>
 
-            <RevealStagger className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-              {TEAM_STATS.map((s) => (
-                <RevealItem key={s.label}>
-                  <div className="rounded-2xl glass-panel p-6 text-center">
-                    <div className="font-display text-3xl md:text-4xl font-semibold text-gradient-vault">
-                      {s.value}
-                    </div>
-                    <div className="mt-2 text-sm font-medium">{s.label}</div>
-                    <div className="mt-1 text-[11px] font-mono text-muted-foreground/70">{s.note}</div>
-                  </div>
-                </RevealItem>
-              ))}
-            </RevealStagger>
+            <Reveal delay={0.1}>
+              <div className="mt-6 rounded-2xl glass-panel p-6">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  The XELIS Vault team is anonymous by design — the same privacy principles that
+                  drive the protocol apply to the people building it. Identity is verified through
+                  GitHub commit history and on-chain PGP signatures, not through doxxing. Every
+                  contributor is a XELIS community member first. The founding team holds{' '}
+                  <strong className="text-foreground">10% of VLT supply (1,000,000 VLT)</strong>{' '}
+                  with 4-year vesting and a 1-year cliff, transparently encoded in the token contract
+                  at deployment. No other allocation exists.
+                </p>
+                <a
+                  href="https://github.com/XelisVault/xelis-vault"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-vault hover:underline"
+                >
+                  Verify on GitHub ↗
+                </a>
+              </div>
+            </Reveal>
           </section>
 
           {/* Principles */}
