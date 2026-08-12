@@ -5,25 +5,28 @@ import { Flame, TrendingDown, Users, Vote } from 'lucide-react'
 import { Reveal, RevealStagger, RevealItem, SectionLabel } from '@/components/site/reveal'
 
 const DISTRIBUTION = [
-  { label: 'Oracle Rewards', pct: 60, amount: '6,000,000', note: '10 years · dynamic', color: 'var(--vault)' },
-  { label: 'DEX Liquidity', pct: 12, amount: '1,200,000', note: 'VLT/XEL pool', color: 'oklch(0.7 0.18 160)' },
-  { label: 'Team', pct: 10, amount: '1,000,000', note: '4y vest, 1y cliff', color: 'var(--vlt)' },
-  { label: 'Treasury', pct: 10, amount: '1,000,000', note: 'Governance', color: 'var(--xusd)' },
-  { label: 'Community Airdrop', pct: 5, amount: '500,000', note: 'Contributors', color: 'oklch(0.78 0.18 80)' },
+  { label: 'Oracle Rewards', pct: 55, amount: '5,500,000', note: '10 years · dynamic', color: 'var(--vault)' },
+  { label: 'Chat Relayer Rewards', pct: 10, amount: '1,000,000', note: 'VaultChat relayers · 10y', color: 'oklch(0.7 0.2 320)' },
+  { label: 'DEX Liquidity', pct: 10, amount: '1,000,000', note: 'VLT/XEL pool · 6mo unlock', color: 'oklch(0.7 0.18 160)' },
+  { label: 'Founder Vesting', pct: 5, amount: '500,000', note: '4y vest, 1y cliff · on-chain', color: 'var(--vlt)' },
+  { label: 'Founder Ongoing', pct: 5, amount: '500,000', note: '10y · from FeeDistributor', color: 'oklch(0.75 0.18 80)' },
+  { label: 'Treasury', pct: 5, amount: '500,000', note: 'Governance-controlled', color: 'var(--xusd)' },
+  { label: 'Community Airdrop', pct: 5, amount: '500,000', note: 'Testnet contributors', color: 'oklch(0.78 0.18 195)' },
+  { label: 'Protocol Reserve', pct: 2, amount: '200,000', note: 'Emergency buffer', color: 'oklch(0.65 0.15 280)' },
   { label: 'Launch Airdrop', pct: 2, amount: '200,000', note: 'Launch community', color: 'oklch(0.7 0.15 200)' },
-  { label: 'Bug Bounty', pct: 1, amount: '100,000', note: 'Perpetual', color: 'oklch(0.65 0.24 25)' },
+  { label: 'Bug Bounty', pct: 1, amount: '100,000', note: 'Perpetual · Immunefi', color: 'oklch(0.65 0.24 25)' },
 ]
 
 const BURN_MECHANISMS = [
   {
     icon: Flame,
-    title: '50% of Protocol Fees',
-    desc: 'Every swap, PSM, borrow, and redemption fee is split — half to the treasury, half burned at the contract level. Permanent supply reduction on every transaction.',
+    title: 'FeeDistributor (v10.3)',
+    desc: 'Every protocol fee (swap, PSM, borrow, redemption) is split by FeeDistributor.slx: 50% burned permanently, 40% to treasury, 10% to founder (ongoing 10y vesting). No extra cost to users — only the split changes.',
   },
   {
     icon: TrendingDown,
     title: 'Reputation-Based Slashing',
-    desc: 'When a price provider submits an outlier, their reputation drops (5 tiers: 0× to 1.5×). Bad behavior reduces reward multiplier — and slashing from stake is burned. Bad behavior is deflationary.',
+    desc: 'When a price provider submits an outlier, their reputation drops (5 tiers: 0× to 1.5×). Bad behavior reduces reward multiplier — and 50% of every slash is burned at the contract level. Bad behavior is deflationary.',
   },
   {
     icon: Vote,

@@ -212,6 +212,25 @@ const CATEGORIES: Category[] = [
     ],
   },
   {
+    id: 'airdrop',
+    name: 'Airdrop (v10.4)',
+    color: 'xusd',
+    contracts: [
+      { name: 'AirdropTracker', file: 'contracts/airdrop/AirdropTracker.slx', desc: 'Testnet: accumulates points per user from all core contracts · 32 entries · 25 pub fn for dashboards', phase: 'core', entries: 32 },
+      { name: 'AirdropClaim', file: 'contracts/airdrop/AirdropClaim.slx', desc: 'Mainnet: distributes VLT via Merkle proofs · 500k VLT total · 6-month claim window', phase: 'core', entries: 16 },
+    ],
+  },
+  {
+    id: 'founder',
+    name: 'Founder & Fees (v10.3)',
+    color: 'vlt',
+    contracts: [
+      { name: 'FounderVesting', file: 'contracts/founder/FounderVesting.slx', desc: '500k VLT vesting over 4y, 1y cliff · transparent, on-chain, governance-controlled', phase: 'core' },
+      { name: 'FeeDistributor', file: 'contracts/founder/FeeDistributor.slx', desc: 'Splits protocol fees: 50% burn, 40% treasury, 10% founder · no extra cost to users', phase: 'core' },
+      { name: 'RevenueShareDelegation', file: 'contracts/founder/RevenueShareDelegation.slx', desc: 'Delegates revenue share rights · transferable, governance-controlled', phase: 'core' },
+    ],
+  },
+  {
     id: 'infra',
     name: 'Infrastructure',
     color: 'vlt',
@@ -258,11 +277,11 @@ export function Contracts() {
           </Reveal>
           <Reveal delay={0.1}>
             <h2 className="mt-6 font-display text-4xl md:text-6xl lg:text-7xl font-semibold tracking-[-0.03em] leading-[1]">
-              46 contracts.
+              51 contracts.
               <br />
-              <span className="text-gradient-vault">855+ entry functions.</span>
+              <span className="text-gradient-vault">935+ entry functions.</span>
               <br />
-              <span className="text-muted-foreground">v10.2 · audit-remediated core.</span>
+              <span className="text-muted-foreground">v10.5 · audit-remediated core.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.2}>
@@ -289,7 +308,7 @@ export function Contracts() {
               />
             </div>
             <div className="mt-2 text-xs font-mono text-muted-foreground">
-              Showing {totalShown} of 46 contracts · 33 core + 13 Phase 5+
+              Showing {totalShown} of 51 contracts · 38 core + 13 Phase 5+
             </div>
           </div>
         </Reveal>

@@ -115,7 +115,7 @@ export function Solution() {
         <Reveal delay={0.2}>
           <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-px rounded-2xl glass-panel overflow-hidden">
             {[
-              { value: '46', label: 'Smart Contracts', sub: '855+ entry functions' },
+              { value: '46', label: 'Smart Contracts', sub: '935+ entry functions' },
               { value: '5s', label: 'Block Time', sub: 'XELIS BlockDAG' },
               { value: '10M', label: 'VLT Fixed Supply', sub: 'Deflationary · MIT' },
               { value: '$1', label: 'xUSD Peg', sub: 'PSM + overcollateral' },

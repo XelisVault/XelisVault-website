@@ -72,6 +72,18 @@ const AUDIT_HISTORY = [
     note: 'VaultEngine liquidation queue, PSM rounding error, VaultSwapV2 TWAP manipulation, Miner heartbeat reorg handling',
   },
   {
+    version: 'v10.5 External IA Audit',
+    period: 'August 2026',
+    status: 'Completed',
+    findings: [
+      { severity: 'Critical', count: 5, color: 'red' },
+      { severity: 'High', count: 2, color: 'orange' },
+      { severity: 'Medium', count: 1, color: 'amber' },
+    ],
+    allFixed: true,
+    note: '9 bugs found by external IA audit: 5 critical (wrong oracle entry IDs in PSM/VaultSwap/LendingMarket/SyndicatePool/VaultEngine), 2 high (circuit breaker never checked, FlashLoan callback whitelist unused), 1 medium (Ciphertext code may not compile). All fixed + 11 entry wrappers added + chunk ID validator rewritten (73/73 real OK).',
+  },
+  {
     version: 'v10.2 Brainstorming Review',
     period: 'August 2026',
     status: 'Completed',
