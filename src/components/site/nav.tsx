@@ -13,6 +13,7 @@ const LINKS = [
   { label: 'xUSD', href: '/#xusd' },
   { label: 'VLT', href: '/#vlt' },
   { label: 'Oracle', href: '/#oracle' },
+  { label: 'Mining', href: '/#mining' },
   { label: 'Contracts', href: '/#contracts' },
   { label: 'VaultChat', href: '/#vaultchat' },
   { label: 'Roadmap', href: '/#roadmap' },

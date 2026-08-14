@@ -281,7 +281,7 @@ export function Contracts() {
               <br />
               <span className="text-gradient-vault">963 entry functions.</span>
               <br />
-              <span className="text-muted-foreground">v10.9 · audit-remediated core.</span>
+              <span className="text-muted-foreground">v11.3 · audit-remediated core.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.2}>

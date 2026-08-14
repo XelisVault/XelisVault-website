@@ -11,7 +11,7 @@ const MILESTONES = [
   {
     phase: 'Complete',
     status: 'done',
-    title: 'Core Protocol v10.9',
+    title: 'Core Protocol v11.3',
     items: [
       '51 contracts total · 963 entry functions · MIT license',
       '33 core contracts deployed at testnet launch',

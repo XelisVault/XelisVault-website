@@ -9,6 +9,7 @@ const SECTIONS = [
   { id: 'protocol', label: 'Protocol' },
   { id: 'architecture', label: 'Architecture' },
   { id: 'products', label: 'Products' },
+  { id: 'mining', label: 'Mining' },
   { id: 'vaultchat', label: 'VaultChat' },
   { id: 'contracts', label: 'Contracts' },
   { id: 'roadmap', label: 'Roadmap' },

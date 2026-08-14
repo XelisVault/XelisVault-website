@@ -9,7 +9,7 @@ import { Reveal, SectionLabel } from '@/components/site/reveal'
 import { CountdownTimer, useLaunchStatus } from '@/components/app/launch-gate'
 import { useDemo } from '@/lib/demo-store'
 
-// Protocol constants (real values from the v10.9 spec)
+// Protocol constants (real values from the v11.3 spec)
 const MAX_LTV = 66.67
 const LIQUIDATION_RATIO = 150
 const STABILITY_FEE_APR = 2

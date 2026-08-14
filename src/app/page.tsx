@@ -13,6 +13,7 @@ import { ProtocolVideo } from '@/components/sections/protocol-video'
 import { Xusd } from '@/components/sections/xusd'
 import { Vlt } from '@/components/sections/vlt'
 import { Oracle } from '@/components/sections/oracle'
+import { MiningDelegation } from '@/components/sections/mining-delegation'
 import { Contracts } from '@/components/sections/contracts'
 import { VaultChatSection } from '@/components/sections/vaultchat-section'
 import { Roadmap, CTA, Footer } from '@/components/sections/roadmap-cta'
@@ -53,6 +54,7 @@ export default function Home() {
         <Xusd />
         <Vlt />
         <Oracle />
+        <MiningDelegation />
         <Contracts />
         <VaultChatSection />
         <Roadmap />

@@ -180,7 +180,7 @@ export function Hero() {
           />
           {isLaunched
             ? 'Testnet LIVE · Connect your wallet'
-            : 'v10.9 · 51 contracts · XELIS BlockDAG'}
+            : 'v11.3 · 51 contracts · XELIS BlockDAG'}
         </motion.div>
 
         {/* Title */}
