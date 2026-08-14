@@ -19,9 +19,9 @@ import { Reveal, RevealStagger, RevealItem, SectionLabel } from '@/components/si
  */
 
 const REPUTATION_TIERS = [
-  { tier: 'Excellent', range: '8,000 – 10,000', multiplier: '1.5×', color: 'emerald', desc: 'Default for new miners. Earns 50% bonus rewards.' },
-  { tier: 'Good', range: '5,000 – 7,999', multiplier: '1.0×', color: 'vault', desc: 'Minor infractions. Standard rewards.' },
-  { tier: 'Warning', range: '2,000 – 4,999', multiplier: '0.5×', color: 'amber', desc: 'Multiple infractions. Half rewards.' },
+  { tier: 'Excellent', range: '8,000 – 10,000', multiplier: '1.5×', color: 'emerald', desc: 'Earns 50% bonus rewards. Reached via honest behavior over time.' },
+  { tier: 'Good', range: '5,000 – 7,999', multiplier: '1.0×', color: 'vault', desc: 'Standard rewards. New miners reach this after 15 days (time-proven bonus +2000).' },
+  { tier: 'Warning', range: '2,000 – 4,999', multiplier: '0.5×', color: 'amber', desc: 'Half rewards. Where new miners START (REP_START = 3000).' },
   { tier: 'Critical', range: '1,000 – 1,999', multiplier: '0.25×', color: 'orange', desc: 'Last chance before ban. Quarter rewards.' },
   { tier: 'Banned', range: '0 – 999', multiplier: '0×', color: 'red', desc: 'Cannot earn. Must rebuild via heartbeats.' },
 ]
@@ -105,8 +105,10 @@ export function MiningDelegation() {
               The XELIS Vault oracle is secured by staked VLT. Miners stake 100 VLT to register
               and submit prices every 25 seconds. <strong className="text-foreground">Any VLT holder
               can delegate</strong> to a miner — increasing their oracle weight and earning a share
-              of rewards. Slashing burns 50% of bad actors&apos; stake. The 6M VLT reward budget
-              lasts exactly 10 years thanks to a dynamic budget factor.
+              of rewards. Rewards follow a <strong className="text-foreground">Bitcoin-style halving</strong>:
+              ~0.436 VLT per block initially, halving every year — emission lasts indefinitely,
+              not capped at 10 years. New miners start at reputation 3,000 (Warning tier) and must
+              prove themselves over 15 days to reach Good.
             </p>
           </Reveal>
         </div>
@@ -115,10 +117,10 @@ export function MiningDelegation() {
         <Reveal delay={0.2}>
           <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-px rounded-2xl glass-panel overflow-hidden">
             {[
-              { label: 'Miner Stake', value: '100', unit: 'VLT' },
+              { label: 'Miner Stake', value: '100', unit: 'VLT min' },
               { label: 'Cap per Miner', value: '500K', unit: 'VLT (own + delegated)' },
-              { label: 'Reward Budget', value: '6M', unit: 'VLT / 10 years' },
-              { label: 'Base Reward', value: '0.48', unit: 'VLT per valid price' },
+              { label: 'Initial Reward', value: '0.436', unit: 'VLT / block' },
+              { label: 'Halving', value: '1 year', unit: '50% reduction' },
             ].map((s, i) => (
               <div key={`mining-stat-${i}`} className="p-5 md:p-6 bg-card/30">
                 <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
@@ -147,9 +149,9 @@ export function MiningDelegation() {
 
         <RevealStagger className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { n: '01', title: 'Register', desc: 'Stake 100 VLT via XelisVaultMiner.register_miner(). Set endpoint URL, miner pubkey, and services mask (oracle, chat, or both). Reputation starts at 10,000 (Excellent).', icon: Pickaxe },
+            { n: '01', title: 'Register', desc: 'Stake 100 VLT via XelisVaultMiner.register_miner(). Set endpoint URL, miner pubkey, and services mask. Reputation starts at 3,000 (Warning tier) — you must prove yourself over time, not start at max.', icon: Pickaxe },
             { n: '02', title: 'Submit prices', desc: 'Fetch prices from MEXC, CoinEx, CoinGecko, or your own source. Submit signed prices every 25 seconds (5 blocks). Bootstrap mode works with just 3 miners.', icon: Repeat },
-            { n: '03', title: 'Earn rewards', desc: 'Valid submissions earn 0.48 VLT base reward × reputation multiplier (up to 1.5×). Budget factor auto-adjusts every 2 weeks so the 6M VLT lasts exactly 10 years.', icon: Coins },
+            { n: '03', title: 'Earn rewards', desc: 'Bitcoin-style halving: ~0.436 VLT per block, halving every year (6,307,200 blocks). Your share = block_reward × stake × rep_multiplier / total_stake. New miners get a 30-day bonus (up to +50%).', icon: Coins },
             { n: '04', title: 'Get slashed if bad', desc: 'Outlier prices lose reputation and slash stake (1%–50%). 50% of slash is burned, 10% to whistleblower, 40% to treasury. Bad behavior is deflationary.', icon: Shield },
           ].map((step, i) => (
             <RevealItem key={`mining-lifecycle-${i}`}>
@@ -212,6 +214,80 @@ export function MiningDelegation() {
                   </motion.div>
                 )
               })}
+            </div>
+          </div>
+        </Reveal>
+
+        {/* New miner bootstrapping (v11.4) */}
+        <Reveal delay={0.2}>
+          <div className="mt-16 rounded-2xl glass-panel p-6 md:p-10">
+            <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-[0.2em] text-vault mb-2">
+              <Zap className="w-4 h-4" />
+              New Miner Bootstrapping (v11.4)
+            </div>
+            <h3 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">
+              New miners don&apos;t start at the top —
+              <br />
+              <span className="text-gradient-vault">they earn their way up.</span>
+            </h3>
+            <p className="mt-4 text-sm text-muted-foreground leading-relaxed max-w-2xl">
+              To prevent Sybil attacks (spawning many new miners to capture rewards), new miners
+              start at reputation 3,000 (Warning tier, 0.5× multiplier) — not at the maximum.
+              They must prove themselves over time through two mechanisms:
+            </p>
+
+            <div className="mt-8 grid md:grid-cols-2 gap-4">
+              {/* Time-proven */}
+              <div className="rounded-xl border border-vault/30 bg-vault/5 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-vault/15 border border-vault/30 flex items-center justify-center text-vault">
+                    <TrendingUp className="w-4 h-4" />
+                  </div>
+                  <div className="text-xs font-mono uppercase tracking-wider text-vault">Time-Proven</div>
+                </div>
+                <h4 className="font-display text-lg font-semibold">+2000 reputation after 15 days</h4>
+                <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                  After 15 days of active participation (259,200 blocks), a miner earns a
+                  <strong className="text-foreground"> +2000 reputation bonus</strong> via
+                  <code className="text-vault mx-1">get_time_proven_bonus()</code>.
+                  This moves them from 3,000 (Warning) to 5,000 (Good) — doubling their
+                  reward multiplier from 0.5× to 1.0×.
+                </p>
+              </div>
+
+              {/* New miner bonus */}
+              <div className="rounded-xl border border-vlt/30 bg-vlt/5 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-vlt/15 border border-vlt/30 flex items-center justify-center text-vlt">
+                    <Coins className="w-4 h-4" />
+                  </div>
+                  <div className="text-xs font-mono uppercase tracking-wider text-vlt">New Miner Bonus</div>
+                </div>
+                <h4 className="font-display text-lg font-semibold">Up to +50% extra rewards</h4>
+                <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                  For the first 30 days, new miners get a bonus on top of their base reward
+                  (via <code className="text-vlt mx-1">get_new_miner_bonus()</code>).
+                  The bonus scales inversely with network size — fewer miners means higher bonus,
+                  incentivizing early participation.
+                </p>
+                <div className="mt-3 space-y-1 text-[11px] font-mono">
+                  <div className="flex justify-between"><span className="text-muted-foreground">0–10 active miners:</span> <span className="text-vlt">+50%</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">11–50 miners:</span> <span className="text-vlt">+30%</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">51–100 miners:</span> <span className="text-vlt">+10%</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">100+ miners:</span> <span className="text-muted-foreground/60">+0% (healthy)</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-xl bg-emerald-500/5 border border-emerald-500/20 p-4 flex items-start gap-3">
+              <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">Anti-Sybil by design:</strong> An attacker
+                spawning 100 new miners would only get them at 0.5× multiplier (Warning tier)
+                for 15 days, and the new-miner bonus disappears once 100+ miners are active.
+                The cost of attacking (100 × 100 VLT stake = 10,000 VLT) far exceeds the
+                rewards captured during the bootstrap period.
+              </p>
             </div>
           </div>
         </Reveal>
@@ -380,7 +456,7 @@ export function MiningDelegation() {
             </h3>
             <p className="mt-3 text-sm text-muted-foreground max-w-xl mx-auto">
               Run a miner with the CLI, or delegate your VLT to an existing miner. Both earn rewards
-              from the 6M VLT budget distributed over 10 years.
+              via Bitcoin-style halving emission — ~0.436 VLT per block initially, halving every year.
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <a
