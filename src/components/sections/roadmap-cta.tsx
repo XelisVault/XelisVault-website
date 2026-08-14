@@ -11,9 +11,9 @@ const MILESTONES = [
   {
     phase: 'Complete',
     status: 'done',
-    title: 'Core Protocol v10.5',
+    title: 'Core Protocol v10.9',
     items: [
-      '51 contracts total · 935+ entry functions · MIT license',
+      '51 contracts total · 963 entry functions · MIT license',
       '33 core contracts deployed at testnet launch',
       '13 Phase 5+ contracts written, gated behind governance vote',
       'VaultEngineV3 confidential mode · StakedOracle v10 · VaultSwapV2',

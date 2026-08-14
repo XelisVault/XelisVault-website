@@ -59,6 +59,7 @@ const CATEGORIES: Category[] = [
     contracts: [
       { name: 'XelisVaultMiner', file: 'contracts/miner/XelisVaultMiner.slx', desc: 'Unified miner · progressive stake (100→500→1000 VLT) · streaks · leaderboard', phase: 'core' },
       { name: 'MinerPool', file: 'contracts/miner/MinerPool.slx', desc: 'Composable miner pools with mutualized stake', phase: 'core' },
+      { name: 'MinerDelegation', file: 'contracts/miner/MinerDelegation.slx', desc: 'Stake delegation for miners · index-based accounting · anti-concentration cap · auto-compound opt-in · v11.0 rewrite', phase: 'core' },
     ],
   },
   {
@@ -217,7 +218,7 @@ const CATEGORIES: Category[] = [
     color: 'xusd',
     contracts: [
       { name: 'AirdropTracker', file: 'contracts/airdrop/AirdropTracker.slx', desc: 'Testnet: accumulates points per user from all core contracts · 32 entries · 25 pub fn for dashboards', phase: 'core', entries: 32 },
-      { name: 'AirdropClaim', file: 'contracts/airdrop/AirdropClaim.slx', desc: 'Mainnet: distributes VLT via Merkle proofs · 500k VLT total · 6-month claim window', phase: 'core', entries: 16 },
+      { name: 'AirdropClaim', file: 'contracts/airdrop/AirdropClaim.slx', desc: 'Mainnet: distributes VLT via Merkle proofs · 700k VLT total (500k testnet + 200k community) · 6-month claim window', phase: 'core', entries: 16 },
     ],
   },
   {
@@ -236,7 +237,6 @@ const CATEGORIES: Category[] = [
     color: 'vlt',
     contracts: [
       { name: 'ContractRegistry', file: 'contracts/proxy/ContractRegistry.slx', desc: 'Versioned registry for upgrade pattern', phase: 'core' },
-      { name: 'Upgradeable', file: 'contracts/proxy/Upgradeable.slx', desc: 'Template mixin for upgrade-aware contracts', phase: 'core' },
       { name: 'FaucetContract', file: 'contracts/faucet/FaucetContract.slx', desc: 'Testnet faucet · 100 XEL + 200 VLT per 24h', phase: 'core' },
     ],
   },
@@ -279,9 +279,9 @@ export function Contracts() {
             <h2 className="mt-6 font-display text-4xl md:text-6xl lg:text-7xl font-semibold tracking-[-0.03em] leading-[1]">
               51 contracts.
               <br />
-              <span className="text-gradient-vault">935+ entry functions.</span>
+              <span className="text-gradient-vault">963 entry functions.</span>
               <br />
-              <span className="text-muted-foreground">v10.5 · audit-remediated core.</span>
+              <span className="text-muted-foreground">v10.9 · audit-remediated core.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.2}>
@@ -308,7 +308,7 @@ export function Contracts() {
               />
             </div>
             <div className="mt-2 text-xs font-mono text-muted-foreground">
-              Showing {totalShown} of 51 contracts · 38 core + 13 Phase 5+
+              Showing {totalShown} of 51 contracts · 37 core + 13 Phase 5+
             </div>
           </div>
         </Reveal>

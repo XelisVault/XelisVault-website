@@ -38,7 +38,7 @@ export function Features() {
 
                 <div className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-vlt/10 border border-vlt/20 px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-vlt">
                   <span className="w-1 h-1 rounded-full bg-vlt" />
-                  New in v10.5
+                  New in v10.9
                 </div>
 
                 <h3 className="mt-4 font-display text-2xl md:text-3xl font-semibold tracking-tight">

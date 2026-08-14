@@ -238,7 +238,7 @@ function SceneIntro() {
         transition={{ delay: 0.6 }}
         className="relative"
       >
-        <div className="text-xs font-mono uppercase tracking-[0.4em] text-vault mb-3">v10.5 · Audit-remediated core</div>
+        <div className="text-xs font-mono uppercase tracking-[0.4em] text-vault mb-3">v10.9 · Audit-remediated core</div>
         <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-semibold tracking-[-0.04em] leading-[0.9]">
           <span className="text-gradient-mono">XELIS</span>
           <br />
@@ -750,11 +750,11 @@ function SceneFinale() {
         >
           <span>51 contracts</span>
           <span className="text-vault">·</span>
-          <span>935+ entries</span>
+          <span>963 entries</span>
           <span className="text-vault">·</span>
           <span>MIT licensed</span>
           <span className="text-vault">·</span>
-          <span>v10.5</span>
+          <span>v10.9</span>
         </motion.div>
 
         <motion.div
