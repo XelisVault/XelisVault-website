@@ -5,8 +5,8 @@ import { Flame, TrendingDown, Users, Vote } from 'lucide-react'
 import { Reveal, RevealStagger, RevealItem, SectionLabel } from '@/components/site/reveal'
 
 const DISTRIBUTION = [
-  { label: 'Oracle Rewards', pct: 55, amount: '5,500,000', note: '10 years · dynamic', color: 'var(--vault)' },
-  { label: 'Chat Relayer Rewards', pct: 10, amount: '1,000,000', note: 'VaultChat relayers · 10y', color: 'oklch(0.7 0.2 320)' },
+  { label: 'Oracle Rewards', pct: 55, amount: '5,500,000', note: 'Bitcoin-style halving · ~0.436 VLT/block', color: 'var(--vault)' },
+  { label: 'Chat Relayer Rewards', pct: 10, amount: '1,000,000', note: 'VaultChat relayers · 10y vesting', color: 'oklch(0.7 0.2 320)' },
   { label: 'DEX Liquidity', pct: 10, amount: '1,000,000', note: 'VLT/XEL pool · 6mo unlock', color: 'oklch(0.7 0.18 160)' },
   { label: 'Founder Vesting', pct: 5, amount: '500,000', note: '4y vest, 1y cliff · on-chain', color: 'var(--vlt)' },
   { label: 'Founder Ongoing', pct: 5, amount: '500,000', note: '10y · from FeeDistributor', color: 'oklch(0.75 0.18 80)' },

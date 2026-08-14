@@ -14,7 +14,7 @@ const MILESTONES = [
     title: 'Core Protocol v11.3',
     items: [
       '51 contracts total · 963 entry functions · MIT license',
-      '33 core contracts deployed at testnet launch',
+      '37 core contracts deployed at testnet launch',
       '13 Phase 5+ contracts written, gated behind governance vote',
       'VaultEngineV3 confidential mode · StakedOracle v10 · VaultSwapV2',
       'Progressive slashing · trimmed median · anti-Sybil stake',
@@ -250,7 +250,7 @@ export function CTA() {
         {/* Quick stats */}
         <RevealStagger className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-px rounded-2xl glass-panel overflow-hidden max-w-4xl mx-auto">
           {[
-            { value: '46', label: 'Smart Contracts' },
+            { value: '51', label: 'Smart Contracts' },
             { value: '14', label: 'Categories' },
             { value: '10M', label: 'VLT Supply' },
             { value: '5s', label: 'Block Time' },

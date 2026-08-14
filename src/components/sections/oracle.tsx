@@ -35,7 +35,7 @@ const PROVIDER_STATS = [
   { label: 'Min Stake', value: '100', unit: 'VLT' },
   { label: 'Cycle Length', value: '25', unit: 'sec' },
   { label: 'Reward Tiers', value: '5', unit: '0× → 1.5×' },
-  { label: 'Reward Budget', value: '6M', unit: 'VLT / 10y' },
+  { label: 'Emission', value: 'Halving', unit: 'per year' },
 ]
 
 export function Oracle() {

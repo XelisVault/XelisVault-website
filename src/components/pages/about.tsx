@@ -29,7 +29,7 @@ const PRINCIPLES = [
     icon: Ban,
     title: 'No VC funding, no presale',
     description:
-      'XELIS Vault has no venture investors and no pre-sale to selected friends. The founding team holds 10% (1,000,000 VLT, 4-year vesting with 1-year cliff), transparently disclosed on-chain at deployment. The remaining 90% is distributed through mining rewards (60%), DEX liquidity (12%), treasury (10%), community airdrops (7%), and the bug bounty (1%).',
+      'XELIS Vault has no venture investors and no pre-sale to selected friends. The founding team holds 10% total (5% vesting = 500,000 VLT over 4y with 1y cliff, plus 5% ongoing = 500,000 VLT over 10y from FeeDistributor), transparently disclosed on-chain at deployment. The remaining 90% is distributed through oracle rewards (55%), chat relayer rewards (10%), DEX liquidity (10%), treasury (5%), community airdrops (7%), protocol reserve (2%), and bug bounty (1%).',
   },
 ]
 
@@ -94,9 +94,9 @@ export function AboutPage() {
                   drive the protocol apply to the people building it. Identity is verified through
                   GitHub commit history and on-chain PGP signatures, not through doxxing. Every
                   contributor is a XELIS community member first. The founding team holds{' '}
-                  <strong className="text-foreground">10% of VLT supply (1,000,000 VLT)</strong>{' '}
-                  with 4-year vesting and a 1-year cliff, transparently encoded in the token contract
-                  at deployment. No other allocation exists.
+                  <strong className="text-foreground">10% of VLT supply (1,000,000 VLT total)</strong>{' '}
+                  split into 5% vesting (500k VLT, 4y vest, 1y cliff via FounderVesting) and 5% ongoing
+                  (500k VLT, 10y via FeeDistributor), transparently encoded on-chain at deployment.
                 </p>
                 <a
                   href="https://github.com/XelisVault/xelis-vault"
