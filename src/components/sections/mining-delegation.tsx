@@ -102,7 +102,7 @@ export function MiningDelegation() {
           </Reveal>
           <Reveal delay={0.2}>
             <p className="mt-8 text-lg text-muted-foreground leading-relaxed">
-              The XELIS Vault oracle is secured by staked VLT. Miners stake 100 VLT to register
+              The XELIS Vault oracle is secured by staked VLT. Miners stake 1,000 VLT to register
               and submit prices every 25 seconds. <strong className="text-foreground">Any VLT holder
               can delegate</strong> to a miner — increasing their oracle weight and earning a share
               of rewards. Rewards follow a <strong className="text-foreground">Bitcoin-style halving</strong>:
@@ -149,7 +149,7 @@ export function MiningDelegation() {
 
         <RevealStagger className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { n: '01', title: 'Register', desc: 'Stake 100 VLT via XelisVaultMiner.register_miner(). Set endpoint URL, miner pubkey, and services mask. Reputation starts at 3,000 (Warning tier) — you must prove yourself over time, not start at max.', icon: Pickaxe },
+            { n: '01', title: 'Register', desc: 'Stake 1,000 VLT via XelisVaultMiner.register_miner(). Set endpoint URL, miner pubkey, and services mask. Reputation starts at 3,000 (Warning tier) — you must prove yourself over time, not start at max.', icon: Pickaxe },
             { n: '02', title: 'Submit prices', desc: 'Fetch prices from MEXC, CoinEx, CoinGecko, or your own source. Submit signed prices every 25 seconds (5 blocks). Bootstrap mode works with just 3 miners.', icon: Repeat },
             { n: '03', title: 'Earn rewards', desc: 'Bitcoin-style halving: ~0.436 VLT per block, halving every year (6,307,200 blocks). Your share = block_reward × stake × rep_multiplier / total_stake. New miners get a 30-day bonus (up to +50%).', icon: Coins },
             { n: '04', title: 'Get slashed if bad', desc: 'Outlier prices lose reputation and slash stake (1%–50%). 50% of slash is burned, 10% to whistleblower, 40% to treasury. Bad behavior is deflationary.', icon: Shield },
@@ -285,7 +285,7 @@ export function MiningDelegation() {
                 <strong className="text-foreground">Anti-Sybil by design:</strong> An attacker
                 spawning 100 new miners would only get them at 0.5× multiplier (Warning tier)
                 for 15 days, and the new-miner bonus disappears once 100+ miners are active.
-                The cost of attacking (100 × 100 VLT stake = 10,000 VLT) far exceeds the
+                The cost of attacking (100 × 1,000 VLT stake = 100,000 VLT) far exceeds the
                 rewards captured during the bootstrap period.
               </p>
             </div>

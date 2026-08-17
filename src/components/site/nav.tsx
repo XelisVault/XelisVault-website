@@ -138,7 +138,7 @@ export function Nav() {
               className="hidden md:inline-flex h-9 items-center gap-2 rounded-full bg-vault px-4 text-[13px] font-semibold text-white hover:bg-vault/85 transition-all hover:shadow-[0_0_24px_-4px_var(--vault)] disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Rocket className="w-3.5 h-3.5" />
-              {isLaunched ? 'Launch App' : 'Aug 30'}
+              {isLaunched ? 'Launch App' : 'Aug 25'}
             </button>
             <button
               onClick={() => setOpen(true)}
@@ -215,7 +215,7 @@ export function Nav() {
                   disabled={!isLaunched}
                   className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-vault text-white font-semibold disabled:opacity-40"
                 >
-                  <Rocket className="w-4 h-4" /> {isLaunched ? 'Launch App' : 'Aug 30'}
+                  <Rocket className="w-4 h-4" /> {isLaunched ? 'Launch App' : 'Aug 25'}
                 </button>
               </div>
             </nav>

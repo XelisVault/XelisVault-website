@@ -8,7 +8,7 @@ const STEPS = [
   {
     n: '01',
     title: 'Stake & Register',
-    desc: 'Anyone stakes 100 VLT and registers as a provider via XelisVaultMiner. Reputation starts at 0 and climbs to 10,000 with good behavior. 5 reward tiers: 0× (banned), 0.25× (critical), 0.50× (warning), 1.0× (good), 1.5× (excellent).',
+    desc: 'Anyone stakes 1,000 VLT and registers as a provider via XelisVaultMiner. Reputation starts at 0 and climbs to 10,000 with good behavior. 5 reward tiers: 0× (banned), 0.25× (critical), 0.50× (warning), 1.0× (good), 1.5× (excellent).',
     icon: Coins,
   },
   {
@@ -32,7 +32,7 @@ const STEPS = [
 ]
 
 const PROVIDER_STATS = [
-  { label: 'Min Stake', value: '100', unit: 'VLT' },
+  { label: 'Min Stake', value: '1,000', unit: 'VLT' },
   { label: 'Cycle Length', value: '25', unit: 'sec' },
   { label: 'Reward Tiers', value: '5', unit: '0× → 1.5×' },
   { label: 'Emission', value: 'Halving', unit: 'per year' },
@@ -61,7 +61,7 @@ export function Oracle() {
           </Reveal>
           <Reveal delay={0.2}>
             <p className="mt-8 text-lg text-muted-foreground leading-relaxed">
-              No permissioned node operators. No backdoor admin keys. Anyone with 100 VLT
+              No permissioned node operators. No backdoor admin keys. Anyone with 1,000 VLT
               can become a price provider — and economic slashing keeps them honest. The
               median of all valid submissions becomes the on-chain truth, every 25 seconds.
             </p>

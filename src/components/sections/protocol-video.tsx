@@ -750,7 +750,7 @@ function SceneFinale() {
         >
           <span>51 contracts</span>
           <span className="text-vault">·</span>
-          <span>963 entries</span>
+          <span>962 entries</span>
           <span className="text-vault">·</span>
           <span>MIT licensed</span>
           <span className="text-vault">·</span>

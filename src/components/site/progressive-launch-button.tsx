@@ -16,7 +16,7 @@ import { Lock, Rocket } from 'lucide-react'
  * progress: 0 to 1 (0 = just announced, 1 = launch time)
  */
 
-const LAUNCH_DATE = new Date('2026-08-30T14:00:00Z').getTime()
+const LAUNCH_DATE = new Date('2026-08-25T14:00:00Z').getTime()
 const START_DATE = new Date('2026-08-09T00:00:00Z').getTime()
 const TOTAL_DURATION = LAUNCH_DATE - START_DATE
 

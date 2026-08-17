@@ -279,7 +279,7 @@ export function Contracts() {
             <h2 className="mt-6 font-display text-4xl md:text-6xl lg:text-7xl font-semibold tracking-[-0.03em] leading-[1]">
               51 contracts.
               <br />
-              <span className="text-gradient-vault">963 entry functions.</span>
+              <span className="text-gradient-vault">962 entry functions.</span>
               <br />
               <span className="text-muted-foreground">v11.3 · audit-remediated core.</span>
             </h2>
@@ -288,7 +288,7 @@ export function Contracts() {
             <p className="mt-8 text-lg text-muted-foreground leading-relaxed">
               Every contract is open-source (MIT-licensed). The 37 core contracts are v11.3
               audit-remediated (9 critical bugs fixed in v10.5 + 34 cross-contract call bugs
-              fixed in v11.1) and will deploy on testnet August 30.
+              fixed in v11.1) and will deploy on testnet August 25.
               The 13 Phase 5+ contracts are written, security-reviewed internally, and gated
               behind a governance vote — they will not deploy until the core protocol is stable.
             </p>

@@ -10,8 +10,8 @@ import { CountdownTimer, useLaunchStatus } from '@/components/app/launch-gate'
 import { useDemo } from '@/lib/demo-store'
 
 // Protocol constants (real values from the v11.3 spec)
-const MAX_LTV = 66.67
-const LIQUIDATION_RATIO = 150
+const MAX_LTV = 50 // 200% collateral ratio → 1/2 = 50% max LTV
+const LIQUIDATION_RATIO = 200 // 200% min collateral ratio (DEFAULT_MIN_CR in VaultEngineV3.slx)
 const STABILITY_FEE_APR = 2
 const LIQUIDATION_PENALTY = 13
 const DEFAULT_XEL_PRICE = 12.94
@@ -89,7 +89,7 @@ export function VaultSimulator() {
             <Reveal delay={0.2}>
               <p className="mt-6 text-lg text-muted-foreground leading-relaxed">
                 The Vault Engine lets you deposit XEL as collateral and borrow xUSD against it.
-                This simulator uses the real protocol parameters (66.67% max LTV, 150% liquidation
+                This simulator uses the real protocol parameters (50% max LTV, 200% liquidation
                 ratio, 2% stability fee, 13% liquidation penalty). Adjust the sliders and watch
                 your health factor move in real time.
               </p>
@@ -304,7 +304,7 @@ export function VaultSimulator() {
                       </div>
                       <div className="mt-1 text-xs text-muted-foreground/70">
                         {calc.canOpenVault
-                          ? 'When testnet launches Aug 30, this configuration will be a valid vault.'
+                          ? 'When testnet launches Aug 25, this configuration will be a valid vault.'
                           : !calc.isUnderLTV
                           ? `LTV exceeds ${MAX_LTV}% — reduce borrow or add collateral.`
                           : 'Health factor must be ≥ 1.50.'}
@@ -315,7 +315,7 @@ export function VaultSimulator() {
                       disabled={!isLaunched || !calc.canOpenVault}
                       className="inline-flex h-11 items-center gap-2 rounded-full bg-vault px-6 text-sm font-semibold text-white hover:bg-vault/85 transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-[0_0_24px_-4px_var(--vault)]"
                     >
-                      {isLaunched ? 'Open this vault' : 'Launches Aug 30'}
+                      {isLaunched ? 'Open this vault' : 'Launches Aug 25'}
                     </button>
                   </div>
                 </div>
@@ -344,7 +344,7 @@ export function VaultSimulator() {
               </div>
               <CountdownTimer />
               <p className="mt-8 text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed">
-                Connect your Xelis wallet on August 30 at 14:00 UTC to open a real vault with real
+                Connect your Xelis wallet on August 25 at 14:00 UTC to open a real vault with real
                 testnet XEL. Every transaction is encrypted — your balance, your debt, and your
                 liquidation price stay private.
               </p>
