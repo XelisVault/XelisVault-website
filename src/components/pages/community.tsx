@@ -172,7 +172,7 @@ export function CommunityPage() {
               <div className="mt-6 rounded-2xl border border-dashed border-border p-8 text-center">
                 <Wrench className="w-6 h-6 text-muted-foreground mx-auto" />
                 <p className="mt-4 text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
-                  No community projects to showcase yet — the testnet has not launched. After August 25,
+                  No community projects to showcase yet — the testnet has not launched. After August 30,
                   this section will list real projects built by real community members, submitted via
                   Discord and verified before publication.
                 </p>

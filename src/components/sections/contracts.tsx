@@ -288,7 +288,7 @@ export function Contracts() {
             <p className="mt-8 text-lg text-muted-foreground leading-relaxed">
               Every contract is open-source (MIT-licensed). The 37 core contracts are v11.3
               audit-remediated (9 critical bugs fixed in v10.5 + 34 cross-contract call bugs
-              fixed in v11.1) and will deploy on testnet August 25.
+              fixed in v11.1) and will deploy on testnet August 30.
               The 13 Phase 5+ contracts are written, security-reviewed internally, and gated
               behind a governance vote — they will not deploy until the core protocol is stable.
             </p>

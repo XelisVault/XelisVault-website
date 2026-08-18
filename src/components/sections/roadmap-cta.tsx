@@ -44,7 +44,7 @@ const MILESTONES = [
       'CLI tool + miner script released on GitHub',
       'Wallet connection — Genesix + local RPC',
     ],
-    date: 'Aug 25, 2026 · 14:00 UTC',
+    date: 'Aug 30, 2026 · 14:00 UTC',
   },
   {
     phase: 'Planned',
@@ -179,7 +179,7 @@ export function CTA() {
         <Reveal>
           <div className="inline-flex items-center gap-2 rounded-full glass-panel px-4 py-1.5 text-xs font-mono uppercase tracking-[0.2em] text-vault mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-vault animate-pulse" />
-            {isLaunched ? 'Testnet is LIVE' : 'Testnet launching August 25, 2026 · 14:00 UTC'}
+            {isLaunched ? 'Testnet is LIVE' : 'Testnet launching August 30, 2026 · 14:00 UTC'}
           </div>
         </Reveal>
 
@@ -212,7 +212,7 @@ export function CTA() {
             ) : (
               <div className="inline-flex h-13 items-center gap-3 rounded-full border border-amber-500/40 bg-amber-500/10 px-8 py-3.5">
                 <AlertCircle className="w-5 h-5 text-amber-400" />
-                <span className="text-base font-semibold text-amber-200">Testnet launching August 25</span>
+                <span className="text-base font-semibold text-amber-200">Testnet launching August 30</span>
                 <span className="text-sm font-mono text-amber-300/60">— 14:00 UTC</span>
               </div>
             )}
@@ -243,7 +243,7 @@ export function CTA() {
             <span className="w-1.5 h-1.5 rounded-full bg-vault animate-pulse" />
             {isLaunched
               ? 'Testnet live · Connect your Xelis wallet to interact with real contracts'
-              : 'Final integration testing in progress · Testnet launches August 25, 2026 · 14:00 UTC'}
+              : 'Final integration testing in progress · Testnet launches August 30, 2026 · 14:00 UTC'}
           </div>
         </Reveal>
 
@@ -388,7 +388,7 @@ export function Footer() {
             © 2026 XELIS Vault · MIT License · Confidential Finance for the Privacy Era
           </div>
           <div className="text-xs text-muted-foreground font-mono">
-            Testnet launch: August 25, 2026 · 14:00 UTC
+            Testnet launch: August 30, 2026 · 14:00 UTC
           </div>
         </div>
       </div>

@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Rocket, AlertCircle, Github, Wrench, Heart, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { CinematicCountdown } from '@/components/site/cinematic-countdown'
 
-// New target: August 25, 2026 at 14:00 UTC
-const LAUNCH_DATE = new Date('2026-08-25T14:00:00Z').getTime()
+// New target: August 30, 2026 at 14:00 UTC
+const LAUNCH_DATE = new Date('2026-08-30T14:00:00Z').getTime()
 
 export function useLaunchStatus() {
   const [timeLeft, setTimeLeft] = useState(LAUNCH_DATE - Date.now())
@@ -103,7 +103,7 @@ export function CountdownTimer({ compact = false }: { compact?: boolean }) {
       </div>
 
       <div className="text-xs font-mono text-muted-foreground/60">
-        Revised target: August 25, 2026 · 14:00 UTC
+        Revised target: August 30, 2026 · 14:00 UTC
       </div>
     </motion.div>
   )
@@ -138,7 +138,7 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
         <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/15 border border-amber-500/40 px-4 py-2 mb-6">
           <AlertCircle className="w-4 h-4 text-amber-400" />
           <span className="text-xs font-mono font-bold text-amber-300 uppercase tracking-wider">
-            Testnet Launching August 25
+            Testnet Launching August 30
           </span>
         </div>
 
@@ -290,7 +290,7 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-vault animate-pulse" />
-                      <span className="text-vault font-semibold">Aug 25-30: Full testnet launch</span>
+                      <span className="text-vault font-semibold">Aug 30-30: Full testnet launch</span>
                     </div>
                   </div>
                 </div>
@@ -305,7 +305,7 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
                   </p>
                   <p className="text-sm text-muted-foreground leading-relaxed mt-3">
                     The protocol is real. The contracts work. The testnet will launch on
-                    August 25, 2026 at 14:00 UTC. We just need a little more time to make
+                    August 30, 2026 at 14:00 UTC. We just need a little more time to make
                     sure everything is perfect.
                   </p>
                   <div className="flex items-center gap-2 mt-4 text-sm">

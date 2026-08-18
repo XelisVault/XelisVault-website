@@ -165,7 +165,7 @@ export function SecurityPage() {
           </Reveal>
           <Reveal delay={0.2}>
             <p className="mt-6 text-lg text-muted-foreground leading-relaxed max-w-3xl">
-              We delayed the testnet from August 9 to August 25 because four critical vulnerabilities
+              We delayed the testnet from August 9 to August 30 because four critical vulnerabilities
               were found in the final pre-launch review. We could have shipped anyway and hoped nobody
               noticed. We chose not to. Here is exactly how XELIS Vault protects your funds, and how
               you can help us find anything we missed.
@@ -282,7 +282,7 @@ export function SecurityPage() {
             </div>
           </section>
 
-          {/* The Aug 25 delay transparency */}
+          {/* The Aug 30 delay transparency */}
           <section className="mt-20">
             <Reveal>
               <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-6 md:p-8">
@@ -313,7 +313,7 @@ export function SecurityPage() {
                 </ul>
                 <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
                   Every fix has been re-deployed to the testnet contracts and re-verified. The new
-                  target is <strong className="text-foreground">August 25, 2026 at 14:00 UTC</strong>.
+                  target is <strong className="text-foreground">August 30, 2026 at 14:00 UTC</strong>.
                 </p>
               </div>
             </Reveal>

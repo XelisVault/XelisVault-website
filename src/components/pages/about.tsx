@@ -213,7 +213,7 @@ export function AboutPage() {
                 Thank you for believing in privacy.
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                The testnet launches August 25, 2026 at 14:00 UTC. We will see you there.
+                The testnet launches August 30, 2026 at 14:00 UTC. We will see you there.
               </p>
             </div>
           </Reveal>

@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion'
  * No external assets. Pure SVG + Framer Motion. Mobile-safe.
  */
 
-const LAUNCH_DATE = new Date('2026-08-25T14:00:00Z').getTime()
+const LAUNCH_DATE = new Date('2026-08-30T14:00:00Z').getTime()
 
 // Cipher glyphs for the scramble effect — ElGamal-themed (hex + crypto symbols)
 const CIPHER_GLYPHS = '0123456789ABCDEF∆∇ΣΦΨΩαβγδλμπσ∇∂∫∏≈≠≡⊕⊗⨯⌬⏃⏆'.split('')
@@ -457,7 +457,7 @@ export function CinematicCountdown({ compact = false }: { compact?: boolean }) {
           Target
         </div>
         <div className="mt-1 font-display text-lg font-semibold">
-          August 25, 2026 · 14:00 UTC
+          August 30, 2026 · 14:00 UTC
         </div>
         <div className="mt-1 text-xs text-muted-foreground/60 font-mono">
           {Math.floor(timeLeft / (1000 * 60 * 60 * 24))} days · {Math.floor(timeLeft / (1000 * 60 * 60 * 24) * 5 / 60)} blocks remaining
