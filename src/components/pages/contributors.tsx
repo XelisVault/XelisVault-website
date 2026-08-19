@@ -120,7 +120,14 @@ const CATEGORIES: Category[] = [
       'These developers contributed pull requests, wrote documentation, translated content, or built tools ' +
       'on top of the protocol. The MIT-licensed codebase exists thanks to them.',
     contributors: [
-      // Placeholder
+      {
+        name: 'Slixe',
+        handle: '@slixefr',
+        contribution: 'Developer of XELIS. Helped understand the VM internals and fixed protocol-level issues. His guidance on the Silex compiler and contract architecture was invaluable.',
+        tier: 'gold',
+        avatar: '/images/contributors/slixe.jpg',
+        profileUrl: 'https://x.com/slixefr',
+      },
     ],
   },
 ]
@@ -197,7 +204,7 @@ export function ContributorsPage() {
                 { label: 'Categories', value: '4', icon: Star },
                 { label: 'Security bugs found', value: '~50', icon: Shield },
                 { label: 'XEL donated', value: '156.25', icon: Gem },
-                { label: 'Contributors', value: '4', icon: Heart },
+                { label: 'Contributors', value: '5', icon: Heart },
               ].map((s, i) => (
                 <div key={i} className="p-5 md:p-6 bg-card/30 text-center">
                   <s.icon className="w-5 h-5 text-vault mx-auto mb-2" />
