@@ -75,7 +75,14 @@ const CATEGORIES: Category[] = [
       'These individuals sent XEL to the admin wallet to support development. Their contributions funded infrastructure, ' +
       'audit costs, and community initiatives. Every XEL received is publicly acknowledged here.',
     contributors: [
-      // Placeholder
+      {
+        name: 'BRG',
+        handle: '@BRGBRGBRGBRG',
+        contribution: 'Sent 100 XEL to support development',
+        tier: 'silver',
+        avatar: '/images/contributors/supporter-brg.jpg',
+        profileUrl: 'https://x.com/BRGBRGBRGBRG',
+      },
     ],
   },
   {
