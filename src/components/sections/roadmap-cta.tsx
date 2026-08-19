@@ -300,6 +300,7 @@ export function Footer() {
       links: [
         { label: 'Community Hub', href: '/community' },
         { label: 'About', href: '/about' },
+        { label: 'Hall of Fame', href: '/contributors' },
         { label: 'Discord', href: 'https://discord.gg/UHpYAWbG', ext: true },
         { label: 'Twitter / X', href: 'https://x.com/xelisvault', ext: true },
         { label: 'GitHub', href: 'https://github.com/XelisVault/xelis-vault', ext: true },
