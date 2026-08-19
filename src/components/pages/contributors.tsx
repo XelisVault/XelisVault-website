@@ -50,8 +50,14 @@ const CATEGORIES: Category[] = [
       'These individuals identified vulnerabilities in the XELIS Vault contracts before they could be exploited. ' +
       'Their work directly prevented loss of funds. Every bug they found made the protocol stronger.',
     contributors: [
-      // Placeholder — replace with real data when received
-      // { name: '...', handle: '@...', contribution: 'Found critical oracle entry ID bug', tier: 'gold' },
+      {
+        name: 'Dr. Pixel',
+        handle: '@pixelpatchit',
+        contribution: 'Found ~50 vulnerabilities across the XELIS Vault contracts. The most prolific security researcher on the project.',
+        tier: 'gold',
+        avatar: '/images/contributors/dr-pixel.jpg',
+        profileUrl: 'https://x.com/pixelpatchit',
+      },
     ],
   },
   {
@@ -64,7 +70,14 @@ const CATEGORIES: Category[] = [
       'These people amplify XELIS Vault across social media, organize community events, create educational content, ' +
       'and help newcomers on Discord. They are the human face of the protocol.',
     contributors: [
-      // Placeholder
+      {
+        name: 'Dr. Pixel',
+        handle: '@pixelpatchit',
+        contribution: 'Organized and structured the XELIS Vault Discord server — created channels, set up roles, and moderated the community from day one.',
+        tier: 'gold',
+        avatar: '/images/contributors/dr-pixel.jpg',
+        profileUrl: 'https://x.com/pixelpatchit',
+      },
     ],
   },
   {
@@ -80,15 +93,15 @@ const CATEGORIES: Category[] = [
       {
         name: '309',
         handle: '@BRGBRGBRGBRG',
-        contribution: 'Sent 100 XEL to support development',
-        tier: 'silver',
+        contribution: 'Sent 100 XEL to support development — the largest donation received',
+        tier: 'gold',
         avatar: '/images/contributors/supporter-brg.jpg',
         profileUrl: 'https://x.com/BRGBRGBRGBRG',
       },
       {
         name: 'Anonymous',
         contribution: 'Sent 50 XEL to support development',
-        tier: 'bronze',
+        tier: 'silver',
       },
       {
         name: 'Anonymous',
@@ -182,9 +195,9 @@ export function ContributorsPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-px rounded-2xl glass-panel overflow-hidden mb-16">
               {[
                 { label: 'Categories', value: '4', icon: Star },
-                { label: 'Security bugs found', value: '0', icon: Shield },
+                { label: 'Security bugs found', value: '~50', icon: Shield },
                 { label: 'XEL donated', value: '156.25', icon: Gem },
-                { label: 'Contributors', value: '3', icon: Heart },
+                { label: 'Contributors', value: '4', icon: Heart },
               ].map((s, i) => (
                 <div key={i} className="p-5 md:p-6 bg-card/30 text-center">
                   <s.icon className="w-5 h-5 text-vault mx-auto mb-2" />
