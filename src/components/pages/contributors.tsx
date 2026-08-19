@@ -78,6 +78,19 @@ const CATEGORIES: Category[] = [
         avatar: '/images/contributors/dr-pixel.jpg',
         profileUrl: 'https://x.com/pixelpatchit',
       },
+      {
+        name: 'Xelis Fans',
+        handle: '@xelis_fans',
+        contribution: 'Creates regular X posts promoting XELIS Vault and the XELIS ecosystem. One of the most active voices spreading the word.',
+        tier: 'silver',
+        avatar: '/images/contributors/xelis-fans.jpg',
+        profileUrl: 'https://x.com/xelis_fans',
+      },
+      {
+        name: 'rom_strx445',
+        contribution: 'Active on Reddit — created posts explaining XELIS Vault and answering questions from newcomers.',
+        tier: 'bronze',
+      },
     ],
   },
   {
@@ -204,7 +217,7 @@ export function ContributorsPage() {
                 { label: 'Categories', value: '4', icon: Star },
                 { label: 'Security bugs found', value: '~50', icon: Shield },
                 { label: 'XEL donated', value: '156.25', icon: Gem },
-                { label: 'Contributors', value: '5', icon: Heart },
+                { label: 'Contributors', value: '7', icon: Heart },
               ].map((s, i) => (
                 <div key={i} className="p-5 md:p-6 bg-card/30 text-center">
                   <s.icon className="w-5 h-5 text-vault mx-auto mb-2" />
