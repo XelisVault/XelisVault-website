@@ -25,6 +25,8 @@ interface Contributor {
   handle?: string
   contribution: string
   tier?: 'gold' | 'silver' | 'bronze'
+  avatar?: string
+  profileUrl?: string
 }
 
 interface Category {
@@ -76,12 +78,19 @@ const CATEGORIES: Category[] = [
       'audit costs, and community initiatives. Every XEL received is publicly acknowledged here.',
     contributors: [
       {
-        name: 'BRG',
+        name: '309',
         handle: '@BRGBRGBRGBRG',
         contribution: 'Sent 100 XEL to support development',
         tier: 'silver',
         avatar: '/images/contributors/supporter-brg.jpg',
         profileUrl: 'https://x.com/BRGBRGBRGBRG',
+      },
+      {
+        name: 'Anonymous',
+        handle: 'xel:entrsnu3w3ppad0d66w4cs2l2katka4ah0phpcnfac9gvjusjayqq8k8x9q',
+        contribution: 'Sent 6.25 XEL to support development',
+        tier: 'bronze',
+        profileUrl: 'https://testnet-explorer.xelis.io/address/xel:entrsnu3w3ppad0d66w4cs2l2katka4ah0phpcnfac9gvjusjayqq8k8x9q',
       },
     ],
   },
@@ -170,9 +179,9 @@ export function ContributorsPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-px rounded-2xl glass-panel overflow-hidden mb-16">
               {[
                 { label: 'Categories', value: '4', icon: Star },
-                { label: 'Security bugs found', value: '—', icon: Shield },
-                { label: 'XEL donated', value: '—', icon: Gem },
-                { label: 'Contributors', value: '—', icon: Heart },
+                { label: 'Security bugs found', value: '0', icon: Shield },
+                { label: 'XEL donated', value: '106.25', icon: Gem },
+                { label: 'Contributors', value: '2', icon: Heart },
               ].map((s, i) => (
                 <div key={i} className="p-5 md:p-6 bg-card/30 text-center">
                   <s.icon className="w-5 h-5 text-vault mx-auto mb-2" />
@@ -221,43 +230,68 @@ export function ContributorsPage() {
                     {cat.contributors.map((contributor, i) => {
                       const tier = contributor.tier ? TIER_STYLES[contributor.tier] : null
                       const TierIcon = tier?.icon
+                      const CardTag = contributor.profileUrl ? 'a' : 'div'
+                      const cardProps = contributor.profileUrl
+                        ? { href: contributor.profileUrl, target: '_blank' as const, rel: 'noreferrer' as const }
+                        : {}
                       return (
                         <RevealItem key={`${cat.id}-${i}`}>
-                          <motion.div
-                            whileHover={{ y: -4 }}
-                            className={`relative rounded-2xl glass-panel p-5 h-full ${tier ? tier.border : 'border-border'} ${tier ? tier.bg : ''}`}
-                          >
-                            {/* Tier badge */}
-                            {tier && TierIcon && (
-                              <div className={`absolute top-3 right-3 w-7 h-7 rounded-full ${tier.bg} border ${tier.border} flex items-center justify-center`}>
-                                <TierIcon className={`w-3.5 h-3.5 ${tier.text}`} />
-                              </div>
-                            )}
+                          <CardTag {...cardProps}>
+                            <motion.div
+                              whileHover={{ y: -4 }}
+                              className={`relative rounded-2xl glass-panel p-5 h-full ${tier ? tier.border : 'border-border'} ${tier ? tier.bg : ''} ${contributor.profileUrl ? 'cursor-pointer' : ''}`}
+                            >
+                              {/* Tier badge */}
+                              {tier && TierIcon && (
+                                <div className={`absolute top-3 right-3 w-7 h-7 rounded-full ${tier.bg} border ${tier.border} flex items-center justify-center`}>
+                                  <TierIcon className={`w-3.5 h-3.5 ${tier.text}`} />
+                                </div>
+                              )}
 
-                            {/* Avatar placeholder (first letter) */}
-                            <div className={`w-10 h-10 rounded-full ${c.bg} border ${c.border} flex items-center justify-center ${c.text} font-display font-bold text-sm mb-3`}>
-                              {contributor.name.charAt(0).toUpperCase()}
-                            </div>
+                              {/* Avatar (image or first letter) */}
+                              {contributor.avatar ? (
+                                <div className={`w-12 h-12 rounded-full overflow-hidden border ${c.border} mb-3 ring-1 ring-white/5`}>
+                                  <img
+                                    src={contributor.avatar}
+                                    alt={contributor.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              ) : (
+                                <div className={`w-12 h-12 rounded-full ${c.bg} border ${c.border} flex items-center justify-center ${c.text} font-display font-bold text-lg mb-3`}>
+                                  {contributor.name.charAt(0).toUpperCase()}
+                                </div>
+                              )}
 
-                            <h3 className="font-display text-base font-semibold leading-tight">
-                              {contributor.name}
-                            </h3>
-                            {contributor.handle && (
-                              <div className="mt-0.5 text-xs font-mono text-muted-foreground">
-                                {contributor.handle}
-                              </div>
-                            )}
-                            <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                              {contributor.contribution}
-                            </p>
+                              <h3 className="font-display text-base font-semibold leading-tight">
+                                {contributor.name}
+                              </h3>
+                              {contributor.handle && (
+                                <div className="mt-0.5 text-xs font-mono text-muted-foreground truncate">
+                                  {contributor.handle}
+                                </div>
+                              )}
+                              <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                                {contributor.contribution}
+                              </p>
 
-                            {tier && (
-                              <div className={`mt-3 inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider ${tier.text}`}>
-                                <TierIcon className="w-3 h-3" />
-                                {tier.label}
-                              </div>
-                            )}
-                          </motion.div>
+                              {tier && (
+                                <div className={`mt-3 inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider ${tier.text}`}>
+                                  <TierIcon className="w-3 h-3" />
+                                  {tier.label}
+                                </div>
+                              )}
+
+                              {/* External link indicator */}
+                              {contributor.profileUrl && (
+                                <div className="absolute bottom-3 right-3 text-muted-foreground/30">
+                                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M7 17L17 7M17 7H7m10 0v10" />
+                                  </svg>
+                                </div>
+                              )}
+                            </motion.div>
+                          </CardTag>
                         </RevealItem>
                       )
                     })}
