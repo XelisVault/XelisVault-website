@@ -87,10 +87,13 @@ const CATEGORIES: Category[] = [
       },
       {
         name: 'Anonymous',
-        handle: 'xel:entrsnu3w3ppad0d66w4cs2l2katka4ah0phpcnfac9gvjusjayqq8k8x9q',
+        contribution: 'Sent 50 XEL to support development',
+        tier: 'bronze',
+      },
+      {
+        name: 'Anonymous',
         contribution: 'Sent 6.25 XEL to support development',
         tier: 'bronze',
-        profileUrl: 'https://testnet-explorer.xelis.io/address/xel:entrsnu3w3ppad0d66w4cs2l2katka4ah0phpcnfac9gvjusjayqq8k8x9q',
       },
     ],
   },
@@ -180,8 +183,8 @@ export function ContributorsPage() {
               {[
                 { label: 'Categories', value: '4', icon: Star },
                 { label: 'Security bugs found', value: '0', icon: Shield },
-                { label: 'XEL donated', value: '106.25', icon: Gem },
-                { label: 'Contributors', value: '2', icon: Heart },
+                { label: 'XEL donated', value: '156.25', icon: Gem },
+                { label: 'Contributors', value: '3', icon: Heart },
               ].map((s, i) => (
                 <div key={i} className="p-5 md:p-6 bg-card/30 text-center">
                   <s.icon className="w-5 h-5 text-vault mx-auto mb-2" />
