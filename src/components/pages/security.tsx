@@ -72,7 +72,7 @@ const AUDIT_HISTORY = [
     note: 'VaultEngine liquidation queue, PSM rounding error, VaultSwapV2 TWAP manipulation, Miner heartbeat reorg handling',
   },
   {
-    version: 'v11.3 External IA Audit',
+    version: 'v11.3 audit · v11.5 remediated (18/18)',
     period: 'August 2026',
     status: 'Completed',
     findings: [

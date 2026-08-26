@@ -8,7 +8,7 @@ const STEPS = [
   {
     n: '01',
     title: 'Stake & Register',
-    desc: 'Anyone stakes 1,000 VLT and registers as a provider via XelisVaultMiner. Reputation starts at 0 and climbs to 10,000 with good behavior. 5 reward tiers: 0× (banned), 0.25× (critical), 0.50× (warning), 1.0× (good), 1.5× (excellent).',
+    desc: 'Anyone stakes 1,000 VLT and registers as a provider via XelisVaultMiner. Reputation starts at 3,000 (Warning tier) and climbs to 10,000 with good behavior — time-proven miners earn +2,000 after 15 days. 5 reward tiers: 0× (banned), 0.4× (critical), 0.7× (warning), 1.0× (good), 1.5× (excellent).',
     icon: Coins,
   },
   {
@@ -146,7 +146,7 @@ export function Oracle() {
               <div className="space-y-3">
                 {[
                   { label: 'Outlier submitted', sub: 'Price >5% from median', icon: ShieldAlert, color: 'text-red-400', border: 'border-red-500/30', bg: 'bg-red-500/5' },
-                  { label: 'Reputation drops', sub: 'May fall to lower reward tier (0.25× or 0×)', icon: Gauge, color: 'text-amber-400', border: 'border-amber-500/30', bg: 'bg-amber-500/5' },
+                  { label: 'Reputation drops', sub: 'May fall to lower reward tier (0.4× or 0×)', icon: Gauge, color: 'text-amber-400', border: 'border-amber-500/30', bg: 'bg-amber-500/5' },
                   { label: 'Stake slashed', sub: '50% burned · permanent supply reduction', icon: CheckCircle2, color: 'text-vlt', border: 'border-vlt/30', bg: 'bg-vlt/5' },
                   { label: '50% to treasury', sub: 'Community-controlled VLT', icon: Coins, color: 'text-vault', border: 'border-vault/30', bg: 'bg-vault/5' },
                 ].map((step, i) => (

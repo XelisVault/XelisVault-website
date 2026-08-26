@@ -126,8 +126,12 @@ bun install
 log_step_end "bun install"
 
 log_step_start "bun run db:push"
-echo "[BUN] Setting up database..."
-bun run db:push
+if grep -q '"db:push"' package.json 2>/dev/null; then
+	echo "[BUN] Setting up database..."
+	bun run db:push
+else
+	echo "[BUN] No db:push script found, skipping..."
+fi
 log_step_end "bun run db:push"
 
 log_step_start "Starting Next.js dev server"

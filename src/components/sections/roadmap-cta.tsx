@@ -11,9 +11,9 @@ const MILESTONES = [
   {
     phase: 'Complete',
     status: 'done',
-    title: 'Core Protocol v11.3',
+    title: 'Core Protocol v11.5',
     items: [
-      '51 contracts total · 962 entry functions · MIT license',
+      '51 contracts total · 966 entry functions · MIT license',
       '37 core contracts deployed at testnet launch',
       '13 Phase 5+ contracts written, gated behind governance vote',
       'VaultEngineV3 confidential mode · StakedOracle v10 · VaultSwapV2',
@@ -203,7 +203,7 @@ export function CTA() {
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             {isLaunched ? (
               <button
-                onClick={openApp}
+                onClick={() => openApp()}
                 className="group inline-flex h-13 items-center gap-2 rounded-full bg-vault px-8 py-3.5 text-base font-semibold text-white hover:bg-vault/85 transition-all hover:shadow-[0_0_48px_-8px_var(--vault)]"
               >
                 <Rocket className="w-5 h-5 group-hover:rotate-12 transition-transform" />
@@ -288,6 +288,7 @@ export function Footer() {
     {
       title: 'Resources',
       links: [
+        { label: 'Documentation', href: '/docs' },
         { label: 'Security', href: '/security' },
         { label: 'Learn', href: '/learn' },
         { label: 'Developers', href: '/developers' },

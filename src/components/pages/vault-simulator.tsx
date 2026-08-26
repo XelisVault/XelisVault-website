@@ -13,7 +13,7 @@ import { useDemo } from '@/lib/demo-store'
 const MAX_LTV = 50 // 200% collateral ratio → 1/2 = 50% max LTV
 const LIQUIDATION_RATIO = 200 // 200% min collateral ratio (DEFAULT_MIN_CR in VaultEngineV3.slx)
 const STABILITY_FEE_APR = 2
-const LIQUIDATION_PENALTY = 13
+const LIQUIDATION_PENALTY = 10
 const DEFAULT_XEL_PRICE = 12.94
 
 type HealthState = 'safe' | 'warning' | 'danger'
@@ -90,7 +90,7 @@ export function VaultSimulator() {
               <p className="mt-6 text-lg text-muted-foreground leading-relaxed">
                 The Vault Engine lets you deposit XEL as collateral and borrow xUSD against it.
                 This simulator uses the real protocol parameters (50% max LTV, 200% liquidation
-                ratio, 2% stability fee, 13% liquidation penalty). Adjust the sliders and watch
+                ratio, 2% stability fee, 10% liquidation penalty). Adjust the sliders and watch
                 your health factor move in real time.
               </p>
             </Reveal>

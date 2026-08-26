@@ -5,6 +5,7 @@ import { useRef, useEffect, useState } from 'react'
 import { ArrowDown, Shield, Lock, Zap, Github } from 'lucide-react'
 import { useDemo } from '@/lib/demo-store'
 import { CinematicCountdown } from '@/components/site/cinematic-countdown'
+import { LiveNetworkStrip } from '@/components/site/live-network-strip'
 import { ProgressiveLaunchButton, useLaunchProgress } from '@/components/site/progressive-launch-button'
 import { LaunchCelebration } from '@/components/site/launch-celebration'
 
@@ -180,7 +181,7 @@ export function Hero() {
           />
           {isLaunched
             ? 'Testnet LIVE · Connect your wallet'
-            : 'v11.3 · 51 contracts · XELIS BlockDAG'}
+            : 'v11.5 · 51 contracts · XELIS BlockDAG'}
         </motion.div>
 
         {/* Title */}
@@ -247,6 +248,11 @@ export function Hero() {
             <ArrowDown className="w-4 h-4" />
           </a>
         </motion.div>
+
+        {/* Live network strip — real on-chain numbers from the public testnet */}
+        <div className="mt-8">
+          <LiveNetworkStrip />
+        </div>
 
         {/* Quick pillars */}
         <motion.div

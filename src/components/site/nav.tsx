@@ -21,6 +21,7 @@ const LINKS = [
 
 // Resources shown in a dropdown on desktop and inline on mobile
 const RESOURCES = [
+  { label: 'Documentation', href: '/docs', desc: 'Guides, specs, contract reference' },
   { label: 'Vault Simulator', href: '/vault-simulator', desc: 'Practice before testnet launches' },
   { label: 'Security', href: '/security', desc: 'Audits, bug bounty, security model' },
   { label: 'Learn', href: '/learn', desc: 'Cryptography and DeFi concepts' },
@@ -133,7 +134,7 @@ export function Nav() {
               <ExternalLink className="w-3 h-3 opacity-60" />
             </a>
             <button
-              onClick={openApp}
+              onClick={() => openApp()}
               disabled={!isLaunched}
               className="hidden md:inline-flex h-9 items-center gap-2 rounded-full bg-vault px-4 text-[13px] font-semibold text-white hover:bg-vault/85 transition-all hover:shadow-[0_0_24px_-4px_var(--vault)] disabled:opacity-40 disabled:cursor-not-allowed"
             >

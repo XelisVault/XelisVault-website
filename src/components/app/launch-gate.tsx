@@ -8,20 +8,44 @@ import { CinematicCountdown } from '@/components/site/cinematic-countdown'
 // New target: August 30, 2026 at 14:00 UTC
 const LAUNCH_DATE = new Date('2026-08-30T14:00:00Z').getTime()
 
+// Preview override: add ?preview=launch to the URL to open the app before the
+// official date (kept for owner testing / demos — the countdown still shows
+// everywhere else and the override never persists across browsers).
+const PREVIEW_KEY = 'xv-preview-launch'
+
+function readPreviewFlag(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    const url = new URL(window.location.href)
+    if (url.searchParams.get('preview') === 'launch') {
+      sessionStorage.setItem(PREVIEW_KEY, '1')
+      // clean the URL so the flag is not shared/linked accidentally
+      url.searchParams.delete('preview')
+      window.history.replaceState({}, '', url.toString())
+      return true
+    }
+    return sessionStorage.getItem(PREVIEW_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 export function useLaunchStatus() {
+  const [preview] = useState(readPreviewFlag)
   const [timeLeft, setTimeLeft] = useState(LAUNCH_DATE - Date.now())
-  const [isLaunched, setIsLaunched] = useState(Date.now() >= LAUNCH_DATE)
+  const [isLaunched, setIsLaunched] = useState(() => preview || Date.now() >= LAUNCH_DATE)
 
   useEffect(() => {
+    if (preview) return // preview mode: stay launched for the session
     const interval = setInterval(() => {
       const remaining = LAUNCH_DATE - Date.now()
       setTimeLeft(remaining)
       setIsLaunched(remaining <= 0)
     }, 1000)
     return () => clearInterval(interval)
-  }, [])
+  }, [preview])
 
-  return { timeLeft, isLaunched, launchDate: LAUNCH_DATE }
+  return { timeLeft, isLaunched: isLaunched, launchDate: LAUNCH_DATE, preview }
 }
 
 export function CountdownTimer({ compact = false }: { compact?: boolean }) {

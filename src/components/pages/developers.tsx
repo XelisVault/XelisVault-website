@@ -19,7 +19,7 @@ import { Footer } from '@/components/sections/roadmap-cta'
 import { Reveal, RevealStagger, RevealItem, SectionLabel } from '@/components/site/reveal'
 
 const DOCS = [
-  { title: 'API reference', description: 'All 962 entry functions across 51 contracts', href: 'https://github.com/XelisVault/xelis-vault' },
+  { title: 'API reference', description: 'All 966 entry functions across 51 contracts', href: 'https://github.com/XelisVault/xelis-vault' },
   { title: 'Silex language guide', description: 'XELIS native smart-contract language', href: 'https://docs.xelis.io/features/smart-contracts/silex' },
   { title: 'Integration guide', description: 'Step-by-step XSWD wallet integration', href: 'https://docs.xelis.io/features/wallet/xswd' },
   { title: 'Security best practices', description: 'Building secure dApps on XELIS', href: '/security' },

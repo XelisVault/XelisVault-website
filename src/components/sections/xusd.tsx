@@ -69,7 +69,7 @@ export function Xusd() {
                 {
                   icon: Lock,
                   title: 'Overcollateralized VaultEngine',
-                  desc: 'Borrow xUSD against XEL collateral at up to ~66% LTV (150% liquidation threshold). 2% APR stability fee. Confidential liquidations via sealed-bid auctions eliminate front-running.',
+                  desc: 'Borrow xUSD against XEL collateral at up to 50% LTV (200% minimum collateral ratio). 2% APR stability fee. 10% liquidation penalty. Confidential liquidations via sealed-bid auctions eliminate front-running.',
                 },
                 {
                   icon: ArrowDownToLine,

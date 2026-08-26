@@ -3,25 +3,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  LayoutDashboard,
-  Vault,
-  ArrowLeftRight,
-  Coins,
-  Wind,
-  PiggyBank,
-  Vote,
-  MessageSquareLock,
-  Activity,
-  Pickaxe,
-  X,
-  ExternalLink,
-  AlertTriangle,
-  ChevronRight,
-  ChevronLeft,
-  Wallet,
+  LayoutDashboard, Vault, ArrowLeftRight, Coins, Wind, PiggyBank, Vote,
+  MessageSquareLock, Activity, Pickaxe, X, ExternalLink, ChevronRight, ChevronLeft,
+  Wallet, Rocket, Gift, FileCode2,
 } from 'lucide-react'
 import { useDemo, type ModuleId } from '@/lib/demo-store'
 import { useWallet } from '@/lib/wallet-store'
+import { GetStarted } from './modules/get-started'
 import { Dashboard } from './modules/dashboard'
 import { VaultEngine } from './modules/vault-engine'
 import { VaultSwap } from './modules/vault-swap'
@@ -32,56 +20,57 @@ import { Governance } from './modules/governance'
 import { VaultChat } from './modules/vault-chat'
 import { Oracle } from './modules/oracle'
 import { Miner } from './modules/miner'
+import { Airdrop } from './modules/airdrop'
+import { Contracts } from './modules/contracts'
 import { TokenIcon } from './token-icon'
 import { WalletConnectModal } from './wallet-connect-modal'
 import { LaunchGate, useLaunchStatus } from './launch-gate'
 
 const NAV: { id: ModuleId; label: string; icon: typeof LayoutDashboard; group: string }[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Overview' },
+  { id: 'get-started', label: 'Get Started', icon: Rocket, group: 'Start' },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Start' },
   { id: 'vault', label: 'Vault Engine', icon: Vault, group: 'Core' },
   { id: 'swap', label: 'VaultSwap', icon: ArrowLeftRight, group: 'Core' },
   { id: 'psm', label: 'PSM', icon: Coins, group: 'Core' },
-  { id: 'savings', label: 'Savings Rate', icon: PiggyBank, group: 'Core' },
+  { id: 'savings', label: 'Savings', icon: PiggyBank, group: 'Core' },
   { id: 'mixer', label: 'Privacy Mixer', icon: Wind, group: 'Privacy' },
   { id: 'chat', label: 'VaultChat', icon: MessageSquareLock, group: 'Privacy' },
   { id: 'oracle', label: 'Oracle', icon: Activity, group: 'Network' },
   { id: 'governance', label: 'Governance', icon: Vote, group: 'Network' },
   { id: 'miner', label: 'Miner', icon: Pickaxe, group: 'Network' },
+  { id: 'airdrop', label: 'Airdrop', icon: Gift, group: 'Rewards' },
+  { id: 'contracts', label: 'Contracts', icon: FileCode2, group: 'Rewards' },
 ]
 
 const MODULE_TITLES: Record<ModuleId, { title: string; desc: string }> = {
-  dashboard: { title: 'Dashboard', desc: 'Your confidential portfolio overview' },
+  'get-started': { title: 'Get Started', desc: 'Set up your wallet, get funds, start mining' },
+  dashboard: { title: 'Dashboard', desc: 'Live protocol and network overview' },
   vault: { title: 'Vault Engine', desc: 'Deposit XEL collateral · borrow xUSD privately' },
   swap: { title: 'VaultSwap', desc: 'Confidential AMM with MEV protection' },
-  psm: { title: 'Peg Stability Module', desc: 'Mint / redeem xUSD at $1 oracle price' },
-  mixer: { title: 'Privacy Mixer', desc: 'ZK anonymity set for xUSD and VLT' },
+  psm: { title: 'Peg Stability Module', desc: 'Mint / redeem xUSD at oracle price' },
+  mixer: { title: 'Privacy Mixer', desc: 'Threshold-based anonymity with auto-mix' },
   savings: { title: 'Savings Rate', desc: 'Earn adjustable APY on xUSD deposits' },
   governance: { title: 'Governance', desc: 'VLT holders shape the protocol' },
   chat: { title: 'VaultChat', desc: 'End-to-end encrypted messaging' },
   oracle: { title: 'StakedOracle', desc: 'Decentralized price feeds' },
-  miner: { title: 'XelisVaultMiner', desc: 'Unified mining layer · oracle + chat relayer' },
+  miner: { title: 'Miner', desc: 'Unified mining layer · oracle + chat relayer' },
+  airdrop: { title: 'Airdrop', desc: 'Testnet contribution points toward 500,000 VLT' },
+  contracts: { title: 'Contracts', desc: 'All deployed contracts, resolved live from the registry' },
 }
 
 export function DemoApp() {
-  const { open, closeApp, activeModule, setModule, tick } = useDemo()
-  const { connectionType, address: walletAddress, setShowConnectModal, connectionState, showConnectModal, xelBalance: walletXel, xusdBalance: walletXusd, vltBalance: walletVlt, xelPrice: walletXelPrice, refreshBalances } = useWallet()
+  const { open, closeApp, activeModule, setModule } = useDemo()
+  const {
+    connectionType, address: walletAddress, setShowConnectModal, connectionState,
+    showConnectModal, xelBalance, xusdBalance, vltBalance, xelPrice, refreshBalances, disconnect,
+  } = useWallet()
   const { isLaunched } = useLaunchStatus()
 
   // BLOCK app from opening if not launched yet
   const effectivelyOpen = open && isLaunched
 
-  // NO DEMO FALLBACK — only real wallet data
-  const isWalletConnected = connectionType === 'local-rpc' && connectionState === 'connected'
+  const isWalletConnected = connectionType !== null && connectionState === 'connected'
   const displayAddress = walletAddress || ''
-  const displayXelBalance = walletXel
-  const displayXusdBalance = walletXusd
-  const displayVltBalance = walletVlt
-  const displayXelPrice = walletXelPrice
-  const displayVltPrice = 0 // TODO: fetch from pool
-
-  // HARD GATE: no wallet = only connect screen, NOTHING else
-  const showConnectScreen = effectivelyOpen && !isWalletConnected
-  const shouldShowModal = effectivelyOpen && !isWalletConnected && !showConnectModal
 
   // Mobile nav scroll state
   const navScrollRef = useRef<HTMLDivElement>(null)
@@ -106,34 +95,20 @@ export function DemoApp() {
 
   // Auto-scroll active tab into view + update scroll indicators
   useEffect(() => {
-    if (!effectivelyOpen || !isWalletConnected) return
+    if (!effectivelyOpen) return
     const tab = tabRefs.current[activeModule]
     if (tab) {
       tab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
     }
     updateScrollIndicators()
-  }, [activeModule, open, isWalletConnected, updateScrollIndicators])
+  }, [activeModule, open, updateScrollIndicators, effectivelyOpen])
 
-  // Auto-refresh balances every 10s when wallet connected
+  // Auto-refresh balances every 15s when XSWD-connected
   useEffect(() => {
-    if (!effectivelyOpen || !isWalletConnected) return
-    const interval = setInterval(() => refreshBalances(), 10000)
+    if (!effectivelyOpen || !isWalletConnected || connectionType !== 'xswd') return
+    const interval = setInterval(() => refreshBalances(), 15000)
     return () => clearInterval(interval)
-  }, [effectivelyOpen, isWalletConnected, refreshBalances])
-
-  // Auto-open connect modal if no wallet connected (hard gate)
-  useEffect(() => {
-    if (shouldShowModal) {
-      setShowConnectModal(true)
-    }
-  }, [shouldShowModal, setShowConnectModal])
-
-  // savings accrual + price jitter — only when wallet connected
-  useEffect(() => {
-    if (!effectivelyOpen || !isWalletConnected) return
-    const interval = setInterval(tick, 5000)
-    return () => clearInterval(interval)
-  }, [effectivelyOpen, isWalletConnected, tick])
+  }, [effectivelyOpen, isWalletConnected, connectionType, refreshBalances])
 
   // esc to close
   useEffect(() => {
@@ -152,10 +127,10 @@ export function DemoApp() {
         document.body.style.overflow = ''
       }
     }
-  }, [open])
+  }, [effectivelyOpen])
 
   const portfolioUsd =
-    displayXelBalance * displayXelPrice + displayXusdBalance + displayVltBalance * displayVltPrice
+    xelBalance * xelPrice + xusdBalance + vltBalance * 0.02
 
   const groups = Array.from(new Set(NAV.map((n) => n.group)))
 
@@ -173,39 +148,22 @@ export function DemoApp() {
           className="fixed inset-0 z-[80] bg-background flex flex-col"
         >
           {/* BANNER: testnet status */}
-          {isWalletConnected ? (
-            <div className="shrink-0 bg-gradient-to-r from-emerald-500/20 via-emerald-500/15 to-emerald-500/20 border-b border-emerald-500/30">
-              <div className="px-4 md:px-6 py-2 flex items-center justify-center gap-2 text-center">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                <span className="text-xs font-mono text-emerald-200">
-                  <span className="font-bold uppercase tracking-wider">Testnet Live</span>
-                  <span className="opacity-70 mx-2">·</span>
-                  Wallet connected · Real on-chain data · Transactions require wallet approval
-                </span>
-              </div>
+          <div className="shrink-0 bg-gradient-to-r from-emerald-500/20 via-emerald-500/15 to-emerald-500/20 border-b border-emerald-500/30">
+            <div className="px-4 md:px-6 py-2 flex items-center justify-center gap-2 text-center">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <span className="text-xs font-mono text-emerald-200">
+                <span className="font-bold uppercase tracking-wider">Testnet Live</span>
+                <span className="opacity-70 mx-2">·</span>
+                {isWalletConnected
+                  ? connectionType === 'xswd'
+                    ? 'XSWD wallet connected · transactions require wallet approval'
+                    : 'View-only mode · connect via XSWD to sign transactions'
+                  : 'Live protocol data · connect a wallet to interact'}
+              </span>
             </div>
-          ) : (
-            <div className="shrink-0 bg-gradient-to-r from-vault/20 via-vault/15 to-vault/20 border-b border-vault/30">
-              <div className="px-4 md:px-6 py-2 flex items-center justify-center gap-2 text-center">
-                <span className="w-2 h-2 rounded-full bg-vault animate-pulse shrink-0" />
-                <span className="text-xs font-mono text-vault">
-                  <span className="font-bold uppercase tracking-wider">XELIS Vault Testnet</span>
-                  <span className="opacity-70 mx-2">·</span>
-                  Connect your wallet to interact with real contracts
-                </span>
-              </div>
-            </div>
-          )}
+          </div>
 
-          {/* CONNECT WALLET SCREEN — shown when no wallet connected */}
-          {showConnectScreen && (
-            <div className="flex-1 flex items-center justify-center p-4">
-              <ConnectScreen onConnect={() => setShowConnectModal(true)} />
-            </div>
-          )}
-
-          {/* MAIN APP — shown when wallet is connected */}
-          {!showConnectScreen && (
+          {/* MAIN APP */}
           <div className="flex-1 flex overflow-hidden">
             {/* SIDEBAR */}
             <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-border bg-card/30">
@@ -223,13 +181,13 @@ export function DemoApp() {
                     <div className="font-display font-semibold text-sm tracking-tight">
                       XELIS<span className="text-vault">Vault</span>
                     </div>
-                    <div className="text-[10px] font-mono text-muted-foreground mt-0.5">App · Demo</div>
+                    <div className="text-[10px] font-mono text-muted-foreground mt-0.5">App · Testnet</div>
                   </div>
                 </div>
               </div>
 
               {/* Nav */}
-              <nav className="flex-1 overflow-y-auto p-3 space-y-5">
+              <nav className="flex-1 overflow-y-auto p-3 space-y-5 custom-scrollbar">
                 {groups.map((g) => (
                   <div key={g}>
                     <div className="px-3 mb-1.5 text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/60">
@@ -260,7 +218,7 @@ export function DemoApp() {
               </nav>
 
               {/* Footer */}
-              <div className="p-3 border-t border-border">
+              <div className="p-3 border-t border-border space-y-0.5">
                 <a
                   href="https://github.com/XelisVault/xelis-vault"
                   target="_blank"
@@ -304,28 +262,32 @@ export function DemoApp() {
                   {/* Wallet bar */}
                   <div className="flex items-center gap-2">
                     {/* Portfolio value (desktop only) */}
-                    <div className="hidden md:flex items-center gap-2 rounded-full border border-border bg-card/40 px-3 py-1.5">
-                      <span className="text-[10px] font-mono uppercase text-muted-foreground">Portfolio</span>
-                      <span className="text-sm font-semibold font-mono">
-                        ${portfolioUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
+                    {isWalletConnected && (
+                      <div className="hidden md:flex items-center gap-2 rounded-full border border-border bg-card/40 px-3 py-1.5">
+                        <span className="text-[10px] font-mono uppercase text-muted-foreground">Portfolio</span>
+                        <span className="text-sm font-semibold font-mono">
+                          ${portfolioUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Balances (desktop only) */}
-                    <div className="hidden lg:flex items-center gap-1.5">
-                      {[
-                        { sym: 'XEL' as const, amount: displayXelBalance },
-                        { sym: 'xUSD' as const, amount: displayXusdBalance },
-                        { sym: 'VLT' as const, amount: displayVltBalance },
-                      ].map((b) => (
-                        <div key={b.sym} className="flex items-center gap-1.5 rounded-full border border-border bg-card/40 px-2.5 py-1.5">
-                          <TokenIcon symbol={b.sym} size="xs" />
-                          <span className="text-xs font-mono">
-                            {b.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                    {isWalletConnected && connectionType === 'xswd' && (
+                      <div className="hidden lg:flex items-center gap-1.5">
+                        {[
+                          { sym: 'XEL' as const, amount: xelBalance },
+                          { sym: 'xUSD' as const, amount: xusdBalance },
+                          { sym: 'VLT' as const, amount: vltBalance },
+                        ].map((b) => (
+                          <div key={b.sym} className="flex items-center gap-1.5 rounded-full border border-border bg-card/40 px-2.5 py-1.5">
+                            <TokenIcon symbol={b.sym} size="xs" />
+                            <span className="text-xs font-mono">
+                              {b.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Address / Connect Wallet button */}
                     <button
@@ -340,13 +302,26 @@ export function DemoApp() {
                         isWalletConnected ? 'bg-emerald-400' : 'bg-amber-400'
                       }`} />
                       <span className="text-xs font-mono">
-                        {displayAddress.slice(0, 6)}...{displayAddress.slice(-4)}
+                        {displayAddress ? `${displayAddress.slice(0, 8)}...${displayAddress.slice(-4)}` : 'Connect'}
                       </span>
-                      {isWalletConnected && (
+                      {isWalletConnected && connectionType === 'xswd' && (
                         <span className="text-[9px] font-mono uppercase tracking-wider text-emerald-400 hidden sm:inline">LIVE</span>
+                      )}
+                      {isWalletConnected && connectionType === 'view-only' && (
+                        <span className="text-[9px] font-mono uppercase tracking-wider text-amber-400 hidden sm:inline">VIEW</span>
                       )}
                       <Wallet className="w-3 h-3 opacity-60" />
                     </button>
+
+                    {isWalletConnected && (
+                      <button
+                        onClick={disconnect}
+                        title="Disconnect"
+                        className="hidden sm:flex w-8 h-8 rounded-full border border-border bg-card/40 hover:bg-card/80 hover:border-red-500/30 items-center justify-center transition-all"
+                      >
+                        <span className="text-[10px] font-mono text-muted-foreground">exit</span>
+                      </button>
+                    )}
 
                     {/* Close */}
                     <button
@@ -362,7 +337,6 @@ export function DemoApp() {
                 {/* Mobile nav (horizontal scroll with arrows + fade + counter) */}
                 <div className="md:hidden relative">
                   <div className="flex items-center px-3 pb-2.5">
-                    {/* Left arrow */}
                     <button
                       onClick={() => scrollNav('left')}
                       disabled={!canScrollLeft}
@@ -374,7 +348,6 @@ export function DemoApp() {
                       <ChevronLeft className="w-4 h-4" />
                     </button>
 
-                    {/* Scrollable tabs */}
                     <div
                       ref={navScrollRef}
                       onScroll={updateScrollIndicators}
@@ -400,7 +373,6 @@ export function DemoApp() {
                       })}
                     </div>
 
-                    {/* Right arrow */}
                     <button
                       onClick={() => scrollNav('right')}
                       disabled={!canScrollRight}
@@ -413,7 +385,6 @@ export function DemoApp() {
                     </button>
                   </div>
 
-                  {/* Page counter + swipe hint */}
                   <div className="flex items-center justify-between px-4 pb-2">
                     <div className="text-[10px] font-mono text-muted-foreground">
                       <span className="text-vault font-bold">{activeIndex + 1}</span>
@@ -430,7 +401,7 @@ export function DemoApp() {
               </header>
 
               {/* CONTENT */}
-              <main className="flex-1 overflow-y-auto">
+              <main className="flex-1 overflow-y-auto custom-scrollbar">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeModule}
@@ -440,6 +411,7 @@ export function DemoApp() {
                     transition={{ duration: 0.2 }}
                     className="p-4 md:p-6 lg:p-8"
                   >
+                    {activeModule === 'get-started' && <GetStarted />}
                     {activeModule === 'dashboard' && <Dashboard />}
                     {activeModule === 'vault' && <VaultEngine />}
                     {activeModule === 'swap' && <VaultSwap />}
@@ -450,59 +422,18 @@ export function DemoApp() {
                     {activeModule === 'chat' && <VaultChat />}
                     {activeModule === 'oracle' && <Oracle />}
                     {activeModule === 'miner' && <Miner />}
+                    {activeModule === 'airdrop' && <Airdrop />}
+                    {activeModule === 'contracts' && <Contracts />}
                   </motion.div>
                 </AnimatePresence>
               </main>
             </div>
           </div>
-          )}
         </motion.div>
       )}
 
       {/* Wallet Connect Modal — always rendered when app is open */}
       <WalletConnectModal />
     </AnimatePresence>
-  )
-}
-
-function ConnectScreen({ onConnect }: { onConnect: () => void }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-md text-center"
-    >
-      <motion.div
-        animate={{ y: [0, -8, 0] }}
-        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        className="w-20 h-20 mx-auto rounded-2xl overflow-hidden ring-2 ring-vault/40 shadow-[0_0_60px_-10px_var(--vault)] mb-6"
-      >
-        <img src="/images/xelisvault-logo.png" alt="Xelis Vault" className="w-full h-full object-cover" />
-      </motion.div>
-
-      <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight mb-3">
-        Welcome to <span className="text-gradient-vault">XELIS Vault</span>
-      </h1>
-      <p className="text-sm text-muted-foreground leading-relaxed mb-8 max-w-sm mx-auto">
-        Connect your Xelis wallet to interact with real testnet contracts.
-        Your seed phrase never leaves your wallet — every transaction requires your approval.
-      </p>
-
-      <button
-        onClick={onConnect}
-        className="inline-flex h-13 items-center gap-2 rounded-full bg-vault px-8 py-3.5 text-base font-semibold text-white hover:bg-vault/85 transition-all hover:shadow-[0_0_48px_-8px_var(--vault)] mb-4"
-      >
-        <Wallet className="w-5 h-5" />
-        Connect Wallet
-      </button>
-
-      <div className="mt-8 flex items-center justify-center gap-4 text-[10px] font-mono text-muted-foreground/60">
-        <span>🔒 Encrypted by default</span>
-        <span>·</span>
-        <span>zk-proof verified</span>
-        <span>·</span>
-        <span>5s finality</span>
-      </div>
-    </motion.div>
   )
 }

@@ -21,8 +21,8 @@ import { Reveal, RevealStagger, RevealItem, SectionLabel } from '@/components/si
 const REPUTATION_TIERS = [
   { tier: 'Excellent', range: '8,000 – 10,000', multiplier: '1.5×', color: 'emerald', desc: 'Earns 50% bonus rewards. Reached via honest behavior over time.' },
   { tier: 'Good', range: '5,000 – 7,999', multiplier: '1.0×', color: 'vault', desc: 'Standard rewards. New miners reach this after 15 days (time-proven bonus +2000).' },
-  { tier: 'Warning', range: '2,000 – 4,999', multiplier: '0.5×', color: 'amber', desc: 'Half rewards. Where new miners START (REP_START = 3000).' },
-  { tier: 'Critical', range: '1,000 – 1,999', multiplier: '0.25×', color: 'orange', desc: 'Last chance before ban. Quarter rewards.' },
+  { tier: 'Warning', range: '2,000 – 4,999', multiplier: '0.7×', color: 'amber', desc: '30% reward penalty. Where new miners START (REP_START = 3000).' },
+  { tier: 'Critical', range: '1,000 – 1,999', multiplier: '0.4×', color: 'orange', desc: 'Last chance before ban. 60% reward penalty.' },
   { tier: 'Banned', range: '0 – 999', multiplier: '0×', color: 'red', desc: 'Cannot earn. Must rebuild via heartbeats.' },
 ]
 
@@ -232,7 +232,7 @@ export function MiningDelegation() {
             </h3>
             <p className="mt-4 text-sm text-muted-foreground leading-relaxed max-w-2xl">
               To prevent Sybil attacks (spawning many new miners to capture rewards), new miners
-              start at reputation 3,000 (Warning tier, 0.5× multiplier) — not at the maximum.
+              start at reputation 3,000 (Warning tier, 0.7× multiplier) — not at the maximum.
               They must prove themselves over time through two mechanisms:
             </p>
 
