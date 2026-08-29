@@ -48,7 +48,7 @@ const MODULE_TITLES: Record<ModuleId, { title: string; desc: string }> = {
   vault: { title: 'Vault Engine', desc: 'Deposit XEL collateral · borrow xUSD privately' },
   swap: { title: 'VaultSwap', desc: 'Confidential AMM with MEV protection' },
   psm: { title: 'Peg Stability Module', desc: 'Mint / redeem xUSD at oracle price' },
-  mixer: { title: 'Privacy Mixer', desc: 'Threshold-based anonymity with auto-mix' },
+  mixer: { title: 'Privacy Mixer', desc: 'Note-based mixing for XEL, xUSD and VLT — no sender link' },
   savings: { title: 'Savings Rate', desc: 'Earn adjustable APY on xUSD deposits' },
   governance: { title: 'Governance', desc: 'VLT holders shape the protocol' },
   chat: { title: 'VaultChat', desc: 'End-to-end encrypted messaging' },

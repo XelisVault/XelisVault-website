@@ -127,6 +127,18 @@ const REFERENCE = [
 
 const CHANGELOG = [
   {
+    version: 'v12R-9',
+    date: '2026-08-27 → 29',
+    tone: 'vault' as const,
+    title: 'PrivacyMixer v2 + relayer officiel',
+    points: [
+      'PrivacyMixer v2 (v12R-7): note + nullifier + shared pool — the v1 sender/recipient link is gone',
+      'The mixer now mixes XEL (native), in addition to xUSD and VLT — any amount',
+      'Official VaultChat relayer configured on-chain (v12R-8): relay.xelisvault.io, free tier 100 msgs/day',
+      'CLI v12R-9: rich dashboard, Relayer & Airdrop screens, balance guards on every spend flow',
+    ],
+  },
+  {
     version: 'v12R',
     date: '2026-08-22 → 24',
     tone: 'emerald' as const,

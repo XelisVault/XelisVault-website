@@ -86,6 +86,18 @@ export function VaultChat() {
         desc="Relayers are the messaging backbone — and earn from the 1,000,000 VLT relayer allocation (10% of supply over 10 years)."
         actions={<Badge tone="vlt">earns VLT</Badge>}
       >
+        <div className="mb-4 rounded-xl border border-vault/25 bg-vault/5 p-3.5">
+          <div className="flex items-center gap-2 mb-1">
+            <LiveDot />
+            <span className="text-xs font-semibold">Official relayer live</span>
+            <Badge tone="vault">relay.xelisvault.io</Badge>
+          </div>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            The protocol runs its own relayer (configured on-chain in v12R-8) so chat works out of the box:
+            <span className="text-foreground"> free tier of 100 msgs/day/user + 1,000 wallet slots</span>, then
+            <span className="text-foreground"> 0.001 XEL/msg</span>. Community relayers can undercut it or offer higher tiers.
+          </p>
+        </div>
         <div className="space-y-2">
           <CliRow cmd={CLI_COMMANDS.chat.relayer} label="run" />
           <CliRow cmd={CLI_COMMANDS.chat.send} label="send" />

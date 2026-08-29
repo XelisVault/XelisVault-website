@@ -93,10 +93,10 @@ export function Features() {
               </div>
               <h3 className="mt-4 font-display text-lg font-semibold">PrivacyMixer</h3>
               <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                Tornado-style ZK anonymity set for xUSD and VLT. Denominations of 10, 100, 1000. Merkle tree depth 24.
+                Tornado-style note mixing for XEL, xUSD and VLT. Deposit with a secret, withdraw from the shared pool to any address — the contract stores no sender, no recipient.
               </p>
               <div className="mt-4 flex gap-1.5">
-                {[10, 100, 1000].map((d) => (
+                {['XEL', 'xUSD', 'VLT'].map((d) => (
                   <span key={d} className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-vault/10 border border-vault/20 text-vault">
                     {d}
                   </span>

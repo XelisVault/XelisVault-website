@@ -69,6 +69,12 @@ export const CLI_COMMANDS = {
     stake: 'xvault --governance   # menu: stake VLT',
     vote: 'xvault --governance   # menu: vote',
   },
+  mixer: {
+    deposit: 'xvault           # menu: Privacy Mixer → Deposit + create note',
+    withdraw: 'xvault         # menu: Privacy Mixer → Withdraw from pool',
+    note: 'xvault           # menu: Privacy Mixer → Check my note balance',
+    hint: 'Mixes XEL, xUSD or VLT with a local 64-hex secret. Keep the secret — it is the only way to withdraw.',
+  },
   chat: {
     relayer: 'xvault-relayer   # run a VaultChat relayer node',
     send: 'xvault          # menu: Chat → send E2E message',

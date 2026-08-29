@@ -153,7 +153,7 @@ const CATEGORIES: Category[] = [
     name: 'Privacy',
     color: 'vault',
     contracts: [
-      { name: 'PrivacyMixer', file: 'contracts/privacy/PrivacyMixer.slx', desc: 'Threshold-based anonymity mixer with auto-mix (v11.5 rewrite)', phase: 'core' },
+      { name: 'PrivacyMixer', file: 'contracts/privacy/PrivacyMixer.slx', desc: 'Note + nullifier mixer, shared pool — mixes XEL, xUSD and VLT (v2, v12R-7)', phase: 'core' },
     ],
   },
   {

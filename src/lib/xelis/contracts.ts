@@ -47,7 +47,9 @@ export const V12R_CONTRACTS: Record<string, string> = {
   PeerLoan: 'ee27ecae9d8bb9b600026e883506eac39d81e5c908cca9dfeb6d96b529117568',
   SyndicatePool: 'e1622bb0c1dace2c0b008a8448f2ade7df7eeb898410aa7f3355bf57bb48a0ae',
   SealedBidAuction: '105bb6ccdb14f8cd34da78b85ed36790b29b2625d168297aa4294d3a557c46eb',
-  PrivacyMixer: 'd384649c8f8f52116a198d2125bd1b6c3dff9bfda55643979c85a28631a6261d',
+  // v12R-7 (2026-08-27): PrivacyMixer v2 — note + nullifier + shared pool.
+  // Replaces r5 (d384649c…) where v1 funds are orphaned (testnet, negligible).
+  PrivacyMixer: 'ffd504e24caad25b8f74e512318a66c45229dc2702dec0ecf66540065690d2d5',
   AssetVault: 'e65d593b5818af605caffbc5c56dbf2ee966b8b7baad18e165a6012b7f7343df',
   TreasuryVault: 'c50042aa59703bb1c73ffa0ffcb01f23b8ae8419d1e23b2892b9dcf9dde0a886',
   RevenueShare: '49c363dae4d32473d6d3c26ce0482cf735f7d656c665094002c1d21a6978c94b',
@@ -93,7 +95,7 @@ export const PROTOCOL_CONTRACTS: ContractMeta[] = [
   { name: 'PeerLoan', category: 'lending', desc: 'Peer-to-peer loan offers with negotiation', deployed: true },
   { name: 'SyndicatePool', category: 'lending', desc: 'Syndicated loans (group underwriting)', deployed: true },
   { name: 'SealedBidAuction', category: 'auction', desc: 'Sealed-bid auctions with commit/reveal', deployed: true },
-  { name: 'PrivacyMixer', category: 'privacy', desc: 'Threshold-based anonymity mixer with auto-mix', deployed: true },
+  { name: 'PrivacyMixer', category: 'privacy', desc: 'Note + nullifier mixer with shared pool — mix XEL, xUSD or VLT', deployed: true },
   { name: 'AssetVault', category: 'treasury', desc: 'RWA asset tokenization vault', deployed: true },
   { name: 'TreasuryVault', category: 'treasury', desc: 'Governance-controlled treasury (multisig spending)', deployed: true },
   { name: 'RevenueShare', category: 'revenue', desc: 'Protocol revenue distribution to stakers', deployed: true },

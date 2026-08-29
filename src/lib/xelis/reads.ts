@@ -565,6 +565,61 @@ export async function getFaucetInfo(): Promise<{ xelPerClaim: bigint; vltPerClai
 }
 
 // ---------------------------------------------------------------------------
+// PrivacyMixer v2 (note + nullifier + shared pool — v12R-7)
+// Storage: pool_<asset> · tm_<asset> · tmc · nc · n_<asset>_<commitment>
+// ---------------------------------------------------------------------------
+
+export interface MixerInfo {
+  poolXel: bigint
+  totalMixedXel: bigint
+  totalMixes: number
+  noteCount: number
+  paused: boolean
+  adminFeeBps: number
+  withdrawFeeBps: number
+}
+
+export async function getMixerInfo(): Promise<MixerInfo> {
+  const mixer = await resolveContract('PrivacyMixer')
+  const [pool, tm, tmc, nc, pz, afb, wfb] = await Promise.all([
+    readKey(mixer, `pool_${XEL_ASSET}`, 15000),
+    readKey(mixer, `tm_${XEL_ASSET}`, 15000),
+    readKey(mixer, 'tmc', 15000),
+    readKey(mixer, 'nc', 15000),
+    readKey(mixer, 'pz', 15000),
+    readKey(mixer, 'afb', 30000),
+    readKey(mixer, 'wfb', 30000),
+  ])
+  return {
+    poolXel: (pool ?? 0n) as bigint,
+    totalMixedXel: (tm ?? 0n) as bigint,
+    totalMixes: Number(tmc ?? 0),
+    noteCount: Number(nc ?? 0),
+    paused: pz === true,
+    adminFeeBps: Number(afb ?? 10),
+    withdrawFeeBps: Number(wfb ?? 0),
+  }
+}
+
+/**
+ * Remaining balance of a private note.
+ * The commitment is computed locally: blake3(secret bytes) — the secret never
+ * leaves the browser, only its hash goes into the read key.
+ */
+export async function getNoteBalance(asset: string, commitmentHex: string): Promise<bigint | null> {
+  const mixer = await resolveContract('PrivacyMixer')
+  const v = await readKey(mixer, `n_${asset}_${commitmentHex}`, 5000)
+  if (v == null) return null
+  return BigInt(v)
+}
+
+export async function getMixerPoolBalance(asset: string): Promise<bigint> {
+  const mixer = await resolveContract('PrivacyMixer')
+  const v = await readKey(mixer, `pool_${asset}`, 10000)
+  return (v ?? 0n) as bigint
+}
+
+// ---------------------------------------------------------------------------
 // Airdrop
 // ---------------------------------------------------------------------------
 

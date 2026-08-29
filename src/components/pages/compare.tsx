@@ -40,7 +40,7 @@ const ROWS: Row[] = [
   { feature: 'AMM with MEV protection', xelis: 'VaultSwapV2 (TWAP + vol fees)', aztec: 'L2 sequencer (single block)', railgun: 'L2 host', secret: 'No native AMM' },
   { feature: 'Decentralized oracle', xelis: 'StakedOracle (5-tier reputation, slashing)', aztec: 'No native', railgun: 'No native', secret: 'Band Protocol (external)', xelisHighlight: true },
   { feature: 'Encrypted messaging', xelis: 'VaultChat (E2E, Merkle anchoring)', aztec: 'No', railgun: 'No', secret: 'No', xelisHighlight: true },
-  { feature: 'Privacy mixer', xelis: 'PrivacyMixer (native ZK)', aztec: 'Native (shielded addresses)', railgun: 'Native (shielded pools)', secret: 'No native' },
+  { feature: 'Privacy mixer', xelis: 'PrivacyMixer v2 (notes + shared pool, XEL native)', aztec: 'Native (shielded addresses)', railgun: 'Native (shielded pools)', secret: 'No native', xelisHighlight: true },
   { feature: 'Governance', xelis: 'On-chain VLT + 48h Timelock', aztec: 'Off-chain', railgun: 'Off-chain (DAO)', secret: 'On-chain (SCRT staking)' },
 
   // Tokenomics
