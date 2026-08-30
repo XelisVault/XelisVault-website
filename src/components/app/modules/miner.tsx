@@ -5,7 +5,7 @@ import { Award, Gauge, Pickaxe, Sparkles, TrendingDown, Users, Zap } from 'lucid
 import { useWallet } from '@/lib/wallet-store'
 import { getMinerStats, getMinerRecord, getDelegationStats, type MinerStats, type MinerRecord } from '@/lib/xelis/reads'
 import { formatAmount } from '@/lib/xelis/types'
-import { StatCard, Panel, Badge, LoadingRows, DataRow, CliFallback, CliRow, ViewOnlyNotice } from '../shared'
+import { StatCard, Panel, Badge, LoadingRows, DataRow, CliFallback, CliRow } from '../shared'
 import { CLI_INSTALL, CLI_COMMANDS } from '@/lib/xelis/cli'
 import { TokenIcon } from '../token-icon'
 
@@ -19,7 +19,7 @@ const EMISSION_YEARS = [
 ]
 
 export function Miner() {
-  const { address, connectionType } = useWallet()
+  const { address } = useWallet()
   const [stats, setStats] = useState<MinerStats | null>(null)
   const [record, setRecord] = useState<MinerRecord | null>(null)
   const [delegation, setDelegation] = useState<{ miners: number; totalDelegated: bigint } | null>(null)
@@ -101,7 +101,6 @@ export function Miner() {
                 <DataRow label="Registered" value={`@ topo ${record.registeredAt.toLocaleString()}`} />
               </div>
             </div>
-            {connectionType === 'view-only' && <ViewOnlyNotice what="reward claiming" />}
           </div>
         ) : (
           <LoadingRows rows={2} />

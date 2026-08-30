@@ -4,7 +4,7 @@
 
 import { useState, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Copy, Loader2, Terminal, ExternalLink, ArrowRight, Wallet, ShieldAlert } from 'lucide-react'
+import { Check, Copy, Loader2, Terminal, ExternalLink, ArrowRight, Wallet } from 'lucide-react'
 import { copyText, CLI_COMMANDS } from '@/lib/xelis/cli'
 import { useWallet } from '@/lib/wallet-store'
 import { EXPLORER_URL } from '@/lib/xelis/rpc'
@@ -101,18 +101,6 @@ export function ConnectPrompt({ note }: { note?: string }) {
       >
         Connect Wallet <ArrowRight className="w-4 h-4" />
       </button>
-    </div>
-  )
-}
-
-export function ViewOnlyNotice({ what }: { what: string }) {
-  return (
-    <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/25 bg-amber-500/10 p-3.5">
-      <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-      <p className="text-xs text-amber-200/80 leading-relaxed">
-        You are in view-only mode: balances are private by design on XELIS, so {what} is only visible
-        with a connected wallet. Interactions require XSWD or the CLI.
-      </p>
     </div>
   )
 }

@@ -2,20 +2,19 @@
 
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { AlertTriangle, Check, Copy, Download, Eye, Terminal, Wallet, X, Zap } from 'lucide-react'
+import { AlertTriangle, Check, Copy, Download, Terminal, Wallet, X, Zap } from 'lucide-react'
 import { useWallet } from '@/lib/wallet-store'
 import { copyText, CLI_INSTALL, GENESIX_URL } from '@/lib/xelis/cli'
 import { Badge } from './shared'
 
-type Method = 'xswd' | 'view-only' | 'cli'
+type Method = 'xswd' | 'cli'
 
 export function WalletConnectModal() {
   const {
-    showConnectModal, setShowConnectModal, connectXSWD, connectViewOnly,
+    showConnectModal, setShowConnectModal, connectXSWD,
     connectionState, connectionType, error, address, disconnect,
   } = useWallet()
   const [method, setMethod] = useState<Method>('xswd')
-  const [viewAddress, setViewAddress] = useState('')
   const [copied, setCopied] = useState<'linux' | 'windows' | null>(null)
   const [xswdError, setXswdError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -45,13 +44,6 @@ export function WalletConnectModal() {
     setBusy(true)
     await connectXSWD()
     setBusy(false)
-  }
-
-  const doViewOnly = async () => {
-    await connectViewOnly(viewAddress)
-    if (useWallet.getState().connectionState === 'connected') {
-      setShowConnectModal(false)
-    }
   }
 
   const copy = async (which: 'linux' | 'windows') => {
@@ -106,19 +98,11 @@ export function WalletConnectModal() {
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                   <div className="min-w-0">
                     <div className="text-xs font-semibold text-emerald-300">
-                      {connectionType === 'xswd' ? 'XSWD — full access' : 'View-only mode'}
+                      XSWD — full access
                     </div>
                     <div className="font-mono text-[11px] text-muted-foreground truncate mt-0.5">{address}</div>
                   </div>
                 </div>
-                {connectionType === 'view-only' && (
-                  <button
-                    onClick={() => { setMethod('xswd') }}
-                    className="w-full rounded-xl bg-vault px-4 py-2.5 text-sm font-semibold text-white hover:bg-vault/85 transition-all"
-                  >
-                    Upgrade to XSWD (sign transactions)
-                  </button>
-                )}
                 <button
                   onClick={() => { disconnect(); setShowConnectModal(false) }}
                   className="w-full rounded-xl border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted/50 transition-all"
@@ -132,7 +116,6 @@ export function WalletConnectModal() {
                 <div className="flex border-b border-border">
                   {([
                     ['xswd', 'XSWD', Zap],
-                    ['view-only', 'View-only', Eye],
                     ['cli', 'CLI', Terminal],
                   ] as const).map(([id, label, Icon]) => (
                     <button
@@ -155,7 +138,8 @@ export function WalletConnectModal() {
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         Connect <span className="text-foreground font-medium">Genesix</span> (or xelis_wallet) via
                         XSWD — the official XELIS dApp protocol. Approve the XELIS Vault application in the wallet
-                        popup, then confirm permissions once. Your keys never leave the wallet.
+                        popup, then confirm permissions once. Your keys never leave the wallet. Balances are
+                        confidential by design — they decrypt inside the wallet, never on this page.
                       </p>
                       <a
                         href={GENESIX_URL} target="_blank" rel="noreferrer"
@@ -209,36 +193,6 @@ export function WalletConnectModal() {
                       <p className="text-[10px] font-mono text-muted-foreground/60 leading-relaxed">
                         Permissions requested: address, balances, assets, transaction building. Every transaction
                         still requires an explicit approval in the wallet.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* View-only */}
-                  {method === 'view-only' && (
-                    <div className="space-y-4">
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Paste any XELIS address to watch its public activity: miner registration, airdrop points,
-                        vaults. Balances are confidential by design on XELIS — only the wallet itself can decrypt them.
-                      </p>
-                      <input
-                        value={viewAddress}
-                        onChange={(e) => setViewAddress(e.target.value)}
-                        placeholder="xet:…"
-                        spellCheck={false}
-                        className="w-full rounded-xl border border-border bg-background/60 px-3.5 py-2.5 font-mono text-xs outline-none focus:border-vault/50"
-                      />
-                      {error && error.includes('Invalid address') && (
-                        <p className="text-[11px] text-red-400">{error}</p>
-                      )}
-                      <button
-                        onClick={doViewOnly}
-                        disabled={!viewAddress.trim().startsWith('xet:')}
-                        className="w-full rounded-xl bg-vault px-4 py-3 text-sm font-semibold text-white hover:bg-vault/85 transition-all disabled:opacity-40"
-                      >
-                        Watch address
-                      </button>
-                      <p className="text-[10px] font-mono text-muted-foreground/60">
-                        Testnet addresses start with xet: · mainnet with xel:
                       </p>
                     </div>
                   )}

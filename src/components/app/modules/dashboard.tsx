@@ -23,7 +23,7 @@ function useInterval(fn: () => void, ms: number) {
 }
 
 export function Dashboard() {
-  const { address, connectionType, xelBalance, xusdBalance, vltBalance, xelPrice } = useWallet()
+  const { address, xelBalance, xusdBalance, vltBalance, xelPrice } = useWallet()
   const [net, setNet] = useState<NetworkInfo | null>(null)
   const [topBlock, setTopBlock] = useState<{ hash: string; topoheight: number } | null>(null)
   const [oracle, setOracle] = useState<OracleAggregate | null>(null)
@@ -99,11 +99,6 @@ export function Dashboard() {
             <StatCard label="xUSD" value={xusdBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })} accent="xusd" icon={<TokenIcon symbol="xUSD" size="xs" />} />
             <StatCard label="VLT" value={vltBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })} accent="vlt" icon={<TokenIcon symbol="VLT" size="xs" />} />
           </div>
-          {connectionType === 'view-only' && (
-            <p className="mt-3 text-[11px] text-amber-300/70">
-              View-only mode: XELIS balances are confidential — connect via XSWD to decrypt your own balances.
-            </p>
-          )}
         </Panel>
       )}
 

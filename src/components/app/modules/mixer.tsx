@@ -27,7 +27,7 @@ import { XEL_ASSET, XUSD_ASSET, VLT_ASSET } from '@/lib/xelis/contracts'
 import { resolveContract } from '@/lib/xelis/contracts'
 import { getMixerInfo, getNoteBalance, type MixerInfo } from '@/lib/xelis/reads'
 import { copyText } from '@/lib/xelis/cli'
-import { StatCard, Panel, AmountInput, ActionButton, TxStatusBanner, ConnectPrompt, ViewOnlyNotice, CliFallback, Badge, type TxFeedback } from '../shared'
+import { StatCard, Panel, AmountInput, ActionButton, TxStatusBanner, ConnectPrompt, CliFallback, Badge, type TxFeedback } from '../shared'
 import { TokenIcon } from '../token-icon'
 
 type MixAsset = 'XEL' | 'xUSD' | 'VLT'
@@ -74,7 +74,7 @@ function SecretField({ value, onChange, label }: { value: string; onChange: (v: 
 }
 
 export function Mixer() {
-  const { address, connectionType, xelBalance, xusdBalance, vltBalance } = useWallet()
+  const { address, xelBalance, xusdBalance, vltBalance } = useWallet()
   const [info, setInfo] = useState<MixerInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'deposit' | 'withdraw' | 'check'>('deposit')
@@ -205,8 +205,6 @@ export function Mixer() {
           <ConnectPrompt note="Connect your XELIS wallet to mix funds. The secret is generated locally in your browser." />
         ) : (
           <>
-            {connectionType === 'view-only' && <div className="mb-4"><ViewOnlyNotice what="your mixer notes" /></div>}
-
             {/* Tabs */}
             <div className="flex gap-1.5 mb-5 p-1 rounded-xl border border-border bg-background/50 w-fit">
               {tabs.map((t) => (

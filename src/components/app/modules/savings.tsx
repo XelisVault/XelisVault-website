@@ -6,11 +6,11 @@ import { useWallet, canSign } from '@/lib/wallet-store'
 import { getSavingsInfo } from '@/lib/xelis/reads'
 import { invoke, depositXusd, GAS } from '@/lib/xelis/invoke'
 import { toAtomic, formatAmount, valU64 } from '@/lib/xelis/types'
-import { StatCard, Panel, AmountInput, ActionButton, TxStatusBanner, ActionCliFallback, CliFallback, ConnectPrompt, ViewOnlyNotice, type TxFeedback } from '../shared'
+import { StatCard, Panel, AmountInput, ActionButton, TxStatusBanner, ActionCliFallback, CliFallback, ConnectPrompt, type TxFeedback } from '../shared'
 import { TokenIcon } from '../token-icon'
 
 export function Savings() {
-  const { address, connectionType, xusdBalance } = useWallet()
+  const { address, xusdBalance } = useWallet()
   const [info, setInfo] = useState<{ totalDeposits: bigint; apyBps: number; xusdReserve: bigint } | null>(null)
   const [tab, setTab] = useState<'deposit' | 'withdraw'>('deposit')
   const [amount, setAmount] = useState('')
@@ -73,10 +73,6 @@ export function Savings() {
           <ConnectPrompt />
         ) : (
           <>
-            {connectionType === 'view-only' && (
-              <div className="mb-4"><ViewOnlyNotice what="your savings position" /></div>
-            )}
-
             <div className="flex gap-1.5 mb-4">
               {(['deposit', 'withdraw'] as const).map((t) => (
                 <button

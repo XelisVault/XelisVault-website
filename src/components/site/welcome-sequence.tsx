@@ -3,15 +3,16 @@
 import { motion } from 'framer-motion'
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { ChevronRight, Rocket, Clock } from 'lucide-react'
-import { LAUNCH_DATE, randomGlyph, seededRandom } from '@/lib/countdown'
+import { alpha, LAUNCH_DATE, randomGlyph, seededRandom } from '@/lib/countdown'
 import { ChainVisual } from '@/components/site/launch-celebration'
+import { FeatureTour, tourDurationMs } from '@/components/site/feature-tour'
 
 /**
  * ═══════════════════════════════════════════════════════════════════
  *  THE LATE-COMER WELCOME — "you missed the opening, not the era"
  * ═══════════════════════════════════════════════════════════════════
  *
- *  A unique ~14s cinematic for visitors who arrive AFTER the launch
+ *  A unique ~24s cinematic for visitors who arrive AFTER the launch
  *  (and never saw the vault opening). Deliberately different from
  *  the unlock ceremony — a discovery vibe instead of high tension:
  *
@@ -22,21 +23,24 @@ import { ChainVisual } from '@/components/site/launch-celebration'
  *                a compressed golden breach
  *   4. CHAIN     the blockchain line assembles itself and every
  *                protocol feature blooms from its block
- *   5. WELCOME   "WELCOME TO THE NEW ERA" decodes, stats, CTA
+ *   5. TOUR      the protocol tour in fast-forward — all nine
+ *                modules flash by in a 8.5s speedrun
+ *   6. WELCOME   "WELCOME TO THE NEW ERA" decodes, stats, CTA
  *
  *  Emerald & gold identity (the ceremony was violet & amber).
  *  Skip with the button or Esc.
  */
 
-type Phase = 'archive' | 'rush' | 'replay' | 'chain' | 'welcome'
-const PHASES: Phase[] = ['archive', 'rush', 'replay', 'chain', 'welcome']
+type Phase = 'archive' | 'rush' | 'replay' | 'chain' | 'tour' | 'welcome'
+const PHASES: Phase[] = ['archive', 'rush', 'replay', 'chain', 'tour', 'welcome']
 
 const T_RUSH = 1000
 const T_REPLAY = 4300
 const T_CHAIN = 6800
-const T_WELCOME = 10100
-const T_END = 14300
-const T_COMPLETE = 15100
+const T_TOUR = 10100
+const T_WELCOME = T_TOUR + tourDurationMs(true) + 250
+const T_END = T_WELCOME + 4200
+const T_COMPLETE = T_END + 800
 
 const EMERALD = 'oklch(0.72 0.14 160)'
 const GOLD = 'oklch(0.85 0.12 80)'
@@ -112,7 +116,7 @@ function TimeRush({ active }: { active: boolean }) {
         style={{
           fontSize: 'clamp(2.2rem, 9vmin, 6rem)',
           color: done ? GOLD : 'oklch(0.92 0.01 280)',
-          textShadow: done ? `0 0 42px ${GOLD} / 0.7` : `0 0 22px ${EMERALD} / 0.35`,
+          textShadow: done ? `0 0 42px ${alpha(GOLD, 0.7)}` : `0 0 22px ${alpha(EMERALD, 0.35)}`,
         }}
       >
         <span>{pad(d)}<span className="text-[0.4em] opacity-50">D</span></span>
@@ -160,8 +164,8 @@ function MiniWheelReplay({ active }: { active: boolean }) {
       transition={{ duration: 0.4, ease: 'easeOut' }}
     >
       {/* plate */}
-      <circle r={130} fill="oklch(0.13 0.025 282)" stroke={`${EMERALD} / 0.4`} strokeWidth={2} />
-      <circle r={100} fill="none" stroke={`${EMERALD} / 0.2`} strokeWidth={1} strokeDasharray="3 6" />
+      <circle r={130} fill="oklch(0.13 0.025 282)" stroke={`${alpha(EMERALD, 0.4)}`} strokeWidth={2} />
+      <circle r={100} fill="none" stroke={`${alpha(EMERALD, 0.2)}`} strokeWidth={1} strokeDasharray="3 6" />
       {/* spinning spoke assembly */}
       <motion.g
         animate={{ rotate: 420 }}
@@ -210,7 +214,7 @@ function MiniWheelReplay({ active }: { active: boolean }) {
         </motion.g>
       ))}
       {/* hub */}
-      <circle r={34} fill="oklch(0.14 0.03 285)" stroke={`${GOLD} / 0.6`} strokeWidth={2.5} />
+      <circle r={34} fill="oklch(0.14 0.03 285)" stroke={`${alpha(GOLD, 0.6)}`} strokeWidth={2.5} />
       <motion.circle
         r={8}
         fill={GOLD}
@@ -296,6 +300,7 @@ export function WelcomeSequence({
       [T_RUSH, () => setPhase('rush')],
       [T_REPLAY, () => setPhase('replay')],
       [T_CHAIN, () => setPhase('chain')],
+      [T_TOUR, () => setPhase('tour')],
       [T_WELCOME, () => setPhase('welcome')],
       [T_END, () => setFading(true)],
       [T_COMPLETE, () => onCompleteRef.current()],
@@ -336,7 +341,7 @@ export function WelcomeSequence({
           WebkitMaskImage: 'radial-gradient(circle, black 0%, transparent 62%)',
         }}
         initial={{ opacity: 0, rotate: 0 }}
-        animate={{ opacity: pi >= 2 ? 0.85 : pi >= 1 ? 0.4 : 0, rotate: 360 }}
+        animate={{ opacity: pi >= 5 ? 0.85 : pi === 4 ? 0.4 : pi >= 2 ? 0.85 : pi >= 1 ? 0.4 : 0, rotate: 360 }}
         transition={{
           opacity: { duration: 1 },
           rotate: { duration: 130, repeat: Infinity, ease: 'linear' },
@@ -369,7 +374,7 @@ export function WelcomeSequence({
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.3, type: 'spring', stiffness: 160 }}
             className="relative w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden ring-2"
-            style={{ '--tw-ring-color': `${EMERALD} / 0.6` } as React.CSSProperties}
+            style={{ '--tw-ring-color': `${alpha(EMERALD, 0.6)}` } as React.CSSProperties}
           >
             <img src="/images/xelisvault-logo.png" alt="Xelis Vault" className="w-full h-full object-cover" />
           </motion.div>
@@ -395,8 +400,8 @@ export function WelcomeSequence({
           >
             <span className="flex gap-1.5">
               <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: EMERALD }} />
-              <span className="w-2 h-2 rounded-full animate-pulse [animation-delay:0.2s]" style={{ background: `${EMERALD} / 0.5` }} />
-              <span className="w-2 h-2 rounded-full animate-pulse [animation-delay:0.4s]" style={{ background: `${EMERALD} / 0.25` }} />
+              <span className="w-2 h-2 rounded-full animate-pulse [animation-delay:0.2s]" style={{ background: `${alpha(EMERALD, 0.5)}` }} />
+              <span className="w-2 h-2 rounded-full animate-pulse [animation-delay:0.4s]" style={{ background: `${alpha(EMERALD, 0.25)}` }} />
             </span>
             Time Compression · 21 Days
           </motion.div>
@@ -460,12 +465,12 @@ export function WelcomeSequence({
         </div>
       )}
 
-      {/* ── PHASES 4-5 · THE CHAIN + WELCOME ── */}
+      {/* ── PHASES 4-6 · THE CHAIN → THE TOUR → WELCOME ── */}
       {pi >= 3 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 md:gap-9">
           <motion.div
             initial={{ scale: 0, y: 40, opacity: 0 }}
-            animate={{ scale: pi >= 4 ? 0.72 : 1, y: pi >= 4 ? -72 : 0, opacity: fading ? 0 : 1 }}
+            animate={{ scale: pi >= 5 ? 0.72 : 1, y: pi >= 5 ? -72 : 0, opacity: pi === 4 || fading ? 0 : 1 }}
             transition={{
               scale: { type: 'spring', stiffness: 170, damping: 16 },
               y: { type: 'spring', stiffness: 130, damping: 17 },
@@ -476,19 +481,34 @@ export function WelcomeSequence({
               animate={{
                 boxShadow: [
                   `0 0 30px -4px ${EMERALD}`,
-                  `0 0 70px 4px ${GOLD} / 0.6`,
+                  `0 0 70px 4px ${alpha(GOLD, 0.6)}`,
                   `0 0 30px -4px ${EMERALD}`,
                 ],
               }}
               transition={{ duration: 2.4, repeat: Infinity }}
               className="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden ring-2"
-              style={{ '--tw-ring-color': `${EMERALD} / 0.6` } as React.CSSProperties}
+              style={{ '--tw-ring-color': `${alpha(EMERALD, 0.6)}` } as React.CSSProperties}
             >
               <img src="/images/xelisvault-logo.png" alt="Xelis Vault" className="w-full h-full object-cover" />
             </motion.div>
           </motion.div>
 
-          <ChainVisual compact={pi >= 4} fading={fading} />
+          {/* the chain — dives INTO the camera when the tour starts */}
+          <motion.div
+            key={pi >= 5 ? 'chain-welcome' : 'chain-main'}
+            initial={{ opacity: 0, scale: 0.72 }}
+            animate={{
+              opacity: pi === 4 || fading ? 0 : 1,
+              scale: pi === 4 ? 6.5 : pi >= 5 ? 0.9 : 1,
+            }}
+            transition={
+              pi === 4
+                ? { duration: 0.55, ease: [0.55, 0, 0.85, 0.4] }
+                : { duration: 0.5, ease: [0.2, 0.8, 0.3, 1] }
+            }
+          >
+            <ChainVisual compact={pi >= 5} fading={fading} />
+          </motion.div>
 
           {pi === 3 && (
             <motion.div
@@ -496,7 +516,7 @@ export function WelcomeSequence({
               animate={{ opacity: [0, 1, 0.7, 1] }}
               transition={{ delay: 1.4, duration: 1.2 }}
               className="font-mono text-[10px] md:text-xs uppercase tracking-[0.42em] text-center"
-              style={{ color: `${EMERALD} / 0.9` }}
+              style={{ color: `${alpha(EMERALD, 0.9)}` }}
             >
               The Blockchain · every state encrypted at birth
             </motion.div>
@@ -504,8 +524,11 @@ export function WelcomeSequence({
         </div>
       )}
 
-      {/* ── PHASE 5 · WELCOME TEXT ── */}
-      {pi >= 4 && (
+      {/* ── PHASE 5 · THE PROTOCOL TOUR, speedrun ── */}
+      {pi === 4 && <FeatureTour fast />}
+
+      {/* ── PHASE 6 · WELCOME TEXT ── */}
+      {pi >= 5 && (
         <div className="absolute inset-x-0 bottom-[9%] flex flex-col items-center gap-4 px-6 text-center">
           <motion.h1
             initial={{ opacity: 0, y: 24 }}
@@ -570,14 +593,14 @@ export function WelcomeSequence({
             className="relative mt-2 inline-flex h-12 items-center gap-2.5 rounded-full px-8 text-sm font-semibold text-white"
             style={{
               background: `linear-gradient(120deg, ${EMERALD}, oklch(0.55 0.16 175))`,
-              boxShadow: `0 0 40px -6px ${EMERALD} / 0.7`,
+              boxShadow: `0 0 40px -6px ${alpha(EMERALD, 0.7)}`,
               cursor: 'pointer',
             }}
           >
             <motion.span
               className="absolute inset-0 rounded-full"
               animate={{
-                boxShadow: [`0 0 0 0 ${EMERALD} / 0.5`, `0 0 0 10px ${EMERALD} / 0)`],
+                boxShadow: [`0 0 0 0 ${alpha(EMERALD, 0.5)}`, `0 0 0 10px ${alpha(EMERALD, 0)})`],
               }}
               transition={{ duration: 1.6, repeat: Infinity }}
             />

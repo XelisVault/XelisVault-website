@@ -38,23 +38,34 @@ function readPreviewMode(): PreviewMode {
       url.searchParams.delete('preview')
       window.history.replaceState({}, '', url.toString())
     }
+    // an explicit ?preview=… param always wins for the session — clear the
+    // sibling flags so an older preview mode can never shadow a newer one
+    const clearSiblings = (...keep: string[]) => {
+      ;[PREVIEW_LAUNCH_KEY, PREVIEW_FINAL_KEY, PREVIEW_RAMP_KEY, PREVIEW_WELCOME_KEY]
+        .filter((k) => !keep.includes(k))
+        .forEach((k) => sessionStorage.removeItem(k))
+    }
     if (p === 'launch') {
       sessionStorage.setItem(PREVIEW_LAUNCH_KEY, '1')
+      clearSiblings(PREVIEW_LAUNCH_KEY)
       strip()
       return 'launch'
     }
     if (p === 'final') {
       sessionStorage.setItem(PREVIEW_FINAL_KEY, '1')
+      clearSiblings(PREVIEW_FINAL_KEY)
       strip()
       return 'final'
     }
     if (p === 'ramp') {
       sessionStorage.setItem(PREVIEW_RAMP_KEY, '1')
+      clearSiblings(PREVIEW_RAMP_KEY)
       strip()
       return 'ramp'
     }
     if (p === 'welcome') {
       sessionStorage.setItem(PREVIEW_WELCOME_KEY, '1')
+      clearSiblings(PREVIEW_WELCOME_KEY)
       strip()
       return 'welcome'
     }
@@ -255,4 +266,16 @@ export function seededRandom(seed: number): () => number {
 export function fireEgg(id: string, detail?: string) {
   if (typeof window === 'undefined') return
   window.dispatchEvent(new CustomEvent('xv:egg', { detail: { id, detail } }))
+}
+
+/**
+ * Inject an alpha into a COMPLETE color string, e.g.
+ *   alpha('oklch(0.72 0.14 160)', 0.4) → 'oklch(0.72 0.14 160 / 0.4)'
+ *
+ * Why: `oklch(0.72 0.14 160) / 0.4` (slash OUTSIDE the parens) is invalid
+ * CSS — browsers drop the whole declaration (stroke→none, box-shadow→none).
+ * The alpha must live INSIDE the color function.
+ */
+export function alpha(color: string, a: number | string): string {
+  return color.replace(/\)$/, ` / ${a})`)
 }

@@ -1,11 +1,12 @@
 // XELIS Vault — Wallet store (Zustand)
 //
-// Connection methods:
-//  - XSWD (primary): Genesix / xelis_wallet on ws://127.0.0.1:44325/xswd
+// Connection method:
+//  - XSWD: Genesix / xelis_wallet on ws://127.0.0.1:44325/xswd
 //    → full balances + transaction signing
-//  - view-only: paste any xet: address → public on-chain data only
-//    (miner record, airdrop points, vaults). Balances are PRIVATE by design
-//    on XELIS — only the wallet itself can decrypt them.
+//
+// There is deliberately NO view-only mode: XELIS balances are confidential
+// by design — only the wallet itself can decrypt them, so watching a bare
+// address adds nothing. Either connect a real wallet (XSWD) or use the CLI.
 //
 // The old local-RPC path (127.0.0.1:18082) was removed: XSWD now covers
 // everything it did, with a proper permission flow.
@@ -17,7 +18,7 @@ import { getOracleAggregate } from './xelis/reads'
 import { fromAtomic } from './xelis/types'
 import { clearRPCCache } from './xelis/rpc'
 
-export type WalletConnectionType = 'xswd' | 'view-only' | null
+export type WalletConnectionType = 'xswd' | null
 export type WalletConnectionState = 'disconnected' | 'connecting' | 'awaiting-approval' | 'connected' | 'error'
 
 interface WalletState {
@@ -37,7 +38,6 @@ interface WalletState {
   // Actions
   setShowConnectModal: (show: boolean) => void
   connectXSWD: () => Promise<void>
-  connectViewOnly: (address: string) => Promise<void>
   disconnect: () => void
   refreshBalances: () => Promise<void>
 }
@@ -112,29 +112,6 @@ export const useWallet = create<WalletState>((set, get) => {
       } finally {
         connecting = false
       }
-    },
-
-    connectViewOnly: async (address) => {
-      const clean = address.trim()
-      if (!clean.startsWith('xet:') && !clean.startsWith('xel:')) {
-        set({ error: 'Invalid address: expected xet:… (testnet) or xel:… (mainnet)' })
-        return
-      }
-      set({
-        connectionType: 'view-only',
-        connectionState: 'connected',
-        address: clean,
-        error: null,
-        // balances are private on XELIS — a view-only address cannot decrypt them
-        xelBalance: 0,
-        xusdBalance: 0,
-        vltBalance: 0,
-      })
-      // still fetch the public XEL price for context
-      try {
-        const agg = await getOracleAggregate(0)
-        if (agg) set({ xelPrice: agg.priceUsd })
-      } catch { /* oracle unavailable */ }
     },
 
     disconnect: () => {

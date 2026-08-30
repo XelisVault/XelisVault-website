@@ -155,9 +155,7 @@ export function DemoApp() {
                 <span className="font-bold uppercase tracking-wider">Testnet Live</span>
                 <span className="opacity-70 mx-2">·</span>
                 {isWalletConnected
-                  ? connectionType === 'xswd'
-                    ? 'XSWD wallet connected · transactions require wallet approval'
-                    : 'View-only mode · connect via XSWD to sign transactions'
+                  ? 'XSWD wallet connected · transactions require wallet approval'
                   : 'Live protocol data · connect a wallet to interact'}
               </span>
             </div>
@@ -306,9 +304,6 @@ export function DemoApp() {
                       </span>
                       {isWalletConnected && connectionType === 'xswd' && (
                         <span className="text-[9px] font-mono uppercase tracking-wider text-emerald-400 hidden sm:inline">LIVE</span>
-                      )}
-                      {isWalletConnected && connectionType === 'view-only' && (
-                        <span className="text-[9px] font-mono uppercase tracking-wider text-amber-400 hidden sm:inline">VIEW</span>
                       )}
                       <Wallet className="w-3 h-3 opacity-60" />
                     </button>

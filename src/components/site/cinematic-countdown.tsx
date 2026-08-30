@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
-import {
+import { alpha,
   useCountdownState,
   PHASE_META,
   CIPHER_GLYPHS,
@@ -262,7 +262,7 @@ function CipherDigit({
         style={{
           color: hot ? AMBER_SOFT : scrambling ? 'oklch(0.65 0.15 295 / 0.7)' : 'var(--vault)',
           textShadow: hot
-            ? `0 0 ${14 + pop * 16}px ${AMBER_SOFT} / 0.75`
+            ? `0 0 ${14 + pop * 16}px ${alpha(AMBER_SOFT, 0.75)}`
             : scrambling
               ? '0 0 12px oklch(0.62 0.22 295 / 0.4)'
               : `0 0 ${18 + pop * 18}px oklch(0.62 0.22 295 / ${0.5 + pop * 0.3})`,

@@ -6,7 +6,7 @@ import { useWallet, canSign } from '@/lib/wallet-store'
 import { getGovernanceStats, getProposalCount } from '@/lib/xelis/reads'
 import { invoke, depositVlt, GAS } from '@/lib/xelis/invoke'
 import { toAtomic, formatAmount, valU64 } from '@/lib/xelis/types'
-import { StatCard, Panel, AmountInput, ActionButton, TxStatusBanner, ActionCliFallback, ConnectPrompt, ViewOnlyNotice, Badge, DataRow, type TxFeedback } from '../shared'
+import { StatCard, Panel, AmountInput, ActionButton, TxStatusBanner, ActionCliFallback, ConnectPrompt, Badge, DataRow, type TxFeedback } from '../shared'
 import { TokenIcon } from '../token-icon'
 
 const BOOST_TIERS = [
@@ -16,7 +16,7 @@ const BOOST_TIERS = [
 ]
 
 export function Governance() {
-  const { address, connectionType, vltBalance } = useWallet()
+  const { address, vltBalance } = useWallet()
   const [stats, setStats] = useState<{ totalStaked: bigint; stakesCount: number } | null>(null)
   const [proposals, setProposals] = useState(0)
   const [amount, setAmount] = useState('')
@@ -78,8 +78,6 @@ export function Governance() {
           <ConnectPrompt />
         ) : (
           <>
-            {connectionType === 'view-only' && <div className="mb-4"><ViewOnlyNotice what="your stakes" /></div>}
-
             <div className="grid sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Amount (VLT)</label>

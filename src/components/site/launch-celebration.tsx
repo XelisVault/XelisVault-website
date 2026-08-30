@@ -3,15 +3,16 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { ChevronRight, Rocket } from 'lucide-react'
-import { seededRandom, randomGlyph } from '@/lib/countdown'
+import { alpha, seededRandom, randomGlyph } from '@/lib/countdown'
+import { FeatureTour, tourDurationMs } from './feature-tour'
 
 /**
  * ═══════════════════════════════════════════════════════════════════
  *  THE VAULT OPENING — Launch Unlock Sequence
  * ═══════════════════════════════════════════════════════════════════
  *
- *  A ~21 second cinematic that plays ONCE, the moment the countdown
- *  hits zero. Seven escalating phases:
+ *  A ~38 second cinematic that plays ONCE, the moment the countdown
+ *  hits zero. Eight escalating phases:
  *
  *   1. HOLD      the final "0" freezes, glitches, collapses to a point
  *   2. BOLTS     the vault wheel materializes — 12 bolts blow rapid-fire
@@ -22,17 +23,19 @@ import { seededRandom, randomGlyph } from '@/lib/countdown'
  *                blocks appear and edges draw themselves (true DAG)
  *   6. CHAIN     the constellation condenses into THE BLOCKCHAIN — a
  *                line of blocks chains itself left→right, and every
- *                spectacular protocol feature blooms from a block:
- *                Private TXs · Comparisons · Contracts · Mixer ·
- *                Oracle · PSM · Mining · Governance
- *   7. LIVE      "TESTNET LIVE" decodes, stats count up, CTA materializes
+ *                spectacular protocol feature blooms from a block
+ *   7. TOUR      the camera dives INTO the chain and walks through all
+ *                nine modules — Vault Engine, VaultSwap, Mixer, Savings,
+ *                PSM, Oracle, Governance, Miner, VaultChat — each with
+ *                its own cinematic scene (see feature-tour.tsx)
+ *   8. LIVE      "TESTNET LIVE" decodes, stats count up, CTA materializes
  *
  *  Click "Skip" (or press Esc) to end early.
  *  Pure SVG + Framer Motion — no assets, Vercel-safe, mobile-safe.
  */
 
-type Phase = 'hold' | 'bolts' | 'rotate' | 'breach' | 'genesis' | 'chain' | 'live'
-const PHASES: Phase[] = ['hold', 'bolts', 'rotate', 'breach', 'genesis', 'chain', 'live']
+type Phase = 'hold' | 'bolts' | 'rotate' | 'breach' | 'genesis' | 'chain' | 'tour' | 'live'
+const PHASES: Phase[] = ['hold', 'bolts', 'rotate', 'breach', 'genesis', 'chain', 'tour', 'live']
 
 // Phase schedule (ms from mount)
 const T_BOLTS = 1300
@@ -40,9 +43,10 @@ const T_ROTATE = 2900
 const T_BREACH = 4500
 const T_GENESIS = 6800
 const T_CHAIN = 9800
-const T_LIVE = 15600
-const T_END = 19800
-const T_COMPLETE = 20700
+const T_TOUR = 15200
+const T_LIVE = T_TOUR + tourDurationMs(false) + 250
+const T_END = T_LIVE + 5600
+const T_COMPLETE = T_END + 900
 
 // ===== Vault wheel geometry =====
 const WHEEL_R = 175
@@ -342,6 +346,7 @@ export function LaunchCelebration({
       [T_BREACH, () => setPhase('breach')],
       [T_GENESIS, () => setPhase('genesis')],
       [T_CHAIN, () => setPhase('chain')],
+      [T_TOUR, () => setPhase('tour')],
       [T_LIVE, () => setPhase('live')],
       [T_END, () => setFading(true)],
       [T_COMPLETE, () => onCompleteRef.current()],
@@ -401,7 +406,7 @@ export function LaunchCelebration({
           }}
           initial={{ opacity: 0, rotate: 0 }}
           animate={{
-            opacity: pi >= 6 ? (fading ? 0 : 0.9) : pi >= 4 ? 0.8 : pi >= 3 ? 0.5 : 0,
+            opacity: pi >= 7 ? (fading ? 0 : 0.9) : pi === 6 ? 0.4 : pi >= 4 ? 0.8 : pi >= 3 ? 0.5 : 0,
             rotate: 360,
           }}
           transition={{
@@ -736,7 +741,7 @@ export function LaunchCelebration({
           </>
         )}
 
-        {/* ── PHASES 5-7 · GENESIS → THE CHAIN → LIVE ── */}
+        {/* ── PHASES 5-8 · GENESIS → THE CHAIN → THE TOUR → LIVE ── */}
         {pi >= 4 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 md:gap-9">
             {/* DAG constellation backdrop — implodes into the chain */}
@@ -821,7 +826,7 @@ export function LaunchCelebration({
               animate={{
                 scale: pi >= 5 ? 0.72 : 1,
                 y: pi >= 5 ? -72 : 0,
-                opacity: fading ? 0 : 1,
+                opacity: pi === 6 || fading ? 0 : 1,
               }}
               transition={{
                 scale: { type: 'spring', stiffness: 170, damping: 16 },
@@ -845,8 +850,24 @@ export function LaunchCelebration({
               </motion.div>
             </motion.div>
 
-            {/* ── PHASE 6 · THE CHAIN — the blockchain & its features ── */}
-            {pi >= 5 && <ChainVisual compact={pi >= 6} fading={fading} />}
+            {/* ── PHASE 6 · THE CHAIN — dives INTO the camera when the tour starts ── */}
+            {pi >= 5 && (
+              <motion.div
+                key={pi >= 7 ? 'chain-live' : 'chain-main'}
+                initial={{ opacity: 0, scale: 0.72 }}
+                animate={{
+                  opacity: pi === 6 || fading ? 0 : 1,
+                  scale: pi === 6 ? 6.5 : pi >= 7 ? 0.9 : 1,
+                }}
+                transition={
+                  pi === 6
+                    ? { duration: 0.6, ease: [0.55, 0, 0.85, 0.4] }
+                    : { duration: 0.55, ease: [0.2, 0.8, 0.3, 1] }
+                }
+              >
+                <ChainVisual compact={pi >= 7} fading={fading} />
+              </motion.div>
+            )}
 
             {/* chain caption */}
             {pi === 5 && (
@@ -863,6 +884,9 @@ export function LaunchCelebration({
           </div>
         )}
 
+        {/* ── PHASE 7 · THE PROTOCOL TOUR — walking inside the chain ── */}
+        {pi === 6 && <FeatureTour />}
+
         {/* genesis caption */}
         {pi === 4 && (
           <div className="absolute inset-x-0 bottom-[12%] flex justify-center px-6">
@@ -877,8 +901,8 @@ export function LaunchCelebration({
           </div>
         )}
 
-        {/* ── PHASE 7 · LIVE TEXT LAYER ── */}
-        {pi >= 6 && (
+        {/* ── PHASE 8 · LIVE TEXT LAYER ── */}
+        {pi >= 7 && (
           <div className="absolute inset-x-0 bottom-[9%] flex flex-col items-center gap-4 px-6 text-center">
             <motion.h1
               initial={{ opacity: 0, y: 24 }}
@@ -1219,7 +1243,7 @@ export function ChainVisual({ compact, fading }: { compact: boolean; fading: boo
                 stroke={f.color}
                 strokeOpacity={0.45}
                 strokeWidth={1.2}
-                style={{ filter: `drop-shadow(0 0 10px ${f.color} / 0.25)` }}
+                style={{ filter: `drop-shadow(0 0 10px ${alpha(f.color, 0.25)})` }}
               />
               {/* glyph badge */}
               <circle cx={bx - w / 2 + 19} cy={chipY} r={9} fill={f.color} fillOpacity={0.14} stroke={f.color} strokeOpacity={0.55} strokeWidth={1} />

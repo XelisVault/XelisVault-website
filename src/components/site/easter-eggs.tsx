@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useToast } from '@/hooks/use-toast'
-import { useCountdownState, randomGlyph, seededRandom } from '@/lib/countdown'
+import { alpha, useCountdownState, randomGlyph, seededRandom } from '@/lib/countdown'
 
 /**
  * ═══════════════════════════════════════════════════════════════════
@@ -217,7 +217,7 @@ function MiniVaultFX() {
           style={{ filter: 'blur(2px)' }}
         />
         {/* door */}
-        <circle r={54} fill="oklch(0.16 0.03 285)" stroke={`${GOLD} / 0.7`} strokeWidth={2.5} />
+        <circle r={54} fill="oklch(0.16 0.03 285)" stroke={`${alpha(GOLD, 0.7)}`} strokeWidth={2.5} />
         {/* bolts fly out */}
         {bolts.map((b, i) => (
           <motion.circle
@@ -238,10 +238,10 @@ function MiniVaultFX() {
           style={{ transformOrigin: '0px 0px' }}
         >
           {[0, 90, 180, 270].map((deg) => (
-            <rect key={deg} x={-3} y={-32} width={6} height={24} rx={3} fill={`${GOLD} / 0.8`} transform={`rotate(${deg})`} />
+            <rect key={deg} x={-3} y={-32} width={6} height={24} rx={3} fill={`${alpha(GOLD, 0.8)}`} transform={`rotate(${deg})`} />
           ))}
         </motion.g>
-        <circle r={14} fill="oklch(0.14 0.03 285)" stroke={`${GOLD} / 0.9`} strokeWidth={2} />
+        <circle r={14} fill="oklch(0.14 0.03 285)" stroke={`${alpha(GOLD, 0.9)}`} strokeWidth={2} />
         {/* the treasure sparkle */}
         <motion.path
           d="M 0 -7 L 2 -2 L 7 0 L 2 2 L 0 7 L -2 2 L -7 0 L -2 -2 Z"
