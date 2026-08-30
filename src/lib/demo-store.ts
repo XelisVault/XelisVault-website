@@ -19,6 +19,25 @@ export type ModuleId =
   | 'airdrop'
   | 'contracts'
 
+export const MODULE_IDS: ModuleId[] = [
+  'get-started',
+  'dashboard',
+  'vault',
+  'swap',
+  'psm',
+  'savings',
+  'mixer',
+  'chat',
+  'oracle',
+  'governance',
+  'miner',
+  'airdrop',
+  'contracts',
+]
+
+const isModuleId = (v: unknown): v is ModuleId =>
+  typeof v === 'string' && (MODULE_IDS as string[]).includes(v)
+
 interface AppState {
   activeModule: ModuleId
   open: boolean
@@ -30,7 +49,10 @@ interface AppState {
 export const useDemo = create<AppState>((set) => ({
   activeModule: 'get-started',
   open: false,
-  openApp: (module) => set({ open: true, ...(module ? { activeModule: module } : {}) }),
+  // NOTE: the argument is guarded — a React event (or any garbage) passed
+  // by mistake as `this`-less handler can never corrupt activeModule again.
+  openApp: (module) =>
+    set({ open: true, ...(isModuleId(module) ? { activeModule: module } : {}) }),
   closeApp: () => set({ open: false }),
-  setModule: (m) => set({ activeModule: m }),
+  setModule: (m) => set(isModuleId(m) ? { activeModule: m } : {}),
 }))

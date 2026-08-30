@@ -69,6 +69,9 @@ export function DemoApp() {
   // BLOCK app from opening if not launched yet
   const effectivelyOpen = open && isLaunched
 
+  // hard guard: a corrupted store value can never blank the app again
+  const moduleTitle = MODULE_TITLES[activeModule] ?? MODULE_TITLES['get-started']
+
   const isWalletConnected = connectionType !== null && connectionState === 'connected'
   const displayAddress = walletAddress || ''
 
@@ -241,7 +244,7 @@ export function DemoApp() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="font-display text-sm font-semibold tracking-tight truncate">
-                        {MODULE_TITLES[activeModule].title}
+                        {moduleTitle.title}
                       </div>
                       <div className="text-[10px] font-mono text-muted-foreground">
                         ${portfolioUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}
@@ -252,9 +255,9 @@ export function DemoApp() {
                   {/* Title (desktop) */}
                   <div className="hidden md:block">
                     <h1 className="font-display text-lg font-semibold tracking-tight">
-                      {MODULE_TITLES[activeModule].title}
+                      {moduleTitle.title}
                     </h1>
-                    <p className="text-xs text-muted-foreground">{MODULE_TITLES[activeModule].desc}</p>
+                    <p className="text-xs text-muted-foreground">{moduleTitle.desc}</p>
                   </div>
 
                   {/* Wallet bar */}

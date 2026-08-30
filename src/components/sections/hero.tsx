@@ -215,7 +215,7 @@ export function Hero() {
           <ProgressiveLaunchButton
             progress={progress}
             isLaunched={isLaunched}
-            onLaunch={openApp}
+            onLaunch={() => openApp()}
           />
           <a
             href="https://github.com/XelisVault/xelis-vault"
