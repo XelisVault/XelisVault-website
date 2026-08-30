@@ -1,35 +1,22 @@
 'use client'
 
 import { motion, useMotionValue, useSpring } from 'framer-motion'
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect } from 'react'
 import { ArrowDown, Shield, Lock, Zap, Github } from 'lucide-react'
 import { useDemo } from '@/lib/demo-store'
+import { useCountdownState } from '@/lib/countdown'
 import { CinematicCountdown } from '@/components/site/cinematic-countdown'
 import { LiveNetworkStrip } from '@/components/site/live-network-strip'
 import { ProgressiveLaunchButton, useLaunchProgress } from '@/components/site/progressive-launch-button'
-import { LaunchCelebration } from '@/components/site/launch-celebration'
+
+// NOTE: the launch celebration & the T-10s final sequence are rendered
+// globally by <LaunchExperience /> (root layout) so every page ignites.
 
 export function Hero() {
   const ref = useRef<HTMLDivElement>(null)
   const openApp = useDemo((s) => s.openApp)
-  const { progress, isLaunched } = useLaunchProgress()
-
-  // Track if we should show the launch celebration (only once, at the exact launch moment)
-  const [showCelebration, setShowCelebration] = useState(false)
-  const [celebrationPlayed, setCelebrationPlayed] = useState(false)
-
-  // Check if we just hit launch time this session
-  useEffect(() => {
-    if (isLaunched && !celebrationPlayed) {
-      // Check sessionStorage to only play once per browser session
-      const played = sessionStorage.getItem('xv-launch-celebration-played')
-      if (!played) {
-        setShowCelebration(true)
-        sessionStorage.setItem('xv-launch-celebration-played', '1')
-      }
-      setCelebrationPlayed(true)
-    }
-  }, [isLaunched, celebrationPlayed])
+  const { progress } = useLaunchProgress()
+  const { isLaunched } = useCountdownState()
 
   // mouse parallax for background glow only
   const mx = useMotionValue(0)
@@ -52,13 +39,8 @@ export function Hero() {
     <section
       ref={ref}
       id="top"
-      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-background pt-28 pb-16"
+      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-background pt-24 pb-16"
     >
-      {/* Launch celebration overlay (plays once at launch moment) */}
-      {showCelebration && (
-        <LaunchCelebration onComplete={() => setShowCelebration(false)} />
-      )}
-
       {/* Background layers */}
       <div className="absolute inset-0 bg-grid opacity-50" />
       <div className="absolute inset-0 bg-noise opacity-[0.025]" />
@@ -170,7 +152,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.2 }}
-          className={`flex items-center gap-2 rounded-full glass-panel px-3.5 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] mb-8 ${
+          className={`flex items-center gap-2 rounded-full glass-panel px-3.5 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] mb-6 ${
             isLaunched ? 'text-emerald-400' : 'text-muted-foreground'
           }`}
         >
@@ -184,12 +166,16 @@ export function Hero() {
             : 'v11.5 · 51 contracts · XELIS BlockDAG'}
         </motion.div>
 
-        {/* Title */}
+        {/* Title — more compact before launch so the dial stays in view */}
         <motion.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.4, ease: [0.21, 0.47, 0.32, 0.98] }}
-          className="font-display text-[40px] sm:text-6xl md:text-7xl lg:text-[80px] font-semibold tracking-[-0.04em] leading-[0.95]"
+          className={`font-display font-semibold tracking-[-0.04em] leading-[0.95] ${
+            isLaunched
+              ? 'text-[40px] sm:text-6xl md:text-7xl lg:text-[80px]'
+              : 'text-[36px] sm:text-5xl md:text-6xl lg:text-[64px]'
+          }`}
         >
           <span className="block text-gradient-mono">Confidential Finance</span>
           <span className="block mt-2 text-gradient-vault">for the Privacy Era</span>
@@ -213,7 +199,7 @@ export function Hero() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1.2, delay: 0.8, ease: [0.21, 0.47, 0.32, 0.98] }}
-            className="mt-10 mb-6"
+            className="mt-6 mb-4 scale-[0.85] [@media(min-height:950px)]:scale-95 [@media(min-height:1080px)]:scale-100"
           >
             <CinematicCountdown />
           </motion.div>
@@ -224,7 +210,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: isLaunched ? 0.8 : 1 }}
-          className="mt-8 flex flex-wrap items-center justify-center gap-3"
+          className="mt-6 flex flex-wrap items-center justify-center gap-3"
         >
           <ProgressiveLaunchButton
             progress={progress}
@@ -250,7 +236,7 @@ export function Hero() {
         </motion.div>
 
         {/* Live network strip — real on-chain numbers from the public testnet */}
-        <div className="mt-8">
+        <div className="mt-6">
           <LiveNetworkStrip />
         </div>
 
@@ -259,7 +245,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 1.2 }}
-          className="mt-14 grid grid-cols-3 gap-4 md:gap-8 max-w-2xl mx-auto"
+          className="mt-10 grid grid-cols-3 gap-4 md:gap-8 max-w-2xl mx-auto"
         >
           {[
             { icon: Shield, label: 'Encrypted by Default', sub: 'Native homomorphic' },

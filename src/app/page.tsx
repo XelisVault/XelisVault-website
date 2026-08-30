@@ -19,11 +19,25 @@ import { VaultChatSection } from '@/components/sections/vaultchat-section'
 import { Roadmap, CTA, Footer } from '@/components/sections/roadmap-cta'
 import { DemoApp } from '@/components/app/demo-app'
 import { Quest } from '@/components/quest/quest'
+import { useDemo } from '@/lib/demo-store'
 
 export default function Home() {
   // Hidden console message for quest puzzle #1
   // ENIGMATIC — does NOT give the answer, just points toward the concept
   useEffect(() => {
+    // Auto-open the app when arriving via /?openApp=1 (e.g. from the launch
+    // celebration CTA on another page)
+    try {
+      const url = new URL(window.location.href)
+      if (url.searchParams.get('openApp') === '1') {
+        url.searchParams.delete('openApp')
+        window.history.replaceState({}, '', url.toString())
+        useDemo.getState().openApp()
+      }
+    } catch {
+      /* noop */
+    }
+
     // The message is base64-encoded to prevent casual reading
     // Decoded: "Every chain begins with a block. Every block has a name. What is the name of the first?"
     const encoded = 'RXZlcnkgY2hhaW4gYmVnaW5zIHdpdGggYSBibG9jay4gRXZlcnkgYmxvY2sgaGFzIGEgbmFtZS4gV2hhdCBpcyB0aGUgbmFtZSBvZiB0aGUgZmlyc3Q/'

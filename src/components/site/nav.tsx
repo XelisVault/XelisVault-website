@@ -4,6 +4,7 @@ import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-
 import { useEffect, useState } from 'react'
 import { Menu, X, Github, ExternalLink, Rocket, ChevronDown } from 'lucide-react'
 import { useDemo } from '@/lib/demo-store'
+import { useCountdownState } from '@/lib/countdown'
 import { useLaunchStatus } from '@/components/app/launch-gate'
 
 const LINKS = [
@@ -38,6 +39,7 @@ export function Nav() {
   const { scrollY } = useScroll()
   const openApp = useDemo((s) => s.openApp)
   const { isLaunched } = useLaunchStatus()
+  const { days, hours, minutes, seconds, isFinalCountdown } = useCountdownState()
 
   useMotionValueEvent(scrollY, 'change', (v) => {
     setScrolled(v > 30)
@@ -136,10 +138,23 @@ export function Nav() {
             <button
               onClick={() => openApp()}
               disabled={!isLaunched}
-              className="hidden md:inline-flex h-9 items-center gap-2 rounded-full bg-vault px-4 text-[13px] font-semibold text-white hover:bg-vault/85 transition-all hover:shadow-[0_0_24px_-4px_var(--vault)] disabled:opacity-40 disabled:cursor-not-allowed"
+              className={`hidden md:inline-flex h-9 items-center gap-2 rounded-full px-4 text-[13px] font-semibold text-white transition-all hover:shadow-[0_0_24px_-4px_var(--vault)] disabled:cursor-not-allowed ${
+                isLaunched
+                  ? 'bg-vault hover:bg-vault/85'
+                  : isFinalCountdown
+                    ? 'bg-amber-600/80 animate-pulse'
+                    : 'bg-vault/80'
+              }`}
             >
               <Rocket className="w-3.5 h-3.5" />
-              {isLaunched ? 'Launch App' : 'Aug 30'}
+              {isLaunched ? (
+                'Launch App'
+              ) : (
+                <span className="font-mono tabular-nums tracking-tight">
+                  T–{days}d {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:
+                  {String(seconds).padStart(2, '0')}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setOpen(true)}
@@ -214,9 +229,19 @@ export function Nav() {
                 <button
                   onClick={() => { if (isLaunched) { openApp(); setOpen(false) } }}
                   disabled={!isLaunched}
-                  className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-vault text-white font-semibold disabled:opacity-40"
+                  className={`flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-full text-white font-semibold disabled:cursor-not-allowed ${
+                    isLaunched ? 'bg-vault' : 'bg-vault/70'
+                  }`}
                 >
-                  <Rocket className="w-4 h-4" /> {isLaunched ? 'Launch App' : 'Aug 30'}
+                  <Rocket className="w-4 h-4" />
+                  {isLaunched ? (
+                    'Launch App'
+                  ) : (
+                    <span className="font-mono tabular-nums">
+                      T–{days}d {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:
+                      {String(seconds).padStart(2, '0')}
+                    </span>
+                  )}
                 </button>
               </div>
             </nav>

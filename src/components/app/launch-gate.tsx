@@ -1,51 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Rocket, AlertCircle, Github, Wrench, Heart, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { Rocket, AlertCircle, Github, Wrench, Heart, ChevronDown, ChevronUp } from 'lucide-react'
 import { CinematicCountdown } from '@/components/site/cinematic-countdown'
+import { useCountdownState } from '@/lib/countdown'
 
 // New target: August 30, 2026 at 14:00 UTC
-const LAUNCH_DATE = new Date('2026-08-30T14:00:00Z').getTime()
-
-// Preview override: add ?preview=launch to the URL to open the app before the
-// official date (kept for owner testing / demos — the countdown still shows
-// everywhere else and the override never persists across browsers).
-const PREVIEW_KEY = 'xv-preview-launch'
-
-function readPreviewFlag(): boolean {
-  if (typeof window === 'undefined') return false
-  try {
-    const url = new URL(window.location.href)
-    if (url.searchParams.get('preview') === 'launch') {
-      sessionStorage.setItem(PREVIEW_KEY, '1')
-      // clean the URL so the flag is not shared/linked accidentally
-      url.searchParams.delete('preview')
-      window.history.replaceState({}, '', url.toString())
-      return true
-    }
-    return sessionStorage.getItem(PREVIEW_KEY) === '1'
-  } catch {
-    return false
-  }
-}
+// (delegates to the shared countdown module — single source of truth)
+// NOTE: the T-10s final sequence & the unlock celebration are rendered
+// globally by <LaunchExperience /> (root layout) above this gate.
 
 export function useLaunchStatus() {
-  const [preview] = useState(readPreviewFlag)
-  const [timeLeft, setTimeLeft] = useState(LAUNCH_DATE - Date.now())
-  const [isLaunched, setIsLaunched] = useState(() => preview || Date.now() >= LAUNCH_DATE)
-
-  useEffect(() => {
-    if (preview) return // preview mode: stay launched for the session
-    const interval = setInterval(() => {
-      const remaining = LAUNCH_DATE - Date.now()
-      setTimeLeft(remaining)
-      setIsLaunched(remaining <= 0)
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [preview])
-
-  return { timeLeft, isLaunched: isLaunched, launchDate: LAUNCH_DATE, preview }
+  const { msLeft, isLaunched, launchDate, preview } = useCountdownState()
+  return { timeLeft: msLeft, isLaunched, launchDate, preview }
 }
 
 export function CountdownTimer({ compact = false }: { compact?: boolean }) {
@@ -134,7 +102,7 @@ export function CountdownTimer({ compact = false }: { compact?: boolean }) {
 }
 
 export function LaunchGate({ children }: { children: React.ReactNode }) {
-  const { isLaunched } = useLaunchStatus()
+  const { isLaunched } = useCountdownState()
   const [showDetails, setShowDetails] = useState(false)
 
   if (isLaunched) return <>{children}</>
