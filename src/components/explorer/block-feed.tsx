@@ -58,7 +58,9 @@ export function BlockFeed({
                   <Identicon seed={b.miner} size={30} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-[13px] font-semibold text-vault">#{b.topoheight}</span>
+                      <span className="font-mono text-[13px] font-semibold text-vault">
+                        {b.topoheight >= 0 ? `#${b.topoheight}` : '#orph.'}
+                      </span>
                       <span
                         className={`px-1.5 py-px rounded text-[9px] font-mono uppercase tracking-wider border ${TYPE_STYLE[b.block_type] ?? TYPE_STYLE.Normal}`}
                       >

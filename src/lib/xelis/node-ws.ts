@@ -1,7 +1,8 @@
-// Live WebSocket client for the XELIS daemon (public testnet node).
+// Live WebSocket client for the XELIS daemon (public nodes).
 //
 // The daemon multiplexes JSON-RPC calls and event pushes on the same
-// /json_rpc URL. Verified live (scripts/probe-node-ws.mjs):
+// /json_rpc URL. Verified live on BOTH networks (scripts/probe-node-ws.mjs,
+// scripts/probe-mainnet-ws.mjs):
 //  - `subscribe {notify: "new_block"}` answers `{result: true}` and every
 //    subsequent push REUSES the subscribe call id (daemon quirk).
 //  - `new_block` pushes carry the FULL block object + an `event` field.
@@ -10,7 +11,13 @@
 // This client is transport-level only: it connects, keeps itself alive,
 // dispatches events to handlers and exposes a small promise-based `call`.
 
-export const PUBLIC_NODE_WS = 'wss://testnet-node.xelis.io/json_rpc'
+import { NetworkId, NETWORKS } from './networks'
+
+export const PUBLIC_NODE_WS = 'wss://node.xelis.io/json_rpc'
+
+export function nodeWsUrl(net: NetworkId): string {
+  return NETWORKS[net].ws
+}
 
 export type SocketStatus = 'connecting' | 'live' | 'reconnecting' | 'closed'
 

@@ -168,3 +168,26 @@ export function playBlockPing(txs: number, blockType: string) {
 export function playMempoolBlip() {
   blip(880, 0.22, 0.04, 'square')
 }
+
+/** Satisfying "thunk + shimmer" when a block seals transactions. */
+export function playSealSound(txs: number) {
+  const c = ctx()
+  if (!c) return
+  // low thunk
+  blip(140, 0.3, 0.07, 'sine')
+  // shimmer stack — richer for more txs
+  const notes = Math.min(4, Math.max(1, Math.round(txs / 3)))
+  for (let i = 0; i < notes; i++) {
+    setTimeout(() => blip(620 + i * 190, 0.3, 0.03, 'sine'), 90 + i * 70)
+  }
+}
+
+/** Short rising arpeggio — achievement unlocked. */
+export function playFanfare() {
+  const c = ctx()
+  if (!c) return
+  const seq = [523.25, 659.25, 783.99, 1046.5]
+  seq.forEach((f, i) => {
+    setTimeout(() => blip(f, 0.28, 0.035, 'triangle'), i * 110)
+  })
+}

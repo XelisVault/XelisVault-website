@@ -213,7 +213,7 @@ function BlockBody({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2.5">
           <Boxes className="w-4 h-4 text-vault" />
-          <h2 className="font-display text-lg font-semibold">Block #{block.topoheight}</h2>
+          <h2 className="font-display text-lg font-semibold">Block {block.topoheight != null && block.topoheight >= 0 ? `#${block.topoheight}` : '(orphaned)'}</h2>
           <TypeBadge type={block.block_type} />
         </div>
         {closeBtn}
@@ -223,7 +223,7 @@ function BlockBody({
         <Row label="hash">
           <Copyable value={block.hash} display={shortHash(block.hash, 20, 12)} />
         </Row>
-        <Row label="height / topo">{block.height} / {block.topoheight}</Row>
+        <Row label="height / topo">{block.height} / {block.topoheight ?? '—'}</Row>
         <Row label="timestamp">
           {new Date(block.timestamp).toLocaleString()} <span className="text-muted-foreground">({fmtAge(block.timestamp)})</span>
         </Row>

@@ -83,10 +83,11 @@ export function SearchBar({ onResolve }: { onResolve: (t: SearchTarget) => void 
       <div className="relative flex items-center gap-2 rounded-full glass-panel pl-4 pr-1.5 py-1.5 border border-border/70 focus-within:border-vault/50 transition-colors">
         <Search className="w-4 h-4 text-muted-foreground shrink-0" />
         <input
+          id="obs-search"
           value={q}
           onChange={(e) => { setQ(e.target.value); setError(null) }}
           onKeyDown={(e) => { if (e.key === 'Enter') resolve() }}
-          placeholder="Inspect anything — block hash · topoheight · tx hash · xet:address"
+          placeholder="Inspect anything — block hash · topoheight · tx hash · xet:address  ( / )"
           spellCheck={false}
           className="flex-1 bg-transparent outline-none text-sm font-mono placeholder:text-muted-foreground/50 min-w-0"
         />

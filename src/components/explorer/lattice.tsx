@@ -11,8 +11,12 @@
 // Colors: Normal = vault purple · Sync = cyan · Side = amber (30% reward) · Orphaned = red.
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { Box, Maximize2, Minimize2 } from 'lucide-react'
 import { XelisBlock, fmtXEL, shortHash } from '@/lib/xelis/explorer'
 import { SocketStatus } from '@/lib/xelis/node-ws'
+import { Lattice3D } from './lattice-3d'
+
+const MODE_KEY = 'observatory-lattice-mode'
 
 const TYPE_COLORS: Record<string, { main: string; fill: string }> = {
   Normal: { main: '#a78bfa', fill: 'rgba(167,139,250,0.16)' },
@@ -49,6 +53,34 @@ export function Lattice({
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [hover, setHover] = useState<HoverState | null>(null)
+  const [mode, setMode] = useState<'2d' | '3d'>('2d')
+  const [isFs, setIsFs] = useState(false)
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  // restore view mode preference (deferred to a frame to avoid sync setState)
+  useEffect(() => {
+    let v: string | null = null
+    try {
+      v = localStorage.getItem(MODE_KEY)
+    } catch { /* noop */ }
+    if (v !== '3d') return
+    const raf = requestAnimationFrame(() => setMode('3d'))
+    return () => cancelAnimationFrame(raf)
+  }, [])
+  const switchMode = (m: '2d' | '3d') => {
+    setMode(m)
+    try { localStorage.setItem(MODE_KEY, m) } catch { /* noop */ }
+  }
+
+  const toggleFs = useCallback(() => {
+    if (!document.fullscreenElement) panelRef.current?.requestFullscreen().catch(() => {})
+    else document.exitFullscreen().catch(() => {})
+  }, [])
+  useEffect(() => {
+    const h = () => setIsFs(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', h)
+    return () => document.removeEventListener('fullscreenchange', h)
+  }, [])
 
   const blocksRef = useRef(blocks)
   const stableRef = useRef(stableHeight)
@@ -265,7 +297,7 @@ export function Lattice({
         if (showTopoLabels) {
           ctx.fillStyle = 'rgba(148,160,190,0.75)'
           ctx.font = '9px "JetBrains Mono", monospace'
-          ctx.fillText(String(b.topoheight), n.x, n.y + s / 2 + 12)
+          ctx.fillText(b.topoheight >= 0 ? String(b.topoheight) : 'orph', n.x, n.y + s / 2 + 12)
         }
 
         // tx badge
@@ -346,63 +378,100 @@ export function Lattice({
     status === 'live' ? 'LIVE · WEBSOCKET' : status === 'connecting' ? 'CONNECTING…' : status === 'reconnecting' ? 'RECONNECTING…' : status === 'boot' ? 'SYNCING…' : 'POLLING'
 
   return (
-    <div className="relative rounded-2xl glass-panel overflow-hidden">
+    <div
+      ref={panelRef}
+      className={`relative overflow-hidden ${
+        isFs ? 'fixed inset-0 z-50 bg-[#0b0714] flex flex-col' : 'rounded-2xl glass-panel'
+      }`}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 md:px-5 pt-4 pb-2">
-        <div className="flex items-center gap-2.5">
-          <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">The Lattice</span>
-          <span className="text-[10px] text-muted-foreground/70 hidden sm:inline">— live BlockDAG topology</span>
+      <div className={`flex items-center justify-between gap-2 px-4 md:px-5 pt-4 pb-2 ${isFs ? 'shrink-0' : ''}`}>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground whitespace-nowrap">The Lattice</span>
+          <span className="text-[10px] text-muted-foreground/70 hidden lg:inline">— live BlockDAG topology</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              status === 'live' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
-            }`}
-          />
-          <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{statusLabel}</span>
+        <div className="flex items-center gap-2">
+          {/* 2D / 3D segmented control */}
+          <div className="flex items-center rounded-full border border-border bg-card/60 p-0.5">
+            {(['2d', '3d'] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => switchMode(m)}
+                className={`inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-[10px] font-mono uppercase tracking-wider transition-all ${
+                  mode === m ? 'bg-vault/20 text-vault' : 'text-muted-foreground hover:text-foreground'
+                }`}
+                title={m === '3d' ? '3D constellation — drag to orbit, scroll to zoom' : '2D canvas view'}
+              >
+                {m === '3d' && <Box className="w-3 h-3" />}
+                {m}
+              </button>
+            ))}
+          </div>
+          <span className="flex items-center gap-1.5">
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                status === 'live' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+              }`}
+            />
+            <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground whitespace-nowrap">{statusLabel}</span>
+          </span>
+          <button
+            onClick={toggleFs}
+            className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-vault hover:border-vault/40 transition-colors"
+            title={isFs ? 'Exit cinema mode' : 'Cinema mode (fullscreen)'}
+          >
+            {isFs ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+          </button>
         </div>
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 md:px-5 pb-2 text-[10px] font-mono text-muted-foreground">
+      <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 px-4 md:px-5 pb-2 text-[10px] font-mono text-muted-foreground ${isFs ? 'shrink-0' : ''}`}>
         <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-[3px]" style={{ background: '#a78bfa' }} /> normal</span>
         <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-[3px]" style={{ background: '#67e8f9' }} /> sync</span>
         <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-[3px]" style={{ background: '#fbbf24' }} /> side · 30%</span>
         <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-[3px] border border-red-400/60" /> orphaned</span>
         <span className="hidden md:inline text-muted-foreground/60">· forked blocks share a height · x = height · click a block</span>
+        {mode === '3d' && <span className="text-vault/70">· drag to orbit · scroll to zoom</span>}
       </div>
 
-      {/* Canvas */}
-      <div ref={wrapRef} className="relative w-full h-[320px] md:h-[430px]">
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+      {/* Canvas area */}
+      <div className={`relative w-full ${isFs ? 'flex-1 min-h-0' : 'h-[320px] md:h-[430px]'}`}>
+        {mode === '2d' ? (
+          <div ref={wrapRef} className="absolute inset-0">
+            <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
-        {/* Tooltip */}
-        {hover && (
-          <div
-            className="pointer-events-none absolute z-20 rounded-xl glass-panel px-3 py-2.5 text-[11px] font-mono leading-relaxed shadow-2xl"
-            style={{
-              left: Math.min(Math.max(hover.x + 14, 8), Math.max(hover.maxX - 210, 8)),
-              top: Math.max(hover.y - 14, 8),
-              width: 200,
-            }}
-          >
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <span className="text-vault font-semibold">#{hover.block.topoheight}</span>
-              <span
-                className="px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider"
+            {/* Tooltip */}
+            {hover && (
+              <div
+                className="pointer-events-none absolute z-20 rounded-xl glass-panel px-3 py-2.5 text-[11px] font-mono leading-relaxed shadow-2xl"
                 style={{
-                  color: TYPE_COLORS[hover.block.block_type]?.main,
-                  background: (TYPE_COLORS[hover.block.block_type]?.fill ?? 'rgba(167,139,250,0.16)') as string,
+                  left: Math.min(Math.max(hover.x + 14, 8), Math.max(hover.maxX - 210, 8)),
+                  top: Math.max(hover.y - 14, 8),
+                  width: 200,
                 }}
               >
-                {hover.block.block_type}
-              </span>
-            </div>
-            <div className="text-muted-foreground">height {hover.block.height} · {hover.block.txs_hashes?.length ?? 0} txs</div>
-            <div className="text-muted-foreground">reward {fmtXEL(hover.block.reward)} XET</div>
-            <div className="text-muted-foreground truncate">{shortHash(hover.block.miner, 14, 8)}</div>
-            <div className="text-vault/70 mt-1 text-[9px] uppercase tracking-wider">click to inspect</div>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-vault font-semibold">{hover.block.topoheight >= 0 ? `#${hover.block.topoheight}` : 'orphaned'}</span>
+                  <span
+                    className="px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider"
+                    style={{
+                      color: TYPE_COLORS[hover.block.block_type]?.main,
+                      background: (TYPE_COLORS[hover.block.block_type]?.fill ?? 'rgba(167,139,250,0.16)') as string,
+                    }}
+                  >
+                    {hover.block.block_type}
+                  </span>
+                </div>
+                <div className="text-muted-foreground">height {hover.block.height} · {hover.block.txs_hashes?.length ?? 0} txs</div>
+                <div className="text-muted-foreground">reward {fmtXEL(hover.block.reward)} XET</div>
+                <div className="text-muted-foreground truncate">{shortHash(hover.block.miner, 14, 8)}</div>
+                <div className="text-vault/70 mt-1 text-[9px] uppercase tracking-wider">click to inspect</div>
+              </div>
+            )}
           </div>
+        ) : (
+          <Lattice3D blocks={blocks} stableHeight={stableHeight} onSelect={onSelect} />
         )}
       </div>
     </div>

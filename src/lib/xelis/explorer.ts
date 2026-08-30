@@ -1,8 +1,10 @@
-// Explorer data layer — typed fetchers over the public XELIS testnet node.
+// Explorer data layer — typed fetchers over the public XELIS nodes.
 // All atomic amounts are integer units with 8 decimals (1 XET = 1e8).
 // Timestamps in blocks are MILLISECONDS (verified live).
+// Every fetcher targets the explorer's ACTIVE network (mainnet by default).
 
-import { rpcCall, EXPLORER_URL } from './rpc'
+import { rpcCall } from './rpc'
+import { getActiveNetwork, networkConfig } from './networks'
 
 // ---- Types (coded against live daemon v1.25 responses) ----
 
@@ -94,82 +96,88 @@ export const ATOMIC_DECIMALS = 8
 
 // ---- Fetchers ----
 
+const NET = () => getActiveNetwork()
+
 export function getBlocksRangeByTopo(startTopo: number, endTopo: number, includeTxs = false): Promise<XelisBlock[]> {
   return rpcCall<XelisBlock[]>('get_blocks_range_by_topoheight', {
     start_topoheight: startTopo,
     end_topoheight: endTopo,
     include_txs: includeTxs,
-  }, { retries: 2 })
+  }, { retries: 2, network: NET() })
 }
 
 export function getBlockByHash(hash: string, includeTxs = false): Promise<XelisBlock> {
-  return rpcCall<XelisBlock>('get_block_by_hash', { hash, include_txs: includeTxs }, { retries: 2 })
+  return rpcCall<XelisBlock>('get_block_by_hash', { hash, include_txs: includeTxs }, { retries: 2, network: NET() })
 }
 
 export function getBlockAtTopo(topoheight: number, includeTxs = false): Promise<XelisBlock> {
-  return rpcCall<XelisBlock>('get_block_at_topoheight', { topoheight, include_txs: includeTxs }, { retries: 2 })
+  return rpcCall<XelisBlock>('get_block_at_topoheight', { topoheight, include_txs: includeTxs }, { retries: 2, network: NET() })
 }
 
 export function getBlocksAtHeight(height: number, includeTxs = false): Promise<XelisBlock[]> {
-  return rpcCall<XelisBlock[]>('get_blocks_at_height', { height, include_txs: includeTxs }, { retries: 2 })
+  return rpcCall<XelisBlock[]>('get_blocks_at_height', { height, include_txs: includeTxs }, { retries: 2, network: NET() })
 }
 
 export function getTxByHash(hash: string): Promise<XelisTransaction> {
-  return rpcCall<XelisTransaction>('get_transaction', { hash }, { retries: 2 })
+  return rpcCall<XelisTransaction>('get_transaction', { hash }, { retries: 2, network: NET() })
 }
 
 export function getMempoolSummary(): Promise<{ total: number; transactions: any[] }> {
-  return rpcCall('get_mempool_summary', undefined, { retries: 2, cacheTtlMs: 3000 })
+  return rpcCall('get_mempool_summary', undefined, { retries: 2, cacheTtlMs: 3000, network: NET() })
 }
 
 export function getFeeRates(): Promise<{ low: number; medium: number; high: number; default: number }> {
-  return rpcCall('get_estimated_fee_rates', undefined, { retries: 2, cacheTtlMs: 30000 })
+  return rpcCall('get_estimated_fee_rates', undefined, { retries: 2, cacheTtlMs: 30000, network: NET() })
 }
 
 export function getPeersList(): Promise<{ peers: PeerInfo[]; total_peers: number; hidden_peers: number }> {
-  return rpcCall('get_peers', undefined, { retries: 2, cacheTtlMs: 10000 })
+  return rpcCall('get_peers', undefined, { retries: 2, cacheTtlMs: 10000, network: NET() })
 }
 
 export function getDifficultyInfo(): Promise<{ difficulty: string; hashrate: string; hashrate_formatted: string }> {
-  return rpcCall('get_difficulty', undefined, { retries: 2, cacheTtlMs: 15000 })
+  return rpcCall('get_difficulty', undefined, { retries: 2, cacheTtlMs: 15000, network: NET() })
 }
 
 export function getAssetsList(): Promise<AssetInfo[]> {
-  return rpcCall('get_assets', undefined, { retries: 2, cacheTtlMs: 120000 })
+  return rpcCall('get_assets', undefined, { retries: 2, cacheTtlMs: 120000, network: NET() })
 }
 
 export function getCount(kind: 'transactions' | 'accounts' | 'assets' | 'contracts'): Promise<number> {
-  return rpcCall(`count_${kind}`, undefined, { retries: 2, cacheTtlMs: 30000 })
+  return rpcCall(`count_${kind}`, undefined, { retries: 2, cacheTtlMs: 30000, network: NET() })
 }
 
 export function getAddressNonce(address: string): Promise<{ nonce: number; topoheight: number; previous_topoheight: number }> {
-  return rpcCall('get_nonce', { address }, { retries: 2 })
+  return rpcCall('get_nonce', { address }, { retries: 2, network: NET() })
 }
 
 export function getRegistrationTopoheight(address: string): Promise<number> {
-  return rpcCall('get_account_registration_topoheight', { address }, { retries: 2 })
+  return rpcCall('get_account_registration_topoheight', { address }, { retries: 2, network: NET() })
 }
 
 export function getAccountAssets(address: string): Promise<string[]> {
-  return rpcCall('get_account_assets', { address }, { retries: 2 })
+  return rpcCall('get_account_assets', { address }, { retries: 2, network: NET() })
 }
 
 export function getEncryptedBalance(address: string, asset = XEL_ASSET): Promise<any> {
-  return rpcCall('get_balance', { address, asset }, { retries: 1 })
+  return rpcCall('get_balance', { address, asset }, { retries: 1, network: NET() })
 }
 
 export function getAccountHistory(address: string): Promise<any[]> {
-  return rpcCall('get_account_history', { address }, { retries: 1 })
+  return rpcCall('get_account_history', { address }, { retries: 1, network: NET() })
 }
 
 export function validateAddress(address: string): Promise<any> {
-  return rpcCall('validate_address', { address, allow_integrated: true }, { retries: 1 })
+  return rpcCall('validate_address', { address, allow_integrated: true }, { retries: 1, network: NET() })
 }
 
-// ---- Explorer deep links ----
+// ---- Explorer deep links (network-aware) ----
 
 export function explorerBlockUrl(hash: string): string {
-  return `${EXPLORER_URL}/block/${hash}`
+  return `${networkConfig().explorer}/block/${hash}`
+}
+
+export function explorerAssetUrl(asset: string): string {
+  return `${networkConfig().explorer}/asset/${asset}`
 }
 
 // ---- Formatters ----

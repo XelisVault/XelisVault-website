@@ -1,4 +1,4 @@
-// XELIS JSON-RPC client (browser) — reads from the public testnet node.
+// XELIS JSON-RPC client (browser) — reads from public XELIS nodes.
 // Port of the CLI's _post/_is_transient/_with_retries logic (protocol.py).
 //
 // IMPORTANT RPC quirks (verified live):
@@ -6,7 +6,13 @@
 //  - public nodes may answer HTML (rate limit) → retry with backoff
 //  - "nonce already used" / "expected" → transient, retry
 //  - "not enough funds" → permanent error
-//  - batch_limit = 20 on the public testnet node
+//  - batch_limit = 20 on the public nodes
+//
+// Networks: every call can target mainnet or testnet (opts.network).
+// The Vault app defaults to testnet; the Observatory explorer defaults to
+// mainnet (see networks.ts).
+
+import { NetworkId, NETWORKS, networkConfig } from './networks'
 
 export const PUBLIC_NODE_HTTP = 'https://testnet-node.xelis.io/json_rpc'
 export const EXPLORER_URL = 'https://testnet-explorer.xelis.io'
@@ -56,13 +62,18 @@ async function rateLimitGate(): Promise<void> {
   lastRequestTimes.push(Date.now())
 }
 
+/** Resolve the HTTP endpoint for a call (defaults to testnet for app modules). */
+function endpointFor(net?: NetworkId): string {
+  return net ? NETWORKS[net].http : PUBLIC_NODE_HTTP
+}
+
 export async function rpcCall<T = any>(
   method: string,
   params?: Record<string, any> | any[],
-  opts: { retries?: number; cacheTtlMs?: number } = {}
+  opts: { retries?: number; cacheTtlMs?: number; network?: NetworkId } = {}
 ): Promise<T> {
-  const { retries = 3, cacheTtlMs = 0 } = opts
-  const cacheKey = cacheTtlMs > 0 ? `${method}:${JSON.stringify(params ?? null)}` : ''
+  const { retries = 3, cacheTtlMs = 0, network } = opts
+  const cacheKey = cacheTtlMs > 0 ? `${network ?? 'testnet'}:${method}:${JSON.stringify(params ?? null)}` : ''
 
   if (cacheKey && cache.has(cacheKey)) {
     const hit = cache.get(cacheKey)!
@@ -78,7 +89,7 @@ export async function rpcCall<T = any>(
     try {
       await rateLimitGate()
       requestCounter++
-      const res = await fetch(PUBLIC_NODE_HTTP, {
+      const res = await fetch(endpointFor(network), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -112,8 +123,13 @@ export async function rpcCall<T = any>(
 
 // Convenience wrappers -------------------------------------------------
 
-export async function getTopoheight(): Promise<number> {
-  return rpcCall<number>('get_topoheight', undefined, { retries: 2, cacheTtlMs: 4000 })
+export async function getTopoheight(net?: NetworkId): Promise<number> {
+  return rpcCall<number>('get_topoheight', undefined, { retries: 2, cacheTtlMs: 4000, network: net })
+}
+
+/** Network-aware chain info (the explorer uses this with its active network). */
+export async function getChainInfo(net: NetworkId): Promise<NetworkInfo> {
+  return rpcCall<NetworkInfo>('get_info', undefined, { retries: 2, cacheTtlMs: 5000, network: net })
 }
 
 export interface NetworkInfo {
@@ -140,16 +156,19 @@ export async function getEstimatedFeeRates(): Promise<{ low: number; medium: num
   return rpcCall('get_estimated_fee_rates', undefined, { retries: 2, cacheTtlMs: 30000 })
 }
 
+// Deep links into the OFFICIAL explorer — follow the explorer's active network
+// (mainnet by default; see networks.ts).
+
 export function explorerTxUrl(txHash: string): string {
-  return `${EXPLORER_URL}/?tab=tx#tx=${txHash}`
+  return `${networkConfig().explorer}/?tab=tx#tx=${txHash}`
 }
 
 export function explorerAddressUrl(address: string): string {
-  return `${EXPLORER_URL}/?tab=account#account=${address}`
+  return `${networkConfig().explorer}/?tab=account#account=${address}`
 }
 
 export function explorerContractUrl(hash: string): string {
-  return `${EXPLORER_URL}/?tab=contract#contract=${hash}`
+  return `${networkConfig().explorer}/?tab=contract#contract=${hash}`
 }
 
 /** Exposed for diagnostics only */

@@ -2,14 +2,17 @@
 
 // useExplorerLive — the Observatory's data engine.
 //
-// Bootstrap: 40 recent blocks (2 range calls of 20) + chain stats.
+// Bootstrap: 120 recent blocks (6 range calls of 20) + chain stats — the deep
+//            window feeds the Miner Arena, difficulty chart & block-time chart.
 // Live:      WebSocket `new_block` pushes (full block embedded, zero extra RPC).
 // Safety:    get_top_block polling every 15s (dedup by hash) keeps the feed
 //            alive even if the socket silently dies behind a proxy.
 // Session:   "witness" counters — what YOU observed live since page open.
+// Network:   mainnet by default; switching networks re-bootstraps everything.
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { getNetworkInfo, NetworkInfo, rpcCall } from '@/lib/xelis/rpc'
+import { NetworkInfo, rpcCall } from '@/lib/xelis/rpc'
+import { NetworkId, networkConfig } from '@/lib/xelis/networks'
 import {
   XelisBlock,
   PeerInfo,
@@ -24,8 +27,8 @@ import {
 } from '@/lib/xelis/explorer'
 import { NodeSocket, SocketStatus, NodeEventPayload } from '@/lib/xelis/node-ws'
 
-const MAX_BLOCKS = 140
-const BOOTSTRAP_BLOCKS = 40
+const MAX_BLOCKS = 160
+const BOOTSTRAP_BLOCKS = 120
 const RANGE_BATCH = 20
 
 export interface SessionStats {
@@ -50,6 +53,7 @@ const emptySession = (): SessionStats => ({
 
 export interface ExplorerLive {
   ready: boolean
+  network: NetworkId
   socketStatus: SocketStatus | 'boot'
   blocks: XelisBlock[] // newest first
   info: NetworkInfo | null
@@ -65,7 +69,10 @@ export interface ExplorerLive {
   refreshStats: () => void
 }
 
-export function useExplorerLive(opts: { onNewBlock?: (b: XelisBlock) => void; onMempoolTx?: () => void } = {}): ExplorerLive {
+export function useExplorerLive(
+  opts: { network?: NetworkId; onNewBlock?: (b: XelisBlock) => void; onMempoolTx?: () => void } = {}
+): ExplorerLive {
+  const network = opts.network ?? 'mainnet'
   const [ready, setReady] = useState(false)
   const [socketStatus, setSocketStatus] = useState<SocketStatus | 'boot'>('boot')
   const [blocks, setBlocks] = useState<XelisBlock[]>([])
@@ -88,6 +95,10 @@ export function useExplorerLive(opts: { onNewBlock?: (b: XelisBlock) => void; on
 
   const ingestBlock = useCallback((block: XelisBlock, live: boolean) => {
     if (seenHashes.current.has(block.hash)) return
+    // Orphaned blocks (seen live on mainnet) arrive without topoheight —
+    // normalize so every sort/layout/3D math stays finite.
+    if (typeof block.topoheight !== 'number' || !isFinite(block.topoheight)) block.topoheight = -1
+    if (typeof block.height !== 'number' || !isFinite(block.height)) block.height = -1
     seenHashes.current.add(block.hash)
     knownTopos.current.add(block.topoheight)
 
@@ -115,23 +126,38 @@ export function useExplorerLive(opts: { onNewBlock?: (b: XelisBlock) => void; on
   }, [])
 
   const refreshStats = useCallback(() => {
-    getNetworkInfo().then(setInfo).catch(() => {})
+    rpcCall<NetworkInfo>('get_info', undefined, { retries: 2, cacheTtlMs: 5000, network }).then(setInfo).catch(() => {})
     getDifficultyInfo().then(setDifficulty).catch(() => {})
     getMempoolSummary().then((m) => setMempool({ total: m.total })).catch(() => {})
     getFeeRates().then(setFeeRates).catch(() => {})
     getPeersList().then(setPeers).catch(() => {})
     getCount('transactions').then(setTxCount).catch(() => {})
     getCount('accounts').then(setAccountCount).catch(() => {})
-  }, [])
+  }, [network])
 
-  // ---- Bootstrap + WS + polling ----
+  // ---- Bootstrap + WS + polling (re-runs on network switch) ----
   useEffect(() => {
     let cancelled = false
+
+    // reset per-network state
+    setReady(false)
+    setSocketStatus('boot')
+    setBlocks([])
+    setInfo(null)
+    setDifficulty(null)
+    setPeers(null)
+    setMempool(null)
+    setFeeRates(null)
+    setAssets([])
+    setTxCount(null)
+    setAccountCount(null)
+    seenHashes.current = new Set()
+    knownTopos.current = new Set()
 
     async function bootstrap() {
       try {
         const [netInfo, diff, peerData, mem, fees, assetList, txs, accounts] = await Promise.all([
-          getNetworkInfo(),
+          rpcCall<NetworkInfo>('get_info', undefined, { retries: 2, cacheTtlMs: 5000, network }),
           getDifficultyInfo().catch(() => null),
           getPeersList().catch(() => null),
           getMempoolSummary().catch(() => null),
@@ -173,7 +199,7 @@ export function useExplorerLive(opts: { onNewBlock?: (b: XelisBlock) => void; on
     bootstrap()
 
     // WebSocket — live pushes
-    const socket = new NodeSocket()
+    const socket = new NodeSocket(networkConfig(network).ws)
     socket.onStatus(setSocketStatus)
     const offEvents = socket.on((e: NodeEventPayload) => {
       if (e.event === 'new_block') {
@@ -185,7 +211,7 @@ export function useExplorerLive(opts: { onNewBlock?: (b: XelisBlock) => void; on
         optsRef.current.onMempoolTx?.()
         getMempoolSummary().then((m) => setMempool({ total: m.total })).catch(() => {})
       } else if (e.event === 'stable_height_changed') {
-        getNetworkInfo().then(setInfo).catch(() => {})
+        rpcCall<NetworkInfo>('get_info', undefined, { retries: 2, cacheTtlMs: 5000, network }).then(setInfo).catch(() => {})
       }
     })
     socket.connect()
@@ -200,14 +226,14 @@ export function useExplorerLive(opts: { onNewBlock?: (b: XelisBlock) => void; on
     // missed topoheights after a silent socket drop.
     const pollTop = setInterval(async () => {
       try {
-        const topoheight = await rpcCall<number>('get_topoheight', undefined, { retries: 1 })
-        const latest = await rpcCall<XelisBlock>('get_block_at_topoheight', { topoheight, include_txs: false }, { retries: 1 })
+        const topoheight = await rpcCall<number>('get_topoheight', undefined, { retries: 1, network })
+        const latest = await rpcCall<XelisBlock>('get_block_at_topoheight', { topoheight, include_txs: false }, { retries: 1, network })
         ingestBlock(latest, !seenHashes.current.has(latest.hash))
         // fill a gap of up to 5 missed topos (e.g. after reconnect)
         for (let t = topoheight - 1; t > topoheight - 5 && t >= 0; t--) {
           if (knownTopos.current.has(t)) break
           try {
-            const missed = await rpcCall<XelisBlock>('get_block_at_topoheight', { topoheight: t, include_txs: false }, { retries: 1 })
+            const missed = await rpcCall<XelisBlock>('get_block_at_topoheight', { topoheight: t, include_txs: false }, { retries: 1, network })
             ingestBlock(missed, false)
           } catch { break }
         }
@@ -225,10 +251,11 @@ export function useExplorerLive(opts: { onNewBlock?: (b: XelisBlock) => void; on
       offEvents()
       socket.close()
     }
-  }, [ingestBlock, refreshStats])
+  }, [ingestBlock, refreshStats, network])
 
   return {
     ready,
+    network,
     socketStatus,
     blocks,
     info,
