@@ -87,7 +87,8 @@ export function LaunchAudio({ ceremony, welcome }: { ceremony: boolean; welcome:
     else if (!isLaunched && intensity >= 0.25) key = 'ambient'
     else key = 'none'
 
-    if (segRef.current.key !== key) segRef.current = { key, wall: Date.now() }
+    const prevKey = segRef.current.key
+    if (prevKey !== key) segRef.current = { key, wall: Date.now() }
     const mountWall = segRef.current.wall
 
     // When we are inside the REAL final window (or riding it into the
@@ -119,6 +120,14 @@ export function LaunchAudio({ ceremony, welcome }: { ceremony: boolean; welcome:
         loop: true,
         volume: 0.08 + 0.18 * intensity,
       })
+    } else if (
+      prevKey === 'ceremony' ||
+      prevKey === 'final' ||
+      (prevKey === 'none' && launchAudio.getState().track === 'main')
+    ) {
+      // The ceremony is over but the track is still rolling — let the
+      // soundtrack play through to its natural end over the live site.
+      launchAudio.sync({ track: 'main', wallMs: mountWall, atMs: 0, maxMs: 150_000 })
     } else {
       launchAudio.sync(null)
     }
