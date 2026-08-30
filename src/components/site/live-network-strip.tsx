@@ -91,6 +91,17 @@ export function LiveNetworkStrip() {
           <ArrowUpRight className="w-3 h-3" />
         </span>
       </motion.button>
+      <a
+        href="/explorer"
+        className="group/obs inline-flex items-center gap-2 rounded-full border border-vault/25 bg-vault/5 hover:bg-vault/15 hover:border-vault/50 px-4 py-1.5 text-[10px] font-mono uppercase tracking-[0.16em] text-vault/90 transition-all"
+      >
+        <span className="relative flex w-1.5 h-1.5">
+          <span className="absolute inline-flex w-full h-full rounded-full bg-vault opacity-60 animate-ping" />
+          <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-vault" />
+        </span>
+        New · The Observatory — live BlockDAG explorer
+        <ArrowUpRight className="w-3 h-3 opacity-60 group-hover/obs:opacity-100 transition-opacity" />
+      </a>
       <p className="text-[10px] font-mono text-muted-foreground/50">
         The protocol is already running — {stats ? 'numbers update live' : 'connecting to the public node'} · official launch August 30
       </p>

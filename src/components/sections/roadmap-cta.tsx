@@ -288,6 +288,7 @@ export function Footer() {
     {
       title: 'Resources',
       links: [
+        { label: 'The Observatory — Live Explorer', href: '/explorer' },
         { label: 'Documentation', href: '/docs' },
         { label: 'Security', href: '/security' },
         { label: 'Learn', href: '/learn' },

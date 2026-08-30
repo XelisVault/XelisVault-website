@@ -9,6 +9,7 @@ import { useLaunchStatus } from '@/components/app/launch-gate'
 import { SoundToggle } from '@/components/site/launch-audio'
 
 const LINKS = [
+  { label: 'Explorer', href: '/explorer', live: true },
   { label: 'Vision', href: '/#vision' },
   { label: 'Protocol', href: '/#protocol' },
   { label: 'Architecture', href: '/#architecture' },
@@ -74,13 +75,21 @@ export function Nav() {
             </span>
           </a>
 
-          <nav className="hidden lg:flex items-center gap-7">
+          <nav className="hidden lg:flex items-center gap-6">
             {LINKS.map((l) => (
               <a
                 key={l.href}
                 href={l.href}
-                className="text-[13px] font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
+                className={`text-[13px] font-medium transition-colors relative group ${
+                  l.live ? 'text-vault hover:text-vault/80' : 'text-muted-foreground hover:text-foreground'
+                }`}
               >
+                {(l as any).live && (
+                  <span className="absolute -top-1 -right-2.5 flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
+                  </span>
+                )}
                 {l.label}
                 <span className="absolute -bottom-1 left-0 right-0 h-px bg-vault scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
               </a>
