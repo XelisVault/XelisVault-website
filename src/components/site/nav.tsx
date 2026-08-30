@@ -6,6 +6,7 @@ import { Menu, X, Github, ExternalLink, Rocket, ChevronDown } from 'lucide-react
 import { useDemo } from '@/lib/demo-store'
 import { useCountdownState } from '@/lib/countdown'
 import { useLaunchStatus } from '@/components/app/launch-gate'
+import { SoundToggle } from '@/components/site/launch-audio'
 
 const LINKS = [
   { label: 'Vision', href: '/#vision' },
@@ -125,6 +126,7 @@ export function Nav() {
           </nav>
 
           <div className="flex items-center gap-2">
+            <SoundToggle />
             <a
               href="https://github.com/XelisVault/xelis-vault"
               target="_blank"

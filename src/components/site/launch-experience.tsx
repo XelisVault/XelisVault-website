@@ -9,6 +9,7 @@ import { LaunchCelebration } from '@/components/site/launch-celebration'
 import { WelcomeSequence } from '@/components/site/welcome-sequence'
 import { EscalationLayer } from '@/components/site/escalation-layer'
 import { EasterEggs } from '@/components/site/easter-eggs'
+import { LaunchAudio } from '@/components/site/launch-audio'
 import { useDemo } from '@/lib/demo-store'
 
 /**
@@ -125,6 +126,9 @@ export function LaunchExperience() {
 
   return (
     <>
+      {/* the soundtrack, synced to the same clock as the visuals */}
+      <LaunchAudio ceremony={showCelebration} welcome={showWelcome} />
+
       {/* T-6h → T-10s — global ambient escalation (all pages) */}
       <EscalationLayer />
 
