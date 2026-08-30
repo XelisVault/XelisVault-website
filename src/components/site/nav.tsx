@@ -150,7 +150,7 @@ export function Nav() {
               {isLaunched ? (
                 'Launch App'
               ) : (
-                <span className="font-mono tabular-nums tracking-tight">
+                <span className="font-mono tabular-nums tracking-tight" suppressHydrationWarning>
                   T–{days}d {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:
                   {String(seconds).padStart(2, '0')}
                 </span>
@@ -237,7 +237,7 @@ export function Nav() {
                   {isLaunched ? (
                     'Launch App'
                   ) : (
-                    <span className="font-mono tabular-nums">
+                    <span className="font-mono tabular-nums" suppressHydrationWarning>
                       T–{days}d {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:
                       {String(seconds).padStart(2, '0')}
                     </span>

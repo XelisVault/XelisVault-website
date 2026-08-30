@@ -1,24 +1,29 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
   useCountdownState,
+  PHASE_META,
   CIPHER_GLYPHS,
   randomGlyph,
+  fireEgg,
 } from '@/lib/countdown'
 
 /**
- * Cinematic Countdown v2 — XELIS Vault Launch
+ * Cinematic Countdown v3 — XELIS Vault Launch
  *
- * Two escalating experiences:
+ * Three escalating experiences:
  *
- *  A. MECHANISM (T > 10s) — a living vault-lock:
- *     · 3 concentric gear rings rotating at different speeds & directions
- *     · 12 sealing bolts retract one-by-one as time progresses
- *     · progress arc + % sealed
- *     · cipher-digit scramble on every change (ciphertext → plaintext)
- *     · orbiting glyph aura (BlockDAG energy)
+ *  A. MECHANISM (T > 10s) — a living vault-lock that REACTS to time:
+ *     · 3 concentric gear rings whose speed grows with the escalation
+ *       intensity (1× → ~4× as T-0 approaches)
+ *     · 12 sealing bolts retract over time; they run hot (amber) in the
+ *       final hour
+ *     · status label morphs through the escalation phases
+ *       (Wake → Arming → Surge → Critical)
+ *     · T-60s: a heartbeat ring pulses the dial on every second
+ *     · hidden easter egg: click the dial 5× fast… (don't shake the vault)
  *
  *  B. FINAL SEQUENCE (T ≤ 10s) — full-screen launch theatre:
  *     · giant digit (38vw) with chromatic aberration on every tick
@@ -35,15 +40,31 @@ function scrambleDigit(target: string, progress: number): string {
   return randomGlyph()
 }
 
+const AMBER = 'oklch(0.8 0.17 65)'
+const AMBER_SOFT = 'oklch(0.75 0.18 60)'
+
+function phaseColor(hue: 'vault' | 'violet' | 'mix' | 'amber'): string {
+  switch (hue) {
+    case 'vault':
+      return 'var(--vault)'
+    case 'violet':
+      return 'oklch(0.68 0.2 310)'
+    case 'mix':
+      return 'oklch(0.72 0.16 55)'
+    case 'amber':
+      return AMBER
+  }
+}
+
 // ===== Gear rings (vault mechanism metaphor) =====
-function MechanismRings({ urgent }: { urgent: boolean }) {
-  const speedMul = urgent ? 2.4 : 1
+function MechanismRings({ speed }: { speed: number }) {
   return (
     <g>
       {/* Outer gear — clockwise, slow */}
       <motion.g
+        key={`outer-${speed}`}
         animate={{ rotate: 360 }}
-        transition={{ duration: 120 / speedMul, repeat: Infinity, ease: 'linear' }}
+        transition={{ duration: 120 / speed, repeat: Infinity, ease: 'linear' }}
         style={{ transformOrigin: '0px 0px' }}
       >
         <circle
@@ -56,8 +77,9 @@ function MechanismRings({ urgent }: { urgent: boolean }) {
       </motion.g>
       {/* Mid gear — counter-clockwise */}
       <motion.g
+        key={`mid-${speed}`}
         animate={{ rotate: -360 }}
-        transition={{ duration: 75 / speedMul, repeat: Infinity, ease: 'linear' }}
+        transition={{ duration: 75 / speed, repeat: Infinity, ease: 'linear' }}
         style={{ transformOrigin: '0px 0px' }}
       >
         <circle
@@ -70,8 +92,9 @@ function MechanismRings({ urgent }: { urgent: boolean }) {
       </motion.g>
       {/* Inner fine gear — clockwise, faster */}
       <motion.g
+        key={`inner-${speed}`}
         animate={{ rotate: 360 }}
-        transition={{ duration: 50 / speedMul, repeat: Infinity, ease: 'linear' }}
+        transition={{ duration: 50 / speed, repeat: Infinity, ease: 'linear' }}
         style={{ transformOrigin: '0px 0px' }}
       >
         <circle
@@ -89,7 +112,7 @@ function MechanismRings({ urgent }: { urgent: boolean }) {
 // ===== Bolt ring — bolts retract as we approach launch =====
 const BOLT_COUNT = 12
 
-function BoltRing({ progress }: { progress: number }) {
+function BoltRing({ progress, hot }: { progress: number; hot: boolean }) {
   const bolts = useMemo(
     () =>
       Array.from({ length: BOLT_COUNT }, (_, i) => ({
@@ -102,6 +125,8 @@ function BoltRing({ progress }: { progress: number }) {
 
   const radius = 132
   const boltLength = 22
+  const liveColor = hot ? AMBER_SOFT : 'oklch(0.62 0.22 295)'
+  const retractedColor = hot ? 'oklch(0.75 0.18 60 / 0.3)' : 'oklch(0.62 0.22 295 / 0.3)'
 
   return (
     <g>
@@ -132,17 +157,22 @@ function BoltRing({ progress }: { progress: number }) {
               y1={y1}
               x2={x2}
               y2={y2}
-              stroke={retracted ? 'oklch(0.62 0.22 295 / 0.3)' : 'oklch(0.62 0.22 295)'}
+              stroke={retracted ? retractedColor : liveColor}
               strokeWidth={retracted ? 1.5 : 3}
               strokeLinecap="round"
               animate={{ opacity: retracted ? [0.3, 0.5, 0.3] : 1 }}
               transition={{ duration: 2, repeat: retracted ? Infinity : 0, ease: 'easeInOut' }}
+              style={
+                hot && !retracted
+                  ? { filter: `drop-shadow(0 0 5px ${AMBER_SOFT})` }
+                  : undefined
+              }
             />
             <motion.circle
               cx={x2}
               cy={y2}
               r={retracted ? 1.5 : 3}
-              fill={retracted ? 'oklch(0.62 0.22 295 / 0.4)' : 'oklch(0.62 0.22 295)'}
+              fill={retracted ? (hot ? 'oklch(0.75 0.18 60 / 0.4)' : 'oklch(0.62 0.22 295 / 0.4)') : liveColor}
               animate={{ opacity: retracted ? 0.4 : 1 }}
             />
           </g>
@@ -153,7 +183,7 @@ function BoltRing({ progress }: { progress: number }) {
 }
 
 // ===== Progress arc =====
-function ProgressArc({ progress }: { progress: number }) {
+function ProgressArc({ progress, hot }: { progress: number; hot: boolean }) {
   const radius = 105
   const circumference = 2 * Math.PI * radius
   const dashOffset = circumference * (1 - progress)
@@ -173,13 +203,15 @@ function ProgressArc({ progress }: { progress: number }) {
         animate={{ strokeDashoffset: dashOffset }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
         transform="rotate(-90 0 0)"
-        style={{ filter: 'drop-shadow(0 0 8px oklch(0.62 0.22 295 / 0.6))' }}
+        style={{
+          filter: `drop-shadow(0 0 ${hot ? 14 : 8}px ${hot ? AMBER_SOFT : 'oklch(0.62 0.22 295 / 0.6)'})`,
+        }}
       />
       <defs>
         <linearGradient id="vaultGradient" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="oklch(0.62 0.22 295)" />
           <stop offset="50%" stopColor="oklch(0.7 0.2 320)" />
-          <stop offset="100%" stopColor="oklch(0.78 0.16 195)" />
+          <stop offset="100%" stopColor={hot ? AMBER : 'oklch(0.78 0.16 195)'} />
         </linearGradient>
       </defs>
     </>
@@ -187,7 +219,17 @@ function ProgressArc({ progress }: { progress: number }) {
 }
 
 // ===== Ciphertext digit (scrambles before settling) =====
-function CipherDigit({ value, label }: { value: number; label: string }) {
+function CipherDigit({
+  value,
+  label,
+  pop,
+  hot,
+}: {
+  value: number
+  label: string
+  pop: number
+  hot: boolean
+}) {
   const [display, setDisplay] = useState('00')
   const [scrambling, setScrambling] = useState(true)
   const targetStr = String(value).padStart(2, '0')
@@ -213,14 +255,17 @@ function CipherDigit({ value, label }: { value: number; label: string }) {
     <div className="flex flex-col items-center">
       <motion.div
         key={display}
-        initial={{ opacity: 0.6 }}
-        animate={{ opacity: 1 }}
+        initial={{ opacity: 0.6, scale: 1 + 0.16 * pop }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 24 }}
         className="font-mono font-bold text-2xl md:text-4xl tabular-nums tracking-tight"
         style={{
-          color: scrambling ? 'oklch(0.65 0.15 295 / 0.7)' : 'var(--vault)',
-          textShadow: scrambling
-            ? '0 0 12px oklch(0.62 0.22 295 / 0.4)'
-            : '0 0 20px oklch(0.62 0.22 295 / 0.5)',
+          color: hot ? AMBER_SOFT : scrambling ? 'oklch(0.65 0.15 295 / 0.7)' : 'var(--vault)',
+          textShadow: hot
+            ? `0 0 ${14 + pop * 16}px ${AMBER_SOFT} / 0.75`
+            : scrambling
+              ? '0 0 12px oklch(0.62 0.22 295 / 0.4)'
+              : `0 0 ${18 + pop * 18}px oklch(0.62 0.22 295 / ${0.5 + pop * 0.3})`,
           minWidth: '2.2em',
           textAlign: 'center',
         }}
@@ -473,7 +518,24 @@ export function CinematicCountdown() {
     progress,
     isLaunched,
     isFinalCountdown,
+    intensity,
+    escalation,
   } = useCountdownState()
+
+  // easter egg — 5 rapid clicks on the dial
+  const clicksRef = useRef<number[]>([])
+  const [shaking, setShaking] = useState(false)
+  const [shakeKey, setShakeKey] = useState(0)
+
+  const meta = PHASE_META[escalation]
+  const labelColor = phaseColor(meta.hue)
+  const hot = intensity >= 0.75
+  // quantized gear speed — avoids constant rotation restarts
+  const gearSpeed = useMemo(
+    () => Math.round((1 + intensity * 3.2) * 2) / 2,
+    [intensity]
+  )
+  const digitPop = intensity > 0.5 ? (intensity - 0.5) * 2 : 0
 
   if (isLaunched) {
     return (
@@ -500,25 +562,62 @@ export function CinematicCountdown() {
   // (mounted in the root layout so every page ignites at T-10s).
   if (isFinalCountdown) return null
 
+  const handleDialClick = () => {
+    const now = Date.now()
+    clicksRef.current = [...clicksRef.current.filter((t) => now - t < 2500), now]
+    if (clicksRef.current.length >= 5) {
+      clicksRef.current = []
+      setShaking(true)
+      setShakeKey((k) => k + 1)
+      fireEgg('shake', 'DO NOT SHAKE THE VAULT')
+      setTimeout(() => setShaking(false), 900)
+    }
+  }
+
   return (
     <div className="flex flex-col items-center gap-8">
-      {/* Label */}
+      {/* Label — morphs with the escalation phase */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="flex items-center gap-2 text-xs font-mono uppercase tracking-[0.3em] text-vault"
+        className="flex flex-wrap items-center justify-center gap-2 text-xs font-mono uppercase tracking-[0.3em]"
+        style={{ color: labelColor }}
       >
         <motion.span
           animate={{ opacity: [0.4, 1, 0.4] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-          className="w-1.5 h-1.5 rounded-full bg-vault"
+          transition={{ duration: Math.max(0.45, 1.5 - intensity), repeat: Infinity }}
+          className="w-1.5 h-1.5 rounded-full"
+          style={{ background: labelColor }}
         />
-        Vault Sealing · T-Minus
+        <motion.span animate={{ color: labelColor }} transition={{ duration: 1.2 }}>
+          {meta.label} · T-Minus
+        </motion.span>
+        {escalation !== 'calm' && escalation !== 'approach' && (
+          <motion.span
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="rounded-full border px-2 py-0.5 text-[9px] tracking-[0.25em]"
+            style={{ borderColor: `${labelColor}55`, color: labelColor, background: `${labelColor}11` }}
+          >
+            {meta.badge}
+          </motion.span>
+        )}
       </motion.div>
 
       {/* The dial */}
-      <div className="relative">
+      <motion.div
+        key={`dial-shake-${shakeKey}`}
+        animate={
+          shaking
+            ? { x: [0, -12, 10, -7, 5, -2, 0], y: [0, 6, -8, 4, -3, 1, 0], rotate: [0, -1.2, 1, -0.5, 0] }
+            : { x: 0, y: 0, rotate: 0 }
+        }
+        transition={{ duration: 0.75, ease: 'easeOut' }}
+        onClick={handleDialClick}
+        className="relative cursor-pointer select-none"
+        title=""
+      >
         <motion.svg
           width="380"
           height="380"
@@ -540,28 +639,55 @@ export function CinematicCountdown() {
             strokeDasharray="2 4"
           />
 
-          {/* Gear mechanism */}
-          <MechanismRings urgent={false} />
+          {/* Gear mechanism — accelerates with intensity */}
+          <MechanismRings speed={gearSpeed} />
 
           {/* Orbiting glyphs */}
           <OrbitingGlyphs progress={progress} />
 
-          {/* Bolt ring */}
-          <BoltRing progress={progress} />
+          {/* Bolt ring — runs hot near the end */}
+          <BoltRing progress={progress} hot={hot} />
 
           {/* Progress arc */}
-          <ProgressArc progress={progress} />
+          <ProgressArc progress={progress} hot={hot} />
 
           {/* Inner core glow */}
           <motion.circle
             cx={0}
             cy={0}
             r={90}
-            fill="oklch(0.62 0.22 295 / 0.04)"
-            animate={{ r: [88, 92, 88], opacity: [0.04, 0.08, 0.04] }}
-            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+            fill={hot ? 'oklch(0.75 0.18 60 / 0.05)' : 'oklch(0.62 0.22 295 / 0.04)'}
+            animate={
+              intensity >= 0.8
+                ? { r: [86, 94, 88, 93, 86], opacity: [0.05, 0.12, 0.06, 0.11, 0.05] }
+                : { r: [88, 92, 88], opacity: [0.04, 0.08, 0.04] }
+            }
+            transition={
+              intensity >= 0.8
+                ? { duration: 1, repeat: Infinity, ease: 'easeInOut' }
+                : { duration: 3, repeat: Infinity, ease: 'easeInOut' }
+            }
           />
         </motion.svg>
+
+        {/* HEARTBEAT RING — pulses each second in the final minute */}
+        {escalation === 'heartbeat' && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <motion.div
+              key={`hb-${seconds}`}
+              className="rounded-full border-2"
+              style={{
+                width: '88%',
+                height: '88%',
+                borderColor: 'oklch(0.8 0.17 65 / 0.65)',
+                boxShadow: '0 0 24px oklch(0.75 0.18 60 / 0.35)',
+              }}
+              initial={{ scale: 0.93, opacity: 0.8 }}
+              animate={{ scale: 1.12, opacity: 0 }}
+              transition={{ duration: 0.95, ease: [0.1, 0.8, 0.3, 1] }}
+            />
+          </div>
+        )}
 
         {/* Center overlay: logo + digits + percentage */}
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
@@ -573,13 +699,19 @@ export function CinematicCountdown() {
           >
             <motion.div
               animate={{
-                boxShadow: [
-                  '0 0 20px -4px var(--vault)',
-                  '0 0 32px -2px var(--vault)',
-                  '0 0 20px -4px var(--vault)',
-                ],
+                boxShadow: hot
+                  ? [
+                      '0 0 22px -4px oklch(0.75 0.18 60)',
+                      '0 0 44px 0px oklch(0.75 0.18 60)',
+                      '0 0 22px -4px oklch(0.75 0.18 60)',
+                    ]
+                  : [
+                      '0 0 20px -4px var(--vault)',
+                      '0 0 32px -2px var(--vault)',
+                      '0 0 20px -4px var(--vault)',
+                    ],
               }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              transition={{ duration: hot ? 0.9 : 3, repeat: Infinity, ease: 'easeInOut' }}
               className="relative w-11 h-11 md:w-12 md:h-12 rounded-lg overflow-hidden ring-1 ring-vault/50"
             >
               <img src="/images/xelisvault-logo.png" alt="Xelis Vault" className="w-full h-full object-cover" />
@@ -587,13 +719,13 @@ export function CinematicCountdown() {
           </motion.div>
 
           <div className="flex items-center gap-2 md:gap-4 mt-1">
-            <CipherDigit value={days} label="Days" />
-            <Separator />
-            <CipherDigit value={hours} label="Hours" />
-            <Separator />
-            <CipherDigit value={minutes} label="Minutes" />
-            <Separator />
-            <CipherDigit value={seconds} label="Seconds" />
+            <CipherDigit value={days} label="Days" pop={digitPop * 0.4} hot={hot} />
+            <Separator hot={hot} />
+            <CipherDigit value={hours} label="Hours" pop={digitPop * 0.6} hot={hot} />
+            <Separator hot={hot} />
+            <CipherDigit value={minutes} label="Minutes" pop={digitPop * 0.8} hot={hot} />
+            <Separator hot={hot} />
+            <CipherDigit value={seconds} label="Seconds" pop={digitPop} hot={hot} />
           </div>
 
           <motion.div
@@ -602,10 +734,13 @@ export function CinematicCountdown() {
             transition={{ delay: 0.8 }}
             className="mt-1 text-[10px] font-mono uppercase tracking-[0.3em] text-muted-foreground/60"
           >
-            <span className="text-vault/80">{(progress * 100).toFixed(2)}%</span> sealed
+            <span style={{ color: hot ? 'oklch(0.75 0.18 60 / 0.9)' : undefined }}>
+              {(progress * 100).toFixed(2)}%
+            </span>{' '}
+            sealed
           </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Target date */}
       <motion.div
@@ -624,12 +759,13 @@ export function CinematicCountdown() {
   )
 }
 
-function Separator() {
+function Separator({ hot }: { hot: boolean }) {
   return (
     <motion.div
       animate={{ opacity: [0.3, 0.8, 0.3] }}
       transition={{ duration: 1, repeat: Infinity }}
-      className="font-mono text-2xl md:text-4xl text-vault/40"
+      className="font-mono text-2xl md:text-4xl"
+      style={{ color: hot ? 'oklch(0.75 0.18 60 / 0.5)' : 'var(--vault)' }}
     >
       :
     </motion.div>
@@ -638,7 +774,8 @@ function Separator() {
 
 // Compact inline chip (kept for API compatibility)
 export function CompactCountdown() {
-  const { days, hours, minutes, seconds, isLaunched } = useCountdownState()
+  const { days, hours, minutes, seconds, isLaunched, intensity, escalation } = useCountdownState()
+  const hot = intensity >= 0.75
 
   if (isLaunched) {
     return (
@@ -651,15 +788,23 @@ export function CompactCountdown() {
     )
   }
 
+  const color = hot ? 'oklch(0.8 0.17 65)' : 'var(--vault)'
+
   return (
-    <div className="inline-flex items-center gap-2 rounded-full glass-panel px-4 py-2">
+    <div
+      className="inline-flex items-center gap-2 rounded-full glass-panel px-4 py-2"
+      style={hot ? { borderColor: 'oklch(0.75 0.18 60 / 0.35)' } : undefined}
+    >
       <motion.span
         animate={{ opacity: [0.6, 1, 0.6] }}
-        transition={{ duration: 2, repeat: Infinity }}
-        className="w-1.5 h-1.5 rounded-full bg-vault"
+        transition={{ duration: Math.max(0.5, 2 - intensity), repeat: Infinity }}
+        className="w-1.5 h-1.5 rounded-full"
+        style={{ background: color }}
       />
-      <span className="text-xs font-mono text-muted-foreground">Launch in</span>
-      <span className="text-xs font-mono font-bold text-vault tabular-nums">
+      <span className="text-xs font-mono text-muted-foreground">
+        {escalation === 'heartbeat' ? 'Critical' : 'Launch in'}
+      </span>
+      <span className="text-xs font-mono font-bold tabular-nums" style={{ color }}>
         {days}d {hours}h {minutes}m {seconds}s
       </span>
     </div>

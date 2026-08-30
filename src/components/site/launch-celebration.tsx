@@ -10,8 +10,8 @@ import { seededRandom, randomGlyph } from '@/lib/countdown'
  *  THE VAULT OPENING — Launch Unlock Sequence
  * ═══════════════════════════════════════════════════════════════════
  *
- *  A ~17 second cinematic that plays ONCE, the moment the countdown
- *  hits zero. Six escalating phases:
+ *  A ~21 second cinematic that plays ONCE, the moment the countdown
+ *  hits zero. Seven escalating phases:
  *
  *   1. HOLD      the final "0" freezes, glitches, collapses to a point
  *   2. BOLTS     the vault wheel materializes — 12 bolts blow rapid-fire
@@ -20,23 +20,29 @@ import { seededRandom, randomGlyph } from '@/lib/countdown'
  *                shatters into 8 wedges · particle storm · light rays
  *   5. GENESIS   the logo rises and a BlockDAG constellation is born —
  *                blocks appear and edges draw themselves (true DAG)
- *   6. LIVE      "TESTNET LIVE" decodes, stats count up, CTA materializes
+ *   6. CHAIN     the constellation condenses into THE BLOCKCHAIN — a
+ *                line of blocks chains itself left→right, and every
+ *                spectacular protocol feature blooms from a block:
+ *                Private TXs · Comparisons · Contracts · Mixer ·
+ *                Oracle · PSM · Mining · Governance
+ *   7. LIVE      "TESTNET LIVE" decodes, stats count up, CTA materializes
  *
  *  Click "Skip" (or press Esc) to end early.
  *  Pure SVG + Framer Motion — no assets, Vercel-safe, mobile-safe.
  */
 
-type Phase = 'hold' | 'bolts' | 'rotate' | 'breach' | 'genesis' | 'live'
-const PHASES: Phase[] = ['hold', 'bolts', 'rotate', 'breach', 'genesis', 'live']
+type Phase = 'hold' | 'bolts' | 'rotate' | 'breach' | 'genesis' | 'chain' | 'live'
+const PHASES: Phase[] = ['hold', 'bolts', 'rotate', 'breach', 'genesis', 'chain', 'live']
 
 // Phase schedule (ms from mount)
-const T_BOLTS = 1400
-const T_ROTATE = 3200
-const T_BREACH = 5000
-const T_GENESIS = 7600
-const T_LIVE = 11600
-const T_END = 16400
-const T_COMPLETE = 17300
+const T_BOLTS = 1300
+const T_ROTATE = 2900
+const T_BREACH = 4500
+const T_GENESIS = 6800
+const T_CHAIN = 9800
+const T_LIVE = 15600
+const T_END = 19800
+const T_COMPLETE = 20700
 
 // ===== Vault wheel geometry =====
 const WHEEL_R = 175
@@ -179,6 +185,44 @@ function buildDAG(): { nodes: DagNode[]; edges: DagEdge[] } {
   return { nodes, edges }
 }
 
+// ===== CHAIN — the blockchain line + blooming features =====
+interface ChainFeature {
+  label: string
+  glyph: string
+  color: string
+  block: number
+  above: boolean
+}
+
+const FEATURES_FULL: ChainFeature[] = [
+  { label: 'Private TXs', glyph: 'Φ', color: 'oklch(0.62 0.22 295)', block: 1, above: true },
+  { label: 'Comparisons', glyph: '≡', color: 'oklch(0.78 0.16 195)', block: 2, above: false },
+  { label: 'Contracts', glyph: 'Σ', color: 'oklch(0.7 0.2 320)', block: 3, above: true },
+  { label: 'Mixer', glyph: '⊗', color: 'oklch(0.8 0.17 65)', block: 4, above: false },
+  { label: 'Oracle', glyph: 'Ω', color: 'oklch(0.72 0.14 160)', block: 5, above: true },
+  { label: 'PSM', glyph: '≈', color: 'oklch(0.78 0.16 195)', block: 6, above: false },
+  { label: 'Mining', glyph: '∆', color: 'oklch(0.8 0.17 65)', block: 7, above: true },
+  { label: 'Governance', glyph: 'λ', color: 'oklch(0.7 0.2 320)', block: 8, above: false },
+]
+
+function buildChain(isMobile: boolean) {
+  const nBlocks = isMobile ? 5 : 9
+  const spacing = isMobile ? 150 : 96
+  const blockW = isMobile ? 46 : 56
+  const features = (isMobile ? FEATURES_FULL.filter((f) => f.block <= 4) : FEATURES_FULL).map(
+    (f, i) => ({ ...f, order: i })
+  )
+  const blocks = Array.from({ length: nBlocks }, (_, i) => ({
+    id: i,
+    x: (i - (nBlocks - 1) / 2) * spacing,
+    genesis: i === 0,
+    hash: `${['∆', 'Σ', 'Φ', 'Ψ', 'Ω', 'λ', 'π', 'σ'][i % 8]}${(0x3f + i * 17)
+      .toString(16)
+      .toUpperCase()}${['α', 'β', 'γ', 'δ'][i % 4]}`,
+  }))
+  return { blocks, features, spacing, blockW, width: nBlocks * spacing + 60 }
+}
+
 // ===== Decoding text (cipher → plaintext) =====
 function DecodingText({
   text,
@@ -297,6 +341,7 @@ export function LaunchCelebration({
       [T_ROTATE, () => setPhase('rotate')],
       [T_BREACH, () => setPhase('breach')],
       [T_GENESIS, () => setPhase('genesis')],
+      [T_CHAIN, () => setPhase('chain')],
       [T_LIVE, () => setPhase('live')],
       [T_END, () => setFading(true)],
       [T_COMPLETE, () => onCompleteRef.current()],
@@ -356,7 +401,7 @@ export function LaunchCelebration({
           }}
           initial={{ opacity: 0, rotate: 0 }}
           animate={{
-            opacity: pi >= 5 ? (fading ? 0 : 0.9) : pi >= 4 ? 0.8 : pi >= 3 ? 0.5 : 0,
+            opacity: pi >= 6 ? (fading ? 0 : 0.9) : pi >= 4 ? 0.8 : pi >= 3 ? 0.5 : 0,
             rotate: 360,
           }}
           transition={{
@@ -691,18 +736,27 @@ export function LaunchCelebration({
           </>
         )}
 
-        {/* ── PHASE 5 · GENESIS — birth of the BlockDAG ── */}
+        {/* ── PHASES 5-7 · GENESIS → THE CHAIN → LIVE ── */}
         {pi >= 4 && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <motion.svg
-              width="620"
-              height="620"
-              viewBox="-300 -300 600 600"
-              className="max-w-[96vw] max-h-[96vh]"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: fading ? 0 : 1 }}
-              transition={{ duration: 0.8 }}
-            >
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 md:gap-9">
+            {/* DAG constellation backdrop — implodes into the chain */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <motion.svg
+                width="620"
+                height="620"
+                viewBox="-300 -300 600 600"
+                className="max-w-[96vw] max-h-[96vh]"
+                initial={{ opacity: 0 }}
+                animate={{
+                  opacity: fading || pi >= 5 ? 0 : 1,
+                  scale: pi >= 5 ? 0.18 : 1,
+                }}
+                transition={
+                  pi >= 5
+                    ? { duration: 0.55, ease: [0.6, 0, 0.8, 0.4] }
+                    : { duration: 0.8 }
+                }
+              >
               <defs>
                 <radialGradient id="dagGlow" cx="50%" cy="50%" r="50%">
                   <stop offset="0%" stopColor="oklch(0.62 0.22 295 / 0.16)" />
@@ -759,13 +813,22 @@ export function LaunchCelebration({
                 transition={{ duration: 1.4, ease: 'easeOut' }}
               />
             </motion.svg>
+            </div>
 
-            {/* central logo rises */}
+            {/* central logo rises, then lifts above the chain */}
             <motion.div
               initial={{ scale: 0, y: 46, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 170, damping: 16 }}
-              className="absolute"
+              animate={{
+                scale: pi >= 5 ? 0.72 : 1,
+                y: pi >= 5 ? -72 : 0,
+                opacity: fading ? 0 : 1,
+              }}
+              transition={{
+                scale: { type: 'spring', stiffness: 170, damping: 16 },
+                y: { type: 'spring', stiffness: 130, damping: 17 },
+                opacity: { duration: 0.4 },
+              }}
+              className="relative z-10"
             >
               <motion.div
                 animate={{
@@ -781,38 +844,55 @@ export function LaunchCelebration({
                 <img src="/images/xelisvault-logo.png" alt="Xelis Vault" className="w-full h-full object-cover" />
               </motion.div>
             </motion.div>
+
+            {/* ── PHASE 6 · THE CHAIN — the blockchain & its features ── */}
+            {pi >= 5 && <ChainVisual compact={pi >= 6} fading={fading} />}
+
+            {/* chain caption */}
+            {pi === 5 && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: [0, 1, 0.7, 1], y: 0 }}
+                transition={{ delay: 1.6, duration: 1.4 }}
+                className="font-mono text-[10px] md:text-xs uppercase tracking-[0.42em] text-center"
+                style={{ color: 'oklch(0.8 0.14 70 / 0.9)' }}
+              >
+                The Blockchain · every state encrypted at birth
+              </motion.div>
+            )}
           </div>
         )}
 
-        {/* ── PHASES 5-6 · TEXT LAYER ── */}
-        {pi >= 4 && (
-          <div className="absolute inset-x-0 bottom-[12%] flex flex-col items-center gap-4 px-6 text-center">
-            {pi === 4 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: [0, 1, 0.6, 1] }}
-                transition={{ duration: 1.2 }}
-                className="font-mono text-[10px] md:text-xs uppercase tracking-[0.5em] text-vault"
-              >
-                Genesis · Height 1 · BlockDAG online
-              </motion.div>
-            )}
+        {/* genesis caption */}
+        {pi === 4 && (
+          <div className="absolute inset-x-0 bottom-[12%] flex justify-center px-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 1, 0.6, 1] }}
+              transition={{ duration: 1.2 }}
+              className="font-mono text-[10px] md:text-xs uppercase tracking-[0.5em] text-vault"
+            >
+              Genesis · Height 1 · BlockDAG online
+            </motion.div>
+          </div>
+        )}
 
-            {pi >= 5 && (
-              <>
-                <motion.h1
-                  initial={{ opacity: 0, y: 24 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.7, ease: [0.2, 0.9, 0.25, 1] }}
-                  className="font-display text-5xl md:text-7xl font-semibold tracking-[-0.04em] leading-[0.95]"
-                >
-                  <span className="text-gradient-vault">
-                    <DecodingText text="TESTNET" active startDelay={200} />
-                  </span>
-                  <span className="text-gradient-mono ml-3 md:ml-5">
-                    <DecodingText text="LIVE" active startDelay={700} />
-                  </span>
-                </motion.h1>
+        {/* ── PHASE 7 · LIVE TEXT LAYER ── */}
+        {pi >= 6 && (
+          <div className="absolute inset-x-0 bottom-[9%] flex flex-col items-center gap-4 px-6 text-center">
+            <motion.h1
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: [0.2, 0.9, 0.25, 1] }}
+              className="font-display text-5xl md:text-7xl font-semibold tracking-[-0.04em] leading-[0.95]"
+            >
+              <span className="text-gradient-vault">
+                <DecodingText text="TESTNET" active startDelay={200} />
+              </span>
+              <span className="text-gradient-mono ml-3 md:ml-5">
+                <DecodingText text="LIVE" active startDelay={700} />
+              </span>
+            </motion.h1>
 
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -889,13 +969,11 @@ export function LaunchCelebration({
                   <Rocket className="w-4 h-4 relative z-10" />
                   <span className="relative z-10">Enter the App</span>
                 </motion.button>
-              </>
-            )}
           </div>
         )}
 
         {/* gentle particle rain (live phase) */}
-        {pi >= 5 && !fading && (
+        {pi >= 6 && !fading && (
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             {particles.slice(0, 26).map((p) => (
               <motion.div
@@ -950,5 +1028,225 @@ export function LaunchCelebration({
         style={{ background: 'linear-gradient(90deg, oklch(0.62 0.22 295), oklch(0.75 0.18 60))' }}
       />
     </motion.div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CHAIN VISUAL — the blockchain line & its blooming features
+//  (also reused by the late-comer welcome sequence)
+// ═══════════════════════════════════════════════════════════════
+export function ChainVisual({ compact, fading }: { compact: boolean; fading: boolean }) {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)')
+    const update = () => setIsMobile(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+
+  const { blocks, features, spacing, blockW } = useMemo(() => buildChain(isMobile), [isMobile])
+  const vbW = spacing * blocks.length + 90
+  const leftX = blocks[0].x - blockW / 2
+  const rightX = blocks[blocks.length - 1].x + blockW / 2
+  // exponential heights — the DAG grows fast
+  const heightOf = (i: number) => (i === 0 ? 1 : 2 ** i)
+
+  return (
+    <motion.svg
+      viewBox={`${-vbW / 2} -150 ${vbW} 300`}
+      className="w-[min(94vw,900px)] max-h-[42vh]"
+      initial={{ opacity: 0, scale: 0.75 }}
+      animate={{ opacity: fading ? 0 : 1, scale: compact ? 0.88 : 1 }}
+      transition={{ duration: 0.65, ease: [0.2, 0.8, 0.3, 1] }}
+      style={{ overflow: 'visible' }}
+    >
+      <defs>
+        <linearGradient id="chainBlockGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="oklch(0.24 0.04 285)" />
+          <stop offset="100%" stopColor="oklch(0.13 0.03 282)" />
+        </linearGradient>
+      </defs>
+
+      {/* the whole chain gently floats */}
+      <motion.g animate={{ y: [0, -4, 0] }} transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}>
+        {/* links between blocks */}
+        {blocks.slice(0, -1).map((b, i) => {
+          const next = blocks[i + 1]
+          return (
+            <g key={`link-${i}`}>
+              <motion.line
+                x1={b.x + blockW / 2 + 4}
+                y1={0}
+                x2={next.x - blockW / 2 - 4}
+                y2={0}
+                stroke="oklch(0.62 0.22 295 / 0.55)"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeDasharray="6 4"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={{ delay: 0.3 + i * 0.07, duration: 0.26, ease: 'easeOut' }}
+              />
+              {/* connector pins */}
+              <motion.circle
+                cx={next.x - blockW / 2 - 4}
+                cy={0}
+                r={2.5}
+                fill="oklch(0.78 0.16 195)"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.42 + i * 0.07, type: 'spring', stiffness: 400, damping: 20 }}
+              />
+            </g>
+          )
+        })}
+
+        {/* the traveling pulse — energy flowing through the chain */}
+        <motion.circle
+          r={5}
+          cy={0}
+          fill="oklch(0.98 0.02 80)"
+          style={{ filter: 'drop-shadow(0 0 9px oklch(0.85 0.12 80 / 0.95))' }}
+          initial={{ cx: leftX, opacity: 0 }}
+          animate={{ cx: [leftX, rightX], opacity: [0, 1, 1, 0] }}
+          transition={{
+            duration: 2.3,
+            repeat: Infinity,
+            ease: 'linear',
+            repeatDelay: 0.7,
+            delay: 1.4,
+          }}
+        />
+
+        {/* blocks fly out from the center and chain themselves */}
+        {blocks.map((b, i) => (
+          <motion.g
+            key={`block-${i}`}
+            initial={{ x: 0, scale: 0.2, opacity: 0 }}
+            animate={{ x: b.x, scale: 1, opacity: 1 }}
+            transition={{ delay: 0.1 + i * 0.07, type: 'spring', stiffness: 240, damping: 19 }}
+            style={{ transformOrigin: '0px 0px' }}
+          >
+            <rect
+              x={-blockW / 2}
+              y={-blockW / 2}
+              width={blockW}
+              height={blockW}
+              rx={10}
+              fill="url(#chainBlockGrad)"
+              stroke={b.genesis ? 'oklch(0.85 0.12 80 / 0.85)' : 'oklch(0.62 0.22 295 / 0.45)'}
+              strokeWidth={b.genesis ? 2 : 1.5}
+              style={{
+                filter: b.genesis
+                  ? 'drop-shadow(0 0 16px oklch(0.85 0.12 80 / 0.55))'
+                  : 'drop-shadow(0 0 8px oklch(0.62 0.22 295 / 0.3))',
+              }}
+            />
+            {/* seal LED */}
+            <motion.circle
+              cx={0}
+              cy={-blockW / 2 + 9}
+              r={2.2}
+              fill={b.genesis ? 'oklch(0.9 0.1 80)' : 'oklch(0.78 0.16 195)'}
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.22 }}
+            />
+            {/* cipher hash */}
+            <text
+              x={0}
+              y={5}
+              textAnchor="middle"
+              fontSize={isMobile ? 10 : 11}
+              fontFamily="var(--font-jetbrains)"
+              fill={b.genesis ? 'oklch(0.9 0.1 80 / 0.95)' : 'oklch(0.62 0.22 295 / 0.9)'}
+            >
+              {b.hash}
+            </text>
+            {/* block height */}
+            <text
+              x={0}
+              y={blockW / 2 - 9}
+              textAnchor="middle"
+              fontSize={7.5}
+              fontFamily="var(--font-jetbrains)"
+              fill="oklch(1 0 0 / 0.38)"
+              letterSpacing={1}
+            >
+              {`#${heightOf(i).toLocaleString()}`}
+            </text>
+          </motion.g>
+        ))}
+
+        {/* feature chips bloom from the blocks */}
+        {features.map((f, k) => {
+          const bIdx = Math.min(f.block, blocks.length - 1)
+          const bx = blocks[bIdx].x
+          const above = f.above
+          const w = f.label.length * 7 + 46
+          const h = 34
+          const chipY = above ? -96 : 96
+          return (
+            <motion.g
+              key={`feat-${k}`}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.8 + k * 0.1, type: 'spring', stiffness: 300, damping: 17 }}
+              style={{ transformOrigin: `${bx}px ${chipY}px` }}
+            >
+              {/* connector from the chip to its block */}
+              <motion.line
+                x1={bx}
+                y1={above ? -blockW / 2 - 3 : blockW / 2 + 3}
+                x2={bx}
+                y2={above ? chipY + h / 2 + 2 : chipY - h / 2 - 2}
+                stroke={f.color}
+                strokeWidth={1.2}
+                strokeOpacity={0.55}
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ delay: 0.78 + k * 0.1, duration: 0.3 }}
+              />
+              <circle cx={bx} cy={above ? -blockW / 2 - 3 : blockW / 2 + 3} r={2} fill={f.color} />
+              {/* chip body */}
+              <rect
+                x={bx - w / 2}
+                y={chipY - h / 2}
+                width={w}
+                height={h}
+                rx={9}
+                fill="oklch(0.17 0.03 285 / 0.92)"
+                stroke={f.color}
+                strokeOpacity={0.45}
+                strokeWidth={1.2}
+                style={{ filter: `drop-shadow(0 0 10px ${f.color} / 0.25)` }}
+              />
+              {/* glyph badge */}
+              <circle cx={bx - w / 2 + 19} cy={chipY} r={9} fill={f.color} fillOpacity={0.14} stroke={f.color} strokeOpacity={0.55} strokeWidth={1} />
+              <text
+                x={bx - w / 2 + 19}
+                y={chipY + 4}
+                textAnchor="middle"
+                fontSize={11}
+                fontFamily="var(--font-jetbrains)"
+                fill={f.color}
+              >
+                {f.glyph}
+              </text>
+              <text
+                x={bx - w / 2 + 35}
+                y={chipY + 4}
+                fontSize={11.5}
+                fontFamily="var(--font-jetbrains)"
+                fill="oklch(0.92 0.01 280 / 0.95)"
+                letterSpacing={0.4}
+              >
+                {f.label}
+              </text>
+            </motion.g>
+          )
+        })}
+      </motion.g>
+    </motion.svg>
   )
 }
