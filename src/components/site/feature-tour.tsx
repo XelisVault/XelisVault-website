@@ -31,7 +31,9 @@ import { alpha, seededRandom, randomGlyph } from '@/lib/countdown'
  */
 
 export const TOUR_SCENE_COUNT = 9
-export const TOUR_SCENE_MS = 1750
+// 3000ms per scene — matches the whispered module lines in the soundtrack
+// (one module name roughly every 3s from track 60s to 87s)
+export const TOUR_SCENE_MS = 3000
 export const TOUR_SCENE_MS_FAST = 950
 export function tourDurationMs(fast = false): number {
   return TOUR_SCENE_COUNT * (fast ? TOUR_SCENE_MS_FAST : TOUR_SCENE_MS)

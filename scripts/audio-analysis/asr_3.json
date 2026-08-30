@@ -1,0 +1,14 @@
+{
+  "created": 1788098494,
+  "id": "20260830220134da11e44915e7437c",
+  "request_id": "20260830220134da11e44915e7437c",
+  "text": "From darkness, a constellation.",
+  "usage": {
+    "completion_tokens": 9,
+    "prompt_tokens": 218,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 227
+  }
+}

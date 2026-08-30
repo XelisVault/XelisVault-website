@@ -37,13 +37,22 @@ import { FeatureTour, tourDurationMs } from './feature-tour'
 type Phase = 'hold' | 'bolts' | 'rotate' | 'breach' | 'genesis' | 'chain' | 'tour' | 'live'
 const PHASES: Phase[] = ['hold', 'bolts', 'rotate', 'breach', 'genesis', 'chain', 'tour', 'live']
 
-// Phase schedule (ms from mount)
-const T_BOLTS = 1300
-const T_ROTATE = 2900
-const T_BREACH = 4500
-const T_GENESIS = 6800
-const T_CHAIN = 9800
-const T_TOUR = 15200
+// Phase schedule (ms from mount) — RETIMED to Léa's soundtrack
+// (public/audio/vault-opening.mp3, ~154s; ceremony start = track 10.0s):
+//   track 12s  build begins       → BOLTS   (ceremony 2.0s)
+//   track 20s  second hit         → ROTATE  (ceremony 10.0s, suspense during
+//                                            the 23–27s energy dip)
+//   track 28.5s THE DROP          → BREACH  (ceremony 18.5s, "The vault is open")
+//   track 36s  "a constellation"  → GENESIS (ceremony 26.0s)
+//   track 48s  "block after block"→ CHAIN   (ceremony 38.0s)
+//   track 60s  module whispers    → TOUR    (ceremony 50.0s, 9 × 3.0s)
+//   track ~87s "Testnet. Live."   → LIVE    (ceremony 77.25s)
+const T_BOLTS = 2000
+const T_ROTATE = 10000
+const T_BREACH = 18500
+const T_GENESIS = 26000
+const T_CHAIN = 38000
+const T_TOUR = 50000
 const T_LIVE = T_TOUR + tourDurationMs(false) + 250
 const T_END = T_LIVE + 5600
 const T_COMPLETE = T_END + 900
