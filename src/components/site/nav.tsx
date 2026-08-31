@@ -58,7 +58,7 @@ export function Nav() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, delay: 0.2, ease: [0.21, 0.47, 0.32, 0.98] }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled ? 'glass-panel py-3' : 'py-5 bg-transparent'
+          scrolled ? 'glass-nav py-3' : 'py-5 bg-transparent'
         }`}
       >
         <div className="mx-auto max-w-7xl px-5 md:px-8 flex items-center justify-between">
@@ -116,12 +116,12 @@ export function Nav() {
                     transition={{ duration: 0.15 }}
                     className="absolute top-full right-0 pt-2 w-80"
                   >
-                    <div className="rounded-2xl glass-panel p-2 shadow-2xl">
+                    <div className="rounded-2xl glass-panel-solid p-2">
                       {RESOURCES.map((r) => (
                         <a
                           key={r.href}
                           href={r.href}
-                          className="block rounded-xl px-3 py-2.5 hover:bg-card/60 transition-colors"
+                          className="block rounded-xl px-3 py-2.5 hover:bg-vault/10 hover:ring-1 hover:ring-vault/25 transition-colors"
                         >
                           <div className="text-sm font-medium">{r.label}</div>
                           <div className="text-[11px] text-muted-foreground mt-0.5">{r.desc}</div>

@@ -4,6 +4,13 @@
 //  - XSWD: Genesix / xelis_wallet on ws://127.0.0.1:44325/xswd
 //    → full balances + transaction signing
 //
+// Connection sequence (mirrors the wallet's XSWD server expectations):
+//  1. connect()            — popup #1: approve the XELIS Vault application
+//  2. prefetchPermissions()— popup #2: approve ALL permissions in one grouped
+//                            popup (falls back to per-method prompts on older
+//                            wallets, or silently if dismissed)
+//  3. getAddress() / trackAsset / balances — no more popups after step 2
+//
 // There is deliberately NO view-only mode: XELIS balances are confidential
 // by design — only the wallet itself can decrypt them, so watching a bare
 // address adds nothing. Either connect a real wallet (XSWD) or use the CLI.
@@ -19,7 +26,13 @@ import { fromAtomic } from './xelis/types'
 import { clearRPCCache } from './xelis/rpc'
 
 export type WalletConnectionType = 'xswd' | null
-export type WalletConnectionState = 'disconnected' | 'connecting' | 'awaiting-approval' | 'connected' | 'error'
+export type WalletConnectionState =
+  | 'disconnected'
+  | 'connecting'            // opening the WebSocket to the wallet
+  | 'awaiting-approval'     // popup #1: application approval
+  | 'authorizing'           // popup #2: grouped permissions approval
+  | 'connected'
+  | 'error'
 
 interface WalletState {
   connectionType: WalletConnectionType
@@ -61,7 +74,7 @@ export const useWallet = create<WalletState>((set, get) => {
   // Mirror XSWD state into the store
   xswd.onStateChange((s, msg) => {
     if (s === 'connected') return // handled in connectXSWD
-    if (get().connectionType === 'xswd') {
+    if (get().connectionType === 'xswd' && get().connectionState !== 'authorizing') {
       set({
         connectionState: xswdStateToConnState(s),
         ...(s === 'error' || s === 'disconnected'
@@ -69,6 +82,15 @@ export const useWallet = create<WalletState>((set, get) => {
           : {}),
       })
     }
+  })
+
+  // Wallet notifications (new block / balance change) → debounced refresh.
+  // Registered ONCE here — never inside connectXSWD (listener leak).
+  let refreshDebounce: ReturnType<typeof setTimeout> | null = null
+  xswd.onNotification(() => {
+    if (get().connectionType !== 'xswd') return
+    if (refreshDebounce) clearTimeout(refreshDebounce)
+    refreshDebounce = setTimeout(() => { get().refreshBalances() }, 800)
   })
 
   return {
@@ -91,17 +113,33 @@ export const useWallet = create<WalletState>((set, get) => {
       connecting = true
       set({ connectionType: 'xswd', connectionState: 'connecting', error: null })
       try {
+        // Popup #1 — approve the application in the wallet
         await xswd.connect()
-        const address = await xswd.getAddress()
+
+        // Popup #2 — grouped permissions approval (single popup for all
+        // methods). Best-effort: older wallets just prompt per method.
+        set({ connectionState: 'authorizing' })
+        await xswd.prefetchPermissions()
+
+        // The application IS connected at this point. Everything below is
+        // best-effort setup — a failure here must NOT flip the UI back to
+        // "not connected" (that was the old, confusing behaviour).
+        let address: string | null = null
+        let softError: string | null = null
+        try {
+          address = await xswd.getAddress()
+        } catch (e: any) {
+          softError = String(e?.message || 'Could not read the wallet address')
+        }
+
         // Track custom assets so the wallet can spend received VLT / xUSD
         await Promise.all([xswd.trackAsset(VLT_ASSET), xswd.trackAsset(XUSD_ASSET)])
-        set({ connectionType: 'xswd', connectionState: 'connected', address, error: null })
-        // Subscribe to balance updates (best-effort)
+
+        set({ connectionType: 'xswd', connectionState: 'connected', address, error: softError })
+
+        // Subscribe to balance updates (needs the 'subscribe' permission,
+        // granted by the grouped popup above)
         xswd.subscribe('balance_changed').catch(() => {})
-        xswd.onNotification(() => {
-          // Any wallet notification (new block / balance change) → debounce refresh
-          setTimeout(() => { get().refreshBalances() }, 800)
-        })
         await get().refreshBalances()
       } catch (e: any) {
         set({

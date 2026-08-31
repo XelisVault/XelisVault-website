@@ -21,11 +21,13 @@ export function WalletConnectModal() {
 
   const isConnected = connectionType !== null && connectionState === 'connected'
 
-  // Auto-switch to CLI tab when XSWD fails
+  // Auto-switch to CLI tab only when the wallet cannot be reached at all
+  // (WebSocket error / open timeout). Approval timeouts and refusals must
+  // stay on the XSWD tab so the user can simply click Retry.
   useEffect(() => {
     if (connectionState === 'error' && error) {
       setXswdError(error)
-      if (error.includes('Cannot reach') || error.includes('refused')) {
+      if (error.includes('Cannot reach') || error.includes('not detected')) {
         setMethod('cli')
       }
     }
@@ -79,7 +81,7 @@ export function WalletConnectModal() {
                 </div>
                 <div>
                   <div className="text-sm font-semibold">{isConnected ? 'Wallet connected' : 'Connect your wallet'}</div>
-                  <div className="text-[10px] font-mono text-muted-foreground">XELIS testnet · v12R</div>
+                  <div className="text-[10px] font-mono text-muted-foreground">XSWD · follows your wallet network</div>
                 </div>
               </div>
               <button
@@ -154,20 +156,34 @@ export function WalletConnectModal() {
 
                       <button
                         onClick={tryXSWD}
-                        disabled={busy || connectionState === 'connecting' || connectionState === 'awaiting-approval'}
+                        disabled={busy || connectionState === 'connecting' || connectionState === 'awaiting-approval' || connectionState === 'authorizing'}
                         className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-vault px-4 py-3 text-sm font-semibold text-white hover:bg-vault/85 transition-all disabled:opacity-60"
                       >
                         <Wallet className="w-4 h-4" />
                         {connectionState === 'connecting' && 'Looking for wallet…'}
                         {connectionState === 'awaiting-approval' && 'Approve in your wallet…'}
-                        {connectionState !== 'connecting' && connectionState !== 'awaiting-approval' && (busy ? 'Connecting…' : 'Connect via XSWD')}
+                        {connectionState === 'authorizing' && 'Confirm permissions…'}
+                        {connectionState !== 'connecting' && connectionState !== 'awaiting-approval' && connectionState !== 'authorizing' && (busy ? 'Connecting…' : 'Connect via XSWD')}
                       </button>
 
-                      {(connectionState === 'awaiting-approval') && (
+                      {(connectionState === 'awaiting-approval' || connectionState === 'authorizing') && (
                         <div className="rounded-xl border border-vault/30 bg-vault/10 p-3.5 text-xs text-vault leading-relaxed">
-                          Waiting for approval — check the Genesix popup. The connection uses
-                          <code className="mx-1 px-1 rounded bg-muted/50 font-mono text-[10px]">ws://127.0.0.1:44325/xswd</code>
-                          (localhost is allowed from HTTPS on Chrome, Edge and Firefox; on Safari use the CLI tab).
+                          {connectionState === 'awaiting-approval' ? (
+                            <>
+                              <span className="font-semibold">Step 1 of 2 —</span> accept the{' '}
+                              <span className="font-semibold">XELIS Vault</span> application in the Genesix popup.
+                              You have 5 minutes — the site waits for you.
+                            </>
+                          ) : (
+                            <>
+                              <span className="font-semibold">Step 2 of 2 —</span> confirm the{' '}
+                              <span className="font-semibold">permissions popup</span> (one grouped popup for
+                              everything: address, balances, transactions). No further prompts after this.
+                            </>
+                          )}
+                          <div className="mt-2 text-[10px] font-mono text-muted-foreground">
+                            ws://127.0.0.1:44325/xswd · localhost is allowed from HTTPS on Chrome, Edge and Firefox
+                          </div>
                         </div>
                       )}
 

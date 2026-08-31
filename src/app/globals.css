@@ -154,6 +154,25 @@
   border: 1px solid oklch(1 0 0 / 0.08);
 }
 
+/* Near-opaque variant for dropdown menus / popovers that must stay readable
+   over animated backgrounds (hero canvas, grid, glowing orbs). */
+@utility glass-panel-solid {
+  background: linear-gradient(180deg, oklch(0.09 0.02 280 / 0.98) 0%, oklch(0.07 0.02 280 / 0.97) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid oklch(1 0 0 / 0.12);
+  box-shadow: 0 24px 64px -12px oklch(0 0 0 / 0.8);
+}
+
+/* Stronger header glass: keeps the blurred aesthetic but blocks most
+   of the background so nav links stay legible while scrolling. */
+@utility glass-nav {
+  background: linear-gradient(180deg, oklch(0.05 0.02 280 / 0.88) 0%, oklch(0.04 0.02 280 / 0.82) 100%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid oklch(1 0 0 / 0.08);
+}
+
 @utility glass-panel-hover {
   background: linear-gradient(180deg, oklch(0.62 0.22 295 / 0.08) 0%, oklch(0.62 0.22 295 / 0.02) 100%);
   backdrop-filter: blur(16px);

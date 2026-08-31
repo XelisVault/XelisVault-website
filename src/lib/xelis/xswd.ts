@@ -1,7 +1,7 @@
 // XSWD Client — XELIS Secure WebSocket Daemon
 //
 // Connects to a local XELIS wallet (Genesix / xelis_wallet) on ws://127.0.0.1:44325/xswd.
-// Validated against the official docs + xelis_wallet source (api/xswd):
+// Validated against the wallet source (xelis-blockchain/xelis_wallet/src/api):
 //
 //  1. Open WebSocket to ws://127.0.0.1:44325/xswd
 //  2. Send ApplicationData as FIRST message (plain JSON, no JSON-RPC wrapper):
@@ -15,10 +15,13 @@
 //     { jsonrpc: "2.0", id: N, method: "wallet.<method>" | "node.<method>" | "xswd.<method>", params? }
 //     - wallet.* requires permissions; node.* proxies to the daemon (no permission)
 //  5. Events: subscribe via { method: "subscribe", params: { notify: "balance_changed" } }
+//     ⚠ "subscribe"/"unsubscribe" are RPC methods on the same handler → they MUST be
+//       part of the app permissions, otherwise PermissionUnknown is returned.
 //
 // Permissions list MUST contain only valid wallet RPC method names
 // (unknown names → UnknownMethodInPermissionsList + socket close).
-// We also call xswd.prefetch_permissions so the user approves everything in one popup.
+// We call xswd.prefetch_permissions right after registration so the user approves
+// everything in ONE grouped popup instead of one popup per method.
 
 export type XSWDState = 'disconnected' | 'connecting' | 'awaiting-approval' | 'connected' | 'error'
 
@@ -40,7 +43,8 @@ type PendingRequest = {
 
 const XSWD_URL = 'ws://127.0.0.1:44325/xswd'
 
-// Valid wallet RPC methods we use (must all exist on the wallet API)
+// Valid wallet RPC methods we use (all verified against xelis_wallet/src/api/rpc.rs).
+// 'subscribe' / 'unsubscribe' are required for balance_changed notifications.
 export const XSWD_PERMISSIONS = [
   'get_address',
   'get_balance',
@@ -55,7 +59,18 @@ export const XSWD_PERMISSIONS = [
   'list_transactions',
   'get_pending_transactions',
   'sign_data',
+  'subscribe',
+  'unsubscribe',
 ]
+
+// Phase 1 — reaching the wallet daemon (WebSocket open only).
+// If Genesix is not running there is nothing to wait for: fail fast.
+const OPEN_TIMEOUT_MS = 10_000
+
+// Phase 2 — the user reads the approval popup in the wallet and clicks Accept.
+// This is a HUMAN action: it must NOT be time-boxed like a network timeout.
+// 5 minutes, and if the wallet is closed/refused the socket close event fires anyway.
+const APPROVAL_TIMEOUT_MS = 300_000
 
 // XSWD requests wait for user approval — no aggressive timeout.
 // 120s allows the user to open Genesix and click Approve.
@@ -71,13 +86,12 @@ export class XSWDClient {
   private appId = ''
   private reqId = 0
   private pending = new Map<number, PendingRequest>()
-  private state: XSWDState = 'disconnected'
+  private _state: XSWDState = 'disconnected'
   private stateListeners = new Set<(s: XSWDState, msg?: string) => void>()
   private notificationListeners = new Set<(n: Notification) => void>()
-  private connectReject: ((e: Error) => void) | null = null
   private manualClose = false
 
-  get state(): XSWDState { return this.state }
+  get state(): XSWDState { return this._state }
 
   onStateChange(listener: (s: XSWDState, msg?: string) => void): () => void {
     this.stateListeners.add(listener)
@@ -90,7 +104,7 @@ export class XSWDClient {
   }
 
   private setState(s: XSWDState, msg?: string) {
-    this.state = s
+    this._state = s
     this.stateListeners.forEach((l) => l(s, msg))
   }
 
@@ -118,42 +132,63 @@ export class XSWDClient {
       let settled = false
       const ws = new WebSocket(XSWD_URL)
       this.ws = ws
-      this.connectReject = reject
 
-      const failTimer = setTimeout(() => {
+      // Phase 1: the socket itself — short timeout, wallet not running?
+      const openTimer = setTimeout(() => {
         if (!settled) {
           settled = true
           this.cleanupSocket()
+          this.setState('error', 'Wallet not detected')
           reject(new Error(
-            'Cannot reach the wallet on ws://127.0.0.1:44325. Is Genesix (or xelis_wallet) running?'
+            'Cannot reach the wallet on ws://127.0.0.1:44325. Is Genesix (or xelis_wallet) running with XSWD enabled?'
           ))
         }
-      }, 12_000)
+      }, OPEN_TIMEOUT_MS)
+
+      // Phase 2: armed once the socket is open — generous window for the user
+      // to read and accept the approval popup in the wallet.
+      let approvalTimer: ReturnType<typeof setTimeout> | null = null
+      const clearTimers = () => {
+        clearTimeout(openTimer)
+        if (approvalTimer) clearTimeout(approvalTimer)
+      }
 
       ws.onopen = () => {
+        clearTimeout(openTimer)
         this.setState('awaiting-approval', 'Waiting for wallet approval…')
         // First message: ApplicationData (plain JSON)
         ws.send(JSON.stringify(data))
+        approvalTimer = setTimeout(() => {
+          if (!settled) {
+            settled = true
+            clearTimers()
+            this.cleanupSocket()
+            this.setState('error', 'Approval timed out')
+            reject(new Error(
+              'The approval was not confirmed in the wallet within 5 minutes. The popup may have been closed — click Retry and accept the request in Genesix.'
+            ))
+          }
+        }, APPROVAL_TIMEOUT_MS)
       }
 
       ws.onerror = () => {
         if (!settled) {
           settled = true
-          clearTimeout(failTimer)
+          clearTimers()
           this.cleanupSocket()
           this.setState('error', 'Wallet not detected')
           reject(new Error(
-            'Cannot reach the wallet on ws://127.0.0.1:44325. Is Genesix (or xelis_wallet) running?'
+            'Cannot reach the wallet on ws://127.0.0.1:44325. Is Genesix (or xelis_wallet) running with XSWD enabled?'
           ))
         }
       }
 
       ws.onclose = () => {
-        clearTimeout(failTimer)
+        clearTimers()
         if (!settled) {
           settled = true
           this.setState('disconnected')
-          reject(new Error('Wallet refused the connection (or is closing). Try again from the wallet popup.'))
+          reject(new Error('Wallet refused the connection. If a popup is still open, accept it and click Retry.'))
         } else {
           this.handleDisconnect()
         }
@@ -166,13 +201,12 @@ export class XSWDClient {
         if (settled === false && msg.id === this.appId && msg.result && typeof msg.result === 'object' && 'success' in msg.result) {
           if (msg.result.success === true) {
             settled = true
-            clearTimeout(failTimer)
+            clearTimers()
             this.setState('connected')
-            this.prefetchPermissions().catch(() => {})
             resolve()
           } else {
             settled = true
-            clearTimeout(failTimer)
+            clearTimers()
             this.cleanupSocket()
             this.setState('error', 'Connection refused by wallet')
             reject(new Error(msg.result.message || 'Wallet refused the connection'))
@@ -182,16 +216,15 @@ export class XSWDClient {
         // Legacy handshake shape (older wallets): { id: null, result: true }
         if (settled === false && msg.result === true) {
           settled = true
-          clearTimeout(failTimer)
+          clearTimers()
           this.setState('connected')
-          this.prefetchPermissions().catch(() => {})
           resolve()
           return
         }
         // JSON-RPC error during handshake
         if (settled === false && msg.error) {
           settled = true
-          clearTimeout(failTimer)
+          clearTimers()
           this.cleanupSocket()
           this.setState('error', msg.error.message)
           reject(new Error(msg.error.message || 'Wallet rejected the application'))
@@ -249,15 +282,25 @@ export class XSWDClient {
     this.setState('disconnected')
   }
 
-  /** Ask the wallet to pre-approve all our permissions in one popup. */
-  private async prefetchPermissions(): Promise<void> {
+  /**
+   * Ask the wallet to pre-approve ALL our permissions in ONE grouped popup
+   * (xswd.prefetch_permissions). Call this right after connect() and BEFORE
+   * any wallet.* request — otherwise the wallet prompts once per method,
+   * which looks like a connection that "never finishes".
+   * Returns false when the wallet doesn't support it or the user dismissed
+   * the popup — in that case each method will ask individually.
+   */
+  async prefetchPermissions(): Promise<boolean> {
+    if (this.state !== 'connected') return false
     try {
       await this.call('xswd.prefetch_permissions', {
         reason: 'XELIS Vault needs these permissions to display your balances and build transactions.',
         permissions: XSWD_PERMISSIONS,
       })
+      return true
     } catch {
       // Not critical — the wallet will prompt per method
+      return false
     }
   }
 
@@ -282,7 +325,8 @@ export class XSWDClient {
   // ---- Wallet helpers (typed) ----
 
   async getAddress(): Promise<string> {
-    return this.call('wallet.get_address')
+    const res = await this.call('wallet.get_address')
+    return typeof res === 'string' ? res : res?.address ?? res
   }
 
   async getBalance(asset: string): Promise<bigint> {

@@ -58,3 +58,6 @@ server.log
 /tool-results/
 /worklog.md
 /scripts/*.png
+
+# Local research/reference clones (XSWD protocol verification)
+/.zscripts/
