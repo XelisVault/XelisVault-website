@@ -95,8 +95,8 @@ export function VaultChatSection() {
                 <span className="text-xs font-mono text-vault">Merkle root anchored on-chain every ~80 min</span>
               </div>
               <div className="flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-4 py-2">
-                <Zap className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-xs font-mono text-emerald-300">0 gas per message</span>
+                <Zap className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="text-xs font-mono text-emerald-700">0 gas per message</span>
               </div>
               <div className="flex items-center gap-2 rounded-full bg-xusd/10 border border-xusd/30 px-4 py-2">
                 <Lock className="w-3.5 h-3.5 text-xusd" />
@@ -144,7 +144,7 @@ export function VaultChatSection() {
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-lg bg-card/40 border border-border p-3">
                     <div className="text-[10px] font-mono uppercase text-muted-foreground">Chat Private Key</div>
-                    <div className="text-[10px] font-mono mt-1 text-emerald-400">Local only</div>
+                    <div className="text-[10px] font-mono mt-1 text-emerald-600">Local only</div>
                   </div>
                   <div className="rounded-lg bg-card/40 border border-border p-3">
                     <div className="text-[10px] font-mono uppercase text-muted-foreground">Chat Public Key</div>
@@ -176,7 +176,7 @@ export function VaultChatSection() {
               <div className="space-y-3">
                 <div className="rounded-lg bg-card/40 border border-border p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
                     <span className="text-sm font-medium">Free Tier</span>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
@@ -296,7 +296,7 @@ export function VaultChatSection() {
                   transition={{ delay: i * 0.1 }}
                   className="rounded-xl bg-card/40 border border-border p-4 text-center"
                 >
-                  <div className={`font-display text-2xl font-semibold ${s.color === 'emerald' ? 'text-emerald-400' : s.color === 'vault' ? 'text-vault' : s.color === 'vlt' ? 'text-vlt' : 'text-xusd'}`}>
+                  <div className={`font-display text-2xl font-semibold ${s.color === 'emerald' ? 'text-emerald-600' : s.color === 'vault' ? 'text-vault' : s.color === 'vlt' ? 'text-vlt' : 'text-xusd'}`}>
                     {s.value}
                   </div>
                   <div className="mt-1 text-xs font-medium">{s.label}</div>

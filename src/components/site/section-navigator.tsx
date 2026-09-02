@@ -67,7 +67,7 @@ export function SectionNavigator() {
               <span className={`block rounded-full transition-all ${
                 isActive
                   ? 'w-2.5 h-2.5 bg-vault shadow-[0_0_12px_var(--vault)]'
-                  : 'w-1.5 h-1.5 bg-muted-foreground/40 group-hover:bg-vault/60'
+                  : 'w-1.5 h-1.5 bg-foreground/35 group-hover:bg-vault/60'
               }`} />
             </button>
           )

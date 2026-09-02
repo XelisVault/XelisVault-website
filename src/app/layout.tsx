@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { Inter, JetBrains_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { LaunchExperience } from "@/components/site/launch-experience";
@@ -16,17 +16,20 @@ const jetbrains = JetBrains_Mono({
   display: "swap",
 });
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space",
+// Fraunces — editorial serif with optical sizing, the private-banking voice
+// of the new skin (Julius Baer / Pictet style display typography).
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
   display: "swap",
-  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  axes: ["opsz", "SOFT", "WONK"],
 });
 
 export const metadata: Metadata = {
-  title: "XELIS Vault — Confidential Finance for the Privacy Era",
+  title: "XELIS Vault — Confidential Finance, Institutional Grade",
   description:
-    "The first confidential financial platform on XELIS BlockDAG. Deposit XEL, borrow xUSD, trade on VaultSwap, tokenize real-world assets, lend peer-to-peer, and govern privately — secured by native Twisted ElGamal homomorphic encryption.",
+    "The first confidential financial platform on XELIS BlockDAG. Deposit XEL, borrow xUSD, trade on VaultSwap, tokenize real-world assets, lend peer-to-peer, and govern privately — secured by native Twisted ElGamal homomorphic encryption. Built to a private-banking standard, open-source under MIT.",
   keywords: [
     "XELIS Vault",
     "Confidential DeFi",
@@ -38,19 +41,20 @@ export const metadata: Metadata = {
     "Homomorphic Encryption",
     "ZK",
     "Decentralized Finance",
+    "Institutional DeFi",
   ],
   authors: [{ name: "Xelis Vault" }],
   openGraph: {
-    title: "XELIS Vault — Confidential Finance for the Privacy Era",
+    title: "XELIS Vault — Confidential Finance, Institutional Grade",
     description:
-      "The first confidential financial platform on XELIS BlockDAG. Encrypted by default, governed by community.",
+      "The first confidential financial platform on XELIS BlockDAG. Encrypted by default, governed by community, built to an institutional standard.",
     url: "https://github.com/XelisVault/xelis-vault",
     siteName: "XELIS Vault",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "XELIS Vault — Confidential Finance for the Privacy Era",
+    title: "XELIS Vault — Confidential Finance, Institutional Grade",
     description:
       "The first confidential financial platform on XELIS BlockDAG. Encrypted by default, governed by community.",
   },
@@ -64,7 +68,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${jetbrains.variable} ${spaceGrotesk.variable} antialiased bg-background text-foreground`}
+        className={`${inter.variable} ${jetbrains.variable} ${fraunces.variable} antialiased bg-background text-foreground`}
       >
         {children}
         <Toaster />

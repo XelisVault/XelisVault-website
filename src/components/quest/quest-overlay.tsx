@@ -156,7 +156,7 @@ export function QuestOverlay({ open, onClose }: { open: boolean; onClose: () => 
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4 }}
-          className="fixed inset-0 z-[85] bg-background/95 backdrop-blur-xl overflow-y-auto"
+          className="app-dark fixed inset-0 z-[85] bg-background/95 backdrop-blur-xl overflow-y-auto"
         >
           {/* Ambient background */}
           <div className="fixed inset-0 pointer-events-none">

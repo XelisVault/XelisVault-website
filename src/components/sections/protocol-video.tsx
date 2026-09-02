@@ -280,7 +280,7 @@ function SceneProblem() {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', delay: 0.2 }}
-        className="relative w-20 h-20 mx-auto rounded-2xl bg-red-500/15 border border-red-500/40 flex items-center justify-center text-red-400 mb-6"
+        className="relative w-20 h-20 mx-auto rounded-2xl bg-destructive/8 border border-destructive/30 flex items-center justify-center text-destructive mb-6"
       >
         <Lock className="w-10 h-10" />
         {/* Scan line */}
@@ -290,7 +290,7 @@ function SceneProblem() {
           animate={{ opacity: 1 }}
         >
           <motion.div
-            className="absolute left-0 right-0 h-px bg-red-400/60"
+            className="absolute left-0 right-0 h-px bg-destructive/50"
             animate={{ top: ['0%', '100%', '0%'] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
           />
@@ -303,16 +303,16 @@ function SceneProblem() {
         transition={{ delay: 0.4 }}
         className="relative"
       >
-        <div className="text-xs font-mono uppercase tracking-[0.3em] text-red-400 mb-3">The Problem</div>
+        <div className="text-xs font-mono uppercase tracking-[0.3em] text-destructive mb-3">The Problem</div>
         <h2 className="font-display text-4xl md:text-6xl font-semibold tracking-tight leading-tight mb-6">
           Every DeFi platform
           <br />
-          <span className="text-red-400">is fully transparent.</span>
+          <span className="text-destructive">is fully transparent.</span>
         </h2>
         <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-xl mx-auto">
           Your positions. Your strategies. Your holdings.
           <br />
-          <span className="text-red-300/80">Visible to everyone.</span>
+          <span className="text-destructive/70">Visible to everyone.</span>
         </p>
       </motion.div>
     </div>
@@ -682,8 +682,8 @@ function SceneGovernance() {
             />
           </div>
           <div className="mt-2 flex justify-between text-xs font-mono">
-            <span className="text-emerald-400">72% For</span>
-            <span className="text-red-400">28% Against</span>
+            <span className="text-emerald-600">72% For</span>
+            <span className="text-destructive">28% Against</span>
           </div>
         </motion.div>
       </motion.div>

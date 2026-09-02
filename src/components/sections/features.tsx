@@ -77,7 +77,7 @@ export function Features() {
                 </div>
 
                 <div className="mt-6 flex items-center gap-2 text-xs font-mono text-muted-foreground">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                   E2E encrypted · merkle-anchored hourly
                 </div>
               </div>

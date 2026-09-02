@@ -27,11 +27,11 @@ const REPUTATION_TIERS = [
 ]
 
 const TIER_COLORS: Record<string, { text: string; bg: string; border: string; dot: string }> = {
-  emerald: { text: 'text-emerald-400', bg: 'bg-emerald-500/5', border: 'border-emerald-500/30', dot: 'bg-emerald-400' },
+  emerald: { text: 'text-emerald-700', bg: 'bg-emerald-500/6', border: 'border-emerald-600/30', dot: 'bg-emerald-600' },
   vault: { text: 'text-vault', bg: 'bg-vault/5', border: 'border-vault/30', dot: 'bg-vault' },
-  amber: { text: 'text-amber-400', bg: 'bg-amber-500/5', border: 'border-amber-500/30', dot: 'bg-amber-400' },
-  orange: { text: 'text-orange-400', bg: 'bg-orange-500/5', border: 'border-orange-500/30', dot: 'bg-orange-400' },
-  red: { text: 'text-red-400', bg: 'bg-red-500/5', border: 'border-red-500/30', dot: 'bg-red-400' },
+  amber: { text: 'text-amber-700', bg: 'bg-amber-500/8', border: 'border-amber-600/30', dot: 'bg-amber-600' },
+  orange: { text: 'text-orange-700', bg: 'bg-orange-500/8', border: 'border-orange-600/30', dot: 'bg-orange-600' },
+  red: { text: 'text-destructive', bg: 'bg-destructive/5', border: 'border-destructive/30', dot: 'bg-destructive' },
 }
 
 const DELEGATION_STEPS = [
@@ -83,21 +83,22 @@ export function MiningDelegation() {
       id="mining"
       className="relative py-20 md:py-28 px-5 md:px-8 bg-background overflow-hidden"
     >
-      <div className="absolute inset-0 bg-grid opacity-30" />
-      <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] rounded-full bg-vault/8 blur-[140px]" />
-      <div className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] rounded-full bg-vlt/8 blur-[120px]" />
+      <div className="absolute inset-0 bg-grid opacity-25" />
+      <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] rounded-full bg-vault/7 blur-[140px]" />
+      <div className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] rounded-full bg-vlt/7 blur-[120px]" />
 
       <div className="relative max-w-7xl mx-auto">
-        {/* Header */}
+        {/* Header — copy + steady-waters imagery */}
+        <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-12 items-center">
         <div className="max-w-3xl">
           <Reveal>
             <SectionLabel>Mining & Delegation</SectionLabel>
           </Reveal>
           <Reveal delay={0.1}>
-            <h2 className="mt-6 font-display text-4xl md:text-6xl lg:text-7xl font-semibold tracking-[-0.03em] leading-[1]">
+            <h2 className="mt-6 font-display text-4xl md:text-6xl lg:text-7xl font-medium tracking-[-0.02em] leading-[1.02]">
               <span className="text-gradient-vault">Stake VLT,</span>
               <br />
-              <span className="text-muted-foreground">secure the oracle.</span>
+              <span className="italic font-light text-muted-foreground">secure the oracle.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.2}>
@@ -111,6 +112,28 @@ export function MiningDelegation() {
               prove themselves over 15 days to reach Good.
             </p>
           </Reveal>
+        </div>
+
+        {/* Alpine lake — steady yield, still waters */}
+        <Reveal delay={0.25} className="hidden lg:block">
+          <div className="relative max-w-[380px] mx-auto">
+            <div className="absolute -inset-2.5 rounded-[6px] border border-xusd/30 pointer-events-none" />
+            <div className="relative aspect-[4/3] overflow-hidden rounded-[4px] ring-1 ring-foreground/15 shadow-maison">
+              <img
+                src="/images/bank/alpine-lake.jpg"
+                alt="Still alpine lake reflecting the mountains — steady, predictable yield"
+                className="w-full h-full object-cover animate-kenburns"
+              />
+              <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-oklch(0.2 0.01 80 / 0.5) to-transparent" />
+              <div className="absolute bottom-3 left-3 right-3 text-ink-foreground">
+                <div className="font-display italic text-sm">Steady, like still water.</div>
+                <div className="text-[9px] font-mono uppercase tracking-[0.18em] opacity-70 mt-0.5">
+                  Halving emission · 25s cycles
+                </div>
+              </div>
+            </div>
+          </div>
+        </Reveal>
         </div>
 
         {/* Key stats */}

@@ -44,19 +44,20 @@ export function Oracle() {
       id="oracle"
       className="relative py-20 md:py-28 px-5 md:px-8 bg-background overflow-hidden"
     >
-      <div className="absolute inset-0 bg-grid opacity-30" />
-      <div className="absolute top-0 right-1/4 w-[500px] h-[500px] rounded-full bg-vault/8 blur-[140px]" />
+      <div className="absolute inset-0 bg-grid opacity-25" />
+      <div className="absolute top-0 right-1/4 w-[500px] h-[500px] rounded-full bg-vault/7 blur-[140px]" />
 
       <div className="relative max-w-7xl mx-auto">
+        <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-12 items-center">
         <div className="max-w-3xl">
           <Reveal>
             <SectionLabel>The Oracle</SectionLabel>
           </Reveal>
           <Reveal delay={0.1}>
-            <h2 className="mt-6 font-display text-4xl md:text-6xl lg:text-7xl font-semibold tracking-[-0.03em] leading-[1]">
+            <h2 className="mt-6 font-display text-4xl md:text-6xl lg:text-7xl font-medium tracking-[-0.02em] leading-[1.02]">
               <span className="text-gradient-vault">StakedOracle</span>
               <br />
-              <span className="text-muted-foreground">permissionless by design.</span>
+              <span className="italic font-light text-muted-foreground">permissionless by design.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.2}>
@@ -66,6 +67,28 @@ export function Oracle() {
               median of all valid submissions becomes the on-chain truth, every 25 seconds.
             </p>
           </Reveal>
+        </div>
+
+        {/* Precision craftsmanship — the oracle as a fine instrument */}
+        <Reveal delay={0.25} className="hidden lg:block">
+          <div className="relative max-w-[380px] mx-auto">
+            <div className="absolute -inset-2.5 rounded-[6px] border border-vault/30 pointer-events-none" />
+            <div className="relative aspect-[3/4] overflow-hidden rounded-[4px] ring-1 ring-foreground/15 shadow-maison">
+              <img
+                src="/images/bank/precision-watch.jpg"
+                alt="A watchmaker calibrating a mechanical movement — precision as a discipline"
+                className="w-full h-full object-cover animate-kenburns"
+              />
+              <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-oklch(0.2 0.01 80 / 0.5) to-transparent" />
+              <div className="absolute bottom-3 left-3 right-3 text-ink-foreground">
+                <div className="font-display italic text-sm">Precision, every 25 seconds.</div>
+                <div className="text-[9px] font-mono uppercase tracking-[0.18em] opacity-70 mt-0.5">
+                  Median aggregation · 5-block cycles
+                </div>
+              </div>
+            </div>
+          </div>
+        </Reveal>
         </div>
 
         {/* Stats strip */}
@@ -124,14 +147,14 @@ export function Oracle() {
           <div className="mt-16 rounded-2xl glass-panel p-6 md:p-10">
             <div className="grid md:grid-cols-[1fr_1.4fr] gap-10 items-center">
               <div>
-                <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-[0.2em] text-red-400">
+                <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-[0.2em] text-destructive">
                   <ShieldAlert className="w-4 h-4" />
                   Anti-Sybil Protection
                 </div>
                 <h3 className="mt-4 font-display text-2xl md:text-3xl font-semibold tracking-tight leading-tight">
                   Attack the oracle and
                   <br />
-                  <span className="text-red-400">you fund its deflation.</span>
+                  <span className="text-destructive">you fund its deflation.</span>
                 </h3>
                 <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
                   A would-be attacker trying to spawn 1,000 bots to manipulate the median
@@ -145,8 +168,8 @@ export function Oracle() {
               {/* Slashing flow viz */}
               <div className="space-y-3">
                 {[
-                  { label: 'Outlier submitted', sub: 'Price >5% from median', icon: ShieldAlert, color: 'text-red-400', border: 'border-red-500/30', bg: 'bg-red-500/5' },
-                  { label: 'Reputation drops', sub: 'May fall to lower reward tier (0.4× or 0×)', icon: Gauge, color: 'text-amber-400', border: 'border-amber-500/30', bg: 'bg-amber-500/5' },
+                  { label: 'Outlier submitted', sub: 'Price >5% from median', icon: ShieldAlert, color: 'text-destructive', border: 'border-destructive/30', bg: 'bg-destructive/5' },
+                  { label: 'Reputation drops', sub: 'May fall to lower reward tier (0.4× or 0×)', icon: Gauge, color: 'text-amber-600', border: 'border-amber-500/35', bg: 'bg-amber-500/8' },
                   { label: 'Stake slashed', sub: '50% burned · permanent supply reduction', icon: CheckCircle2, color: 'text-vlt', border: 'border-vlt/30', bg: 'bg-vlt/5' },
                   { label: '50% to treasury', sub: 'Community-controlled VLT', icon: Coins, color: 'text-vault', border: 'border-vault/30', bg: 'bg-vault/5' },
                 ].map((step, i) => (

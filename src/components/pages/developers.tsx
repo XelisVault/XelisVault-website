@@ -117,7 +117,7 @@ export function DevelopersPage() {
     <div className="relative min-h-screen flex flex-col bg-background">
       <Nav />
 
-      <main className="flex-1 relative pt-24 md:pt-32">
+      <main className="flex-1 relative pt-32 md:pt-36">
         <div className="absolute inset-0 bg-grid opacity-20 pointer-events-none" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full bg-vault/8 blur-[140px] pointer-events-none" />
 
@@ -332,7 +332,7 @@ function CopyBlock({ text, code = false }: { text: string; code?: boolean }) {
       >
         {copied ? (
           <>
-            <Check className="w-3 h-3 text-emerald-400" />
+            <Check className="w-3 h-3 text-emerald-600" />
             Copied
           </>
         ) : (

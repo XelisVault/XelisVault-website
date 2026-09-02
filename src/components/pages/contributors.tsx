@@ -146,13 +146,13 @@ const CATEGORIES: Category[] = [
 ]
 
 const TIER_STYLES: Record<string, { icon: any; text: string; bg: string; border: string; label: string }> = {
-  gold: { icon: Crown, text: 'text-amber-300', bg: 'bg-amber-500/5', border: 'border-amber-500/30', label: 'Gold' },
+  gold: { icon: Crown, text: 'text-amber-700', bg: 'bg-amber-500/8', border: 'border-amber-500/40', label: 'Gold' },
   silver: { icon: Medal, text: 'text-slate-300', bg: 'bg-slate-500/5', border: 'border-slate-500/30', label: 'Silver' },
   bronze: { icon: Award, text: 'text-orange-400', bg: 'bg-orange-500/5', border: 'border-orange-500/30', label: 'Bronze' },
 }
 
 const COLOR_MAP: Record<string, { text: string; bg: string; border: string; dot: string; glow: string }> = {
-  red: { text: 'text-red-400', bg: 'bg-red-500/5', border: 'border-red-500/30', dot: 'bg-red-400', glow: 'shadow-[0_0_40px_-12px_oklch(0.65_0.24_25)]' },
+  red: { text: 'text-destructive', bg: 'bg-destructive/5', border: 'border-destructive/30', dot: 'bg-destructive', glow: 'shadow-[0_0_40px_-12px_oklch(0.65_0.24_25)]' },
   vault: { text: 'text-vault', bg: 'bg-vault/5', border: 'border-vault/30', dot: 'bg-vault', glow: 'shadow-[0_0_40px_-12px_var(--vault)]' },
   vlt: { text: 'text-vlt', bg: 'bg-vlt/5', border: 'border-vlt/30', dot: 'bg-vlt', glow: 'shadow-[0_0_40px_-12px_var(--vlt)]' },
   xusd: { text: 'text-xusd', bg: 'bg-xusd/5', border: 'border-xusd/30', dot: 'bg-xusd', glow: 'shadow-[0_0_40px_-12px_var(--xusd)]' },
@@ -167,7 +167,7 @@ export function ContributorsPage() {
     <div className="relative min-h-screen flex flex-col bg-background">
       <Nav />
 
-      <main className="flex-1 relative pt-24 md:pt-32">
+      <main className="flex-1 relative pt-32 md:pt-36">
         {/* Background */}
         <div className="absolute inset-0 bg-grid opacity-20 pointer-events-none" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full bg-vault/10 blur-[140px] pointer-events-none" />

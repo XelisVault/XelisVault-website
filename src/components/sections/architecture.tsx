@@ -198,7 +198,7 @@ export function Architecture() {
                     Stack Visualization
                   </div>
                   <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     Encrypted
                   </div>
                 </div>
@@ -282,7 +282,7 @@ export function Architecture() {
                       get_price(&quot;XEL/USD&quot;)
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                       ZK verified
                     </span>
                   </div>

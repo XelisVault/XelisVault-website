@@ -49,28 +49,51 @@ export function Solution() {
       id="protocol"
       className="relative py-20 md:py-28 px-5 md:px-8 bg-background overflow-hidden"
     >
-      <div className="absolute inset-0 bg-grid opacity-30" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full bg-vault/8 blur-[140px]" />
+      <div className="absolute inset-0 bg-grid opacity-25" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full bg-vault/7 blur-[140px]" />
 
       <div className="relative max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="max-w-3xl">
-          <Reveal>
-            <SectionLabel>The Protocol</SectionLabel>
-          </Reveal>
-          <Reveal delay={0.1}>
-            <h2 className="mt-6 font-display text-4xl md:text-6xl lg:text-7xl font-semibold tracking-[-0.03em] leading-[1]">
-              Six pillars of a{' '}
-              <span className="text-gradient-vault">truly private</span>{' '}
-              financial stack
-            </h2>
-          </Reveal>
-          <Reveal delay={0.2}>
-            <p className="mt-8 text-lg text-muted-foreground leading-relaxed">
-              Not privacy bolted on top. Privacy at the protocol level — every contract,
-              every balance, every interaction is encrypted from day one. Built native on
-              the XELIS BlockDAG.
-            </p>
+        {/* Header — copy + institutional architecture */}
+        <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-12 items-end">
+          <div className="max-w-3xl">
+            <Reveal>
+              <SectionLabel>The Protocol</SectionLabel>
+            </Reveal>
+            <Reveal delay={0.1}>
+              <h2 className="mt-6 font-display text-4xl md:text-6xl lg:text-7xl font-medium tracking-[-0.02em] leading-[1.02]">
+                Six pillars of a{' '}
+                <span className="italic font-light text-gradient-vault">truly private</span>{' '}
+                financial stack
+              </h2>
+            </Reveal>
+            <Reveal delay={0.2}>
+              <p className="mt-8 text-lg text-muted-foreground leading-relaxed">
+                Not privacy bolted on top. Privacy at the protocol level — every contract,
+                every balance, every interaction is encrypted from day one. Built native on
+                the XELIS BlockDAG.
+              </p>
+            </Reveal>
+          </div>
+
+          {/* Architecture — the institutional tower */}
+          <Reveal delay={0.25} className="hidden lg:block">
+            <div className="relative max-w-[300px] ml-auto">
+              <div className="absolute -inset-2.5 rounded-[6px] border border-vault/30 pointer-events-none" />
+              <div className="relative aspect-[3/4] overflow-hidden rounded-[4px] ring-1 ring-foreground/15 shadow-maison">
+                <img
+                  src="/images/bank/architecture.jpg"
+                  alt="Modern glass tower seen from below — layered institutional architecture"
+                  className="w-full h-full object-cover animate-kenburns"
+                />
+                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-oklch(0.2 0.01 80 / 0.5) to-transparent" />
+                <div className="absolute bottom-3 left-3 right-3 text-ink-foreground">
+                  <div className="font-display italic text-sm">Engineered in layers.</div>
+                  <div className="text-[9px] font-mono uppercase tracking-[0.18em] opacity-70 mt-0.5">
+                    6 layers · 51 contracts
+                  </div>
+                </div>
+              </div>
+            </div>
           </Reveal>
         </div>
 
@@ -84,7 +107,7 @@ export function Solution() {
                 className="group relative h-full rounded-2xl glass-panel hover:glass-panel-hover p-6 md:p-7 overflow-hidden cursor-default"
               >
                 {/* Index */}
-                <div className="absolute top-6 right-6 font-mono text-xs text-muted-foreground/50">
+                <div className="absolute top-6 right-6 font-mono text-xs text-vault/50 group-hover:text-vault/80 transition-colors">
                   0{i + 1}
                 </div>
 

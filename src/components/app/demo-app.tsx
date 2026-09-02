@@ -148,7 +148,7 @@ export function DemoApp() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-[80] bg-background flex flex-col"
+          className="app-dark fixed inset-0 z-[80] bg-background flex flex-col"
         >
           {/* BANNER: testnet status */}
           <div className="shrink-0 bg-gradient-to-r from-emerald-500/20 via-emerald-500/15 to-emerald-500/20 border-b border-emerald-500/30">

@@ -20,9 +20,9 @@ export function Problem() {
       className="relative py-20 md:py-28 px-5 md:px-8 bg-background overflow-hidden"
     >
       {/* Section bg */}
-      <div className="absolute inset-0 bg-dots opacity-30" />
-      <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-red-500/5 blur-[120px]" />
-      <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-vault/10 blur-[120px]" />
+      <div className="absolute inset-0 bg-dots opacity-25" />
+      <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-destructive/4 blur-[120px]" />
+      <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-vault/7 blur-[120px]" />
 
       <div className="relative max-w-7xl mx-auto">
         <div className="max-w-3xl">
@@ -35,7 +35,7 @@ export function Problem() {
               <br />
               <span className="text-muted-foreground">operates on a</span>
               <br />
-              <span className="text-red-400">fully transparent ledger.</span>
+              <span className="text-destructive">fully transparent ledger.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.2}>
@@ -51,13 +51,13 @@ export function Problem() {
         <div className="mt-20 grid md:grid-cols-2 gap-4 md:gap-6">
           {/* Transparent side */}
           <Reveal delay={0.1}>
-            <div className="relative h-[460px] rounded-2xl border border-red-500/20 bg-red-950/10 overflow-hidden p-6 md:p-8">
+            <div className="relative h-[460px] rounded-2xl border border-destructive/25 bg-destructive/4 overflow-hidden p-6 md:p-8 shadow-maison">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-red-300">
+                <div className="flex items-center gap-2 text-destructive">
                   <Eye className="w-4 h-4" />
                   <span className="font-mono text-xs uppercase tracking-[0.2em]">Transparent</span>
                 </div>
-                <span className="text-xs text-red-300/60 font-mono">Anyone can see</span>
+                <span className="text-xs text-destructive/60 font-mono">Anyone can see</span>
               </div>
 
               <div className="mt-6 space-y-3">
@@ -73,13 +73,13 @@ export function Problem() {
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: 0.3 + i * 0.08 }}
-                    className="flex items-center justify-between rounded-lg bg-red-950/30 border border-red-500/10 px-4 py-3"
+                    className="flex items-center justify-between rounded-lg bg-destructive/6 border border-destructive/12 px-4 py-3"
                   >
                     <div>
-                      <div className="text-xs text-red-300/70 font-mono uppercase tracking-wider">{row.label}</div>
+                      <div className="text-xs text-destructive/70 font-mono uppercase tracking-wider">{row.label}</div>
                       <div className="text-sm font-medium mt-0.5">{row.value}</div>
                     </div>
-                    <div className="text-xs text-red-300/60 font-mono">{row.sub}</div>
+                    <div className="text-xs text-destructive/60 font-mono">{row.sub}</div>
                   </motion.div>
                 ))}
               </div>
@@ -90,10 +90,10 @@ export function Problem() {
                   whileInView={{ opacity: 1 }}
                   viewport={{ once: true }}
                   transition={{ delay: 0.9 }}
-                  className="flex items-center gap-2 rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-3"
+                  className="flex items-center gap-2 rounded-lg bg-destructive/8 border border-destructive/25 px-4 py-3"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                  <span className="text-xs text-red-200 font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                  <span className="text-xs text-destructive font-mono">
                     Front-running bots watching your every move
                   </span>
                 </motion.div>
@@ -104,7 +104,7 @@ export function Problem() {
                 <motion.div
                   animate={{ y: ['-100%', '500%'] }}
                   transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-                  className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-400/60 to-transparent"
+                  className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-destructive/50 to-transparent"
                 />
               </div>
             </div>

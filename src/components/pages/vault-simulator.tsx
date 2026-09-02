@@ -25,9 +25,9 @@ function getHealthState(healthFactor: number): HealthState {
 }
 
 const HEALTH_STYLES: Record<HealthState, { dot: string; text: string; bg: string; border: string; label: string }> = {
-  safe: { dot: 'bg-emerald-400', text: 'text-emerald-400', bg: 'bg-emerald-500/5', border: 'border-emerald-500/30', label: 'Safe' },
-  warning: { dot: 'bg-amber-400', text: 'text-amber-400', bg: 'bg-amber-500/5', border: 'border-amber-500/30', label: 'Warning' },
-  danger: { dot: 'bg-red-400', text: 'text-red-400', bg: 'bg-red-500/5', border: 'border-red-500/30', label: 'Danger' },
+  safe: { dot: 'bg-emerald-500', text: 'text-emerald-600', bg: 'bg-emerald-500/5', border: 'border-emerald-500/30', label: 'Safe' },
+  warning: { dot: 'bg-amber-400', text: 'text-amber-400', bg: 'bg-amber-500/8', border: 'border-amber-500/40', label: 'Warning' },
+  danger: { dot: 'bg-destructive', text: 'text-destructive', bg: 'bg-destructive/5', border: 'border-destructive/30', label: 'Danger' },
 }
 
 export function VaultSimulator() {
@@ -67,7 +67,7 @@ export function VaultSimulator() {
     <div className="relative min-h-screen flex flex-col bg-background">
       <Nav />
 
-      <main className="flex-1 relative pt-24 md:pt-32">
+      <main className="flex-1 relative pt-32 md:pt-36">
         <div className="absolute inset-0 bg-grid opacity-20 pointer-events-none" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full bg-vault/8 blur-[140px] pointer-events-none" />
 
@@ -283,11 +283,11 @@ export function VaultSimulator() {
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 flex items-start gap-3"
+                    className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 flex items-start gap-3"
                   >
-                    <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                     <div className="text-sm text-muted-foreground leading-relaxed">
-                      <strong className="text-red-300">If liquidated:</strong> you lose{' '}
+                      <strong className="text-destructive">If liquidated:</strong> you lose{' '}
                       <strong className="text-foreground">{calc.liquidationPenalty.toFixed(2)} xUSD</strong>{' '}
                       ({LIQUIDATION_PENALTY}% penalty) on top of the outstanding debt. The liquidator
                       pays your debt and claims your collateral at a discount. Always keep your health
@@ -374,7 +374,7 @@ function StatCard({
   return (
     <div
       className={`rounded-xl border p-4 ${
-        danger ? 'border-red-500/30 bg-red-500/5' : 'border-border bg-card/30'
+        danger ? 'border-destructive/30 bg-destructive/5' : 'border-border bg-card/30'
       }`}
     >
       <div className="flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground">
@@ -383,13 +383,13 @@ function StatCard({
       </div>
       <div
         className={`mt-2 font-display text-2xl font-semibold tabular-nums ${
-          danger ? 'text-red-400' : 'text-foreground'
+          danger ? 'text-destructive' : 'text-foreground'
         }`}
       >
         {value}
       </div>
       {sub && (
-        <div className={`mt-1 text-[11px] font-mono ${danger ? 'text-red-400/70' : 'text-muted-foreground/70'}`}>
+        <div className={`mt-1 text-[11px] font-mono ${danger ? 'text-destructive/70' : 'text-muted-foreground/70'}`}>
           {sub}
         </div>
       )}

@@ -8,7 +8,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains);
-  --font-display: var(--font-space);
+  --font-display: var(--font-fraunces);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -47,11 +47,73 @@
   --color-vault-soft: var(--vault-soft);
   --color-xusd: var(--xusd);
   --color-vlt: var(--vlt);
+  /* Institutional ink band */
+  --color-ink: var(--ink);
+  --color-ink-foreground: var(--ink-foreground);
 }
 
+/*
+ * ══════════════════════════════════════════════════════════════
+ *  MAISON — institutional private-banking skin
+ *  Ivory paper · ink · champagne bronze · deep teal · bordeaux
+ *  (inspired by Julius Baer / Pictet / Ondo editorial codes)
+ * ══════════════════════════════════════════════════════════════
+ */
 :root {
-  --radius: 0.75rem;
-  /* Dark premium palette (default) */
+  --radius: 0.625rem;
+
+  /* Light institutional palette (default) */
+  --background: oklch(0.977 0.004 85);          /* ivory paper */
+  --foreground: oklch(0.225 0.008 80);          /* ink */
+  --card: oklch(1 0 0);                          /* pure white */
+  --card-foreground: oklch(0.225 0.008 80);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.225 0.008 80);
+  --primary: oklch(0.52 0.09 70);               /* champagne bronze */
+  --primary-foreground: oklch(0.985 0.003 85);
+  --secondary: oklch(0.945 0.005 85);
+  --secondary-foreground: oklch(0.225 0.008 80);
+  --muted: oklch(0.952 0.004 85);
+  --muted-foreground: oklch(0.475 0.012 80);     /* warm graphite */
+  --accent: oklch(0.52 0.09 70);
+  --accent-foreground: oklch(0.985 0.003 85);
+  --destructive: oklch(0.47 0.14 24);             /* muted bordeaux */
+  --border: oklch(0.225 0.008 80 / 13%);
+  --input: oklch(0.225 0.008 80 / 16%);
+  --ring: oklch(0.52 0.09 70);
+  --chart-1: oklch(0.52 0.09 70);               /* bronze */
+  --chart-2: oklch(0.48 0.07 210);               /* deep teal */
+  --chart-3: oklch(0.52 0.06 150);               /* sage */
+  --chart-4: oklch(0.68 0.11 75);                /* champagne */
+  --chart-5: oklch(0.48 0.13 5);                 /* bordeaux */
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.225 0.008 80);
+  --sidebar-primary: oklch(0.52 0.09 70);
+  --sidebar-primary-foreground: oklch(0.985 0.003 85);
+  --sidebar-accent: oklch(0.945 0.005 85);
+  --sidebar-accent-foreground: oklch(0.225 0.008 80);
+  --sidebar-border: oklch(0.225 0.008 80 / 13%);
+  --sidebar-ring: oklch(0.52 0.09 70);
+
+  /* Brand specific — deep institutional tones for light surfaces */
+  --vault: oklch(0.52 0.09 70);                  /* champagne bronze */
+  --vault-soft: oklch(0.72 0.055 75);            /* light gold tint */
+  --xusd: oklch(0.47 0.07 210);                  /* deep teal */
+  --vlt: oklch(0.47 0.12 5);                     /* bordeaux */
+
+  /* Institutional ink band (dark sections: CTA, footer, utility bar) */
+  --ink: oklch(0.235 0.008 80);
+  --ink-foreground: oklch(0.96 0.004 85);
+}
+
+/*
+ * ══════════════════════════════════════════════════════════════
+ *  APP-DARK — the vault application keeps its dark premium skin
+ *  (DemoApp overlay, Quest, wallet modal). Scoped so the light
+ *  marketing skin never bleeds into the product itself.
+ * ══════════════════════════════════════════════════════════════
+ */
+.app-dark {
   --background: oklch(0.04 0.02 280);
   --foreground: oklch(0.98 0.005 280);
   --card: oklch(0.07 0.02 280);
@@ -70,11 +132,6 @@
   --border: oklch(1 0 0 / 8%);
   --input: oklch(1 0 0 / 10%);
   --ring: oklch(0.62 0.22 295);
-  --chart-1: oklch(0.62 0.22 295);
-  --chart-2: oklch(0.7 0.18 200);
-  --chart-3: oklch(0.75 0.18 160);
-  --chart-4: oklch(0.78 0.19 80);
-  --chart-5: oklch(0.65 0.24 25);
   --sidebar: oklch(0.07 0.02 280);
   --sidebar-foreground: oklch(0.98 0.005 280);
   --sidebar-primary: oklch(0.62 0.22 295);
@@ -83,8 +140,6 @@
   --sidebar-accent-foreground: oklch(0.98 0.005 280);
   --sidebar-border: oklch(1 0 0 / 8%);
   --sidebar-ring: oklch(0.62 0.22 295);
-
-  /* Brand specific */
   --vault: oklch(0.62 0.22 295);
   --vault-soft: oklch(0.45 0.18 295);
   --xusd: oklch(0.78 0.16 195);
@@ -105,14 +160,14 @@
     overflow-x: hidden;
   }
   ::selection {
-    background-color: oklch(0.62 0.22 295 / 35%);
-    color: white;
+    background-color: oklch(0.52 0.09 70 / 30%);
+    color: oklch(0.2 0.01 80);
   }
 }
 
 /* Custom utilities */
 @utility text-gradient-vault {
-  background: linear-gradient(135deg, oklch(0.78 0.16 295) 0%, oklch(0.62 0.22 295) 50%, oklch(0.55 0.24 320) 100%);
+  background: linear-gradient(135deg, oklch(0.42 0.08 70) 0%, oklch(0.52 0.09 70) 45%, oklch(0.68 0.11 75) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -120,7 +175,7 @@
 }
 
 @utility text-gradient-xusd {
-  background: linear-gradient(135deg, oklch(0.85 0.14 180) 0%, oklch(0.75 0.18 200) 50%, oklch(0.65 0.2 220) 100%);
+  background: linear-gradient(135deg, oklch(0.38 0.06 215) 0%, oklch(0.47 0.07 210) 50%, oklch(0.55 0.08 200) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -128,7 +183,16 @@
 }
 
 @utility text-gradient-mono {
-  background: linear-gradient(180deg, oklch(0.98 0.005 280) 0%, oklch(0.65 0.02 280) 100%);
+  background: linear-gradient(180deg, oklch(0.225 0.008 80) 0%, oklch(0.45 0.01 80) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Ivory → light-gold editorial gradient (hero, quotes) */
+@utility text-gradient-gold {
+  background: linear-gradient(120deg, oklch(0.985 0.003 85) 0%, oklch(0.9 0.05 80) 55%, oklch(0.8 0.09 75) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -137,47 +201,68 @@
 
 @utility bg-grid {
   background-image:
-    linear-gradient(to right, oklch(1 0 0 / 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, oklch(1 0 0 / 0.04) 1px, transparent 1px);
+    linear-gradient(to right, oklch(0.225 0.008 80 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0.225 0.008 80 / 0.045) 1px, transparent 1px);
   background-size: 60px 60px;
 }
 
 @utility bg-dots {
-  background-image: radial-gradient(oklch(1 0 0 / 0.08) 1px, transparent 1px);
+  background-image: radial-gradient(oklch(0.225 0.008 80 / 0.09) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
+/* Frosted white panel for light surfaces */
 @utility glass-panel {
-  background: linear-gradient(180deg, oklch(1 0 0 / 0.04) 0%, oklch(1 0 0 / 0.01) 100%);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid oklch(1 0 0 / 0.08);
+  background: linear-gradient(180deg, oklch(1 0 0 / 0.72) 0%, oklch(1 0 0 / 0.45) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid oklch(0.225 0.008 80 / 0.1);
 }
 
-/* Near-opaque variant for dropdown menus / popovers that must stay readable
-   over animated backgrounds (hero canvas, grid, glowing orbs). */
+/* Near-opaque white for dropdown menus / popovers that must stay readable
+   over photography and animated backgrounds. */
 @utility glass-panel-solid {
-  background: linear-gradient(180deg, oklch(0.09 0.02 280 / 0.98) 0%, oklch(0.07 0.02 280 / 0.97) 100%);
+  background: linear-gradient(180deg, oklch(1 0 0 / 0.985) 0%, oklch(0.985 0.003 85 / 0.97) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid oklch(1 0 0 / 0.12);
-  box-shadow: 0 24px 64px -12px oklch(0 0 0 / 0.8);
+  border: 1px solid oklch(0.225 0.008 80 / 0.14);
+  box-shadow: 0 24px 64px -16px oklch(0.225 0.008 80 / 0.28), 0 2px 8px oklch(0.225 0.008 80 / 0.08);
 }
 
-/* Stronger header glass: keeps the blurred aesthetic but blocks most
-   of the background so nav links stay legible while scrolling. */
+/* Header glass — frosted white keeps nav links legible over hero imagery */
 @utility glass-nav {
-  background: linear-gradient(180deg, oklch(0.05 0.02 280 / 0.88) 0%, oklch(0.04 0.02 280 / 0.82) 100%);
+  background: linear-gradient(180deg, oklch(1 0 0 / 0.96) 0%, oklch(0.99 0.002 85 / 0.92) 100%);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  border-bottom: 1px solid oklch(1 0 0 / 0.08);
+  border-bottom: 1px solid oklch(0.225 0.008 80 / 0.1);
 }
 
 @utility glass-panel-hover {
-  background: linear-gradient(180deg, oklch(0.62 0.22 295 / 0.08) 0%, oklch(0.62 0.22 295 / 0.02) 100%);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid oklch(0.62 0.22 295 / 0.25);
+  background: linear-gradient(180deg, oklch(0.52 0.09 70 / 0.06) 0%, oklch(0.52 0.09 70 / 0.015) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid oklch(0.52 0.09 70 / 0.3);
+}
+
+/* Institutional ink band — dark sections (CTA, footer, utility bar) */
+@utility dark-band {
+  background: linear-gradient(165deg, oklch(0.235 0.008 80) 0%, oklch(0.185 0.008 80) 100%);
+  color: oklch(0.96 0.004 85);
+}
+
+/* Elegant double-rule separator (hairline + gold accent) */
+@utility rule-gold {
+  position: relative;
+  border-top: 1px solid oklch(0.225 0.008 80 / 0.12);
+}
+@utility rule-gold-line {
+  background: linear-gradient(90deg, transparent, oklch(0.52 0.09 70 / 0.55), transparent);
+  height: 1px;
+}
+
+/* Soft institutional card shadow */
+@utility shadow-maison {
+  box-shadow: 0 1px 2px oklch(0.225 0.008 80 / 0.05), 0 8px 32px -12px oklch(0.225 0.008 80 / 0.12);
 }
 
 /* Custom scrollbar */
@@ -186,14 +271,14 @@
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: oklch(0.04 0.02 280);
+  background: oklch(0.965 0.004 85);
 }
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.25 0.05 295);
+  background: oklch(0.75 0.04 75);
   border-radius: 5px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.45 0.15 295);
+  background: oklch(0.6 0.07 72);
 }
 
 /* Hide scrollbar utility (for horizontal mobile navs) */
@@ -231,6 +316,10 @@
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
 }
+@keyframes kenburns {
+  0% { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.08) translate(-1.5%, -2%); }
+}
 
 .animate-pulse-glow { animation: pulse-glow 4s ease-in-out infinite; }
 .animate-float { animation: float 6s ease-in-out infinite; }
@@ -243,7 +332,14 @@
   background-size: 200% 200%;
   animation: gradient-shift 8s ease infinite;
 }
+.animate-kenburns { animation: kenburns 24s ease-in-out infinite alternate; }
 
 .bg-noise {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+
+/* Paper grain for the ivory skin — far subtler than bg-noise */
+.bg-paper {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='0.28'/%3E%3C/svg%3E");
+  opacity: 0.035;
 }

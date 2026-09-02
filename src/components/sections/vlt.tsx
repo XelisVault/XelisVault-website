@@ -6,15 +6,15 @@ import { Reveal, RevealStagger, RevealItem, SectionLabel } from '@/components/si
 
 const DISTRIBUTION = [
   { label: 'Oracle Rewards', pct: 55, amount: '5,500,000', note: 'Bitcoin-style halving · ~0.436 VLT/block', color: 'var(--vault)' },
-  { label: 'Chat Relayer Rewards', pct: 10, amount: '1,000,000', note: 'VaultChat relayers · 10y vesting', color: 'oklch(0.7 0.2 320)' },
-  { label: 'DEX Liquidity', pct: 10, amount: '1,000,000', note: 'VLT/XEL pool · 6mo unlock', color: 'oklch(0.7 0.18 160)' },
+  { label: 'Chat Relayer Rewards', pct: 10, amount: '1,000,000', note: 'VaultChat relayers · 10y vesting', color: 'oklch(0.52 0.06 150)' },
+  { label: 'DEX Liquidity', pct: 10, amount: '1,000,000', note: 'VLT/XEL pool · 6mo unlock', color: 'oklch(0.68 0.11 75)' },
   { label: 'Founder Vesting', pct: 5, amount: '500,000', note: '4y vest, 1y cliff · on-chain', color: 'var(--vlt)' },
-  { label: 'Founder Ongoing', pct: 5, amount: '500,000', note: '10y · from FeeDistributor', color: 'oklch(0.75 0.18 80)' },
+  { label: 'Founder Ongoing', pct: 5, amount: '500,000', note: '10y · from FeeDistributor', color: 'oklch(0.62 0.1 70)' },
   { label: 'Treasury', pct: 5, amount: '500,000', note: 'Governance-controlled', color: 'var(--xusd)' },
-  { label: 'Community Airdrop', pct: 5, amount: '500,000', note: 'Testnet contributors', color: 'oklch(0.78 0.18 195)' },
-  { label: 'Protocol Reserve', pct: 2, amount: '200,000', note: 'Emergency buffer', color: 'oklch(0.65 0.15 280)' },
-  { label: 'Launch Airdrop', pct: 2, amount: '200,000', note: 'Launch community', color: 'oklch(0.7 0.15 200)' },
-  { label: 'Bug Bounty', pct: 1, amount: '100,000', note: 'Perpetual · Immunefi', color: 'oklch(0.65 0.24 25)' },
+  { label: 'Community Airdrop', pct: 5, amount: '500,000', note: 'Testnet contributors', color: 'oklch(0.47 0.07 210)' },
+  { label: 'Protocol Reserve', pct: 2, amount: '200,000', note: 'Emergency buffer', color: 'oklch(0.42 0.012 80)' },
+  { label: 'Launch Airdrop', pct: 2, amount: '200,000', note: 'Launch community', color: 'oklch(0.55 0.05 200)' },
+  { label: 'Bug Bounty', pct: 1, amount: '100,000', note: 'Perpetual · Immunefi', color: 'oklch(0.48 0.13 5)' },
 ]
 
 const BURN_MECHANISMS = [
@@ -51,11 +51,12 @@ export function Vlt() {
       id="vlt"
       className="relative py-20 md:py-28 px-5 md:px-8 bg-background overflow-hidden"
     >
-      <div className="absolute inset-0 bg-grid opacity-30" />
-      <div className="absolute top-1/3 right-0 w-[500px] h-[500px] rounded-full bg-vlt/8 blur-[140px]" />
+      <div className="absolute inset-0 bg-grid opacity-25" />
+      <div className="absolute top-1/3 right-0 w-[500px] h-[500px] rounded-full bg-vlt/7 blur-[140px]" />
 
       <div className="relative max-w-7xl mx-auto">
-        {/* Header */}
+        {/* Header — copy + scarce-asset imagery */}
+        <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-12 items-center">
         <div className="max-w-3xl">
           <Reveal>
             <SectionLabel className="text-vlt">
@@ -63,10 +64,10 @@ export function Vlt() {
             </SectionLabel>
           </Reveal>
           <Reveal delay={0.1}>
-            <h2 className="mt-6 font-display text-4xl md:text-6xl lg:text-7xl font-semibold tracking-[-0.03em] leading-[1]">
+            <h2 className="mt-6 font-display text-4xl md:text-6xl lg:text-7xl font-medium tracking-[-0.02em] leading-[1.02]">
               VLT — fixed supply,
               <br />
-              <span className="text-gradient-vault">engineered to shrink.</span>
+              <span className="italic font-light text-gradient-vault">engineered to shrink.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.2}>
@@ -77,6 +78,28 @@ export function Vlt() {
               protocol upside as the supply tightens.
             </p>
           </Reveal>
+        </div>
+
+        {/* Gold — the scarce asset metaphor */}
+        <Reveal delay={0.25} className="hidden lg:block">
+          <div className="relative max-w-[380px] mx-auto">
+            <div className="absolute -inset-2.5 rounded-[6px] border border-vlt/30 pointer-events-none" />
+            <div className="relative aspect-[4/3] overflow-hidden rounded-[4px] ring-1 ring-foreground/15 shadow-maison">
+              <img
+                src="/images/bank/gold-bars.jpg"
+                alt="Stacked gold bars — scarcity as monetary policy"
+                className="w-full h-full object-cover animate-kenburns"
+              />
+              <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-oklch(0.2 0.01 80 / 0.55) to-transparent" />
+              <div className="absolute bottom-3 left-3 right-3 text-ink-foreground">
+                <div className="font-display italic text-sm">Scarcity, as monetary policy.</div>
+                <div className="text-[9px] font-mono uppercase tracking-[0.18em] opacity-70 mt-0.5">
+                  10M fixed · burn-driven deflation
+                </div>
+              </div>
+            </div>
+          </div>
+        </Reveal>
         </div>
 
         <div className="mt-16 grid lg:grid-cols-[1.3fr_1fr] gap-8">

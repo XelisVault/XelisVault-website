@@ -144,7 +144,7 @@ export function ExplorerPage() {
     <div className="relative min-h-screen flex flex-col bg-background">
       <Nav />
 
-      <main className="flex-1 relative pt-24 md:pt-28 pb-24">
+      <main className="flex-1 relative pt-32 md:pt-36 pb-24">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute inset-0 bg-grid opacity-20" />
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[420px] rounded-full bg-vault/8 blur-[140px]" />
@@ -155,7 +155,7 @@ export function ExplorerPage() {
           <Reveal>
             <div className="flex flex-wrap items-center gap-3 mb-5">
               <SectionLabel>The Observatory</SectionLabel>
-              <span className="flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-emerald-300">
+              <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-emerald-700">
                 <Radio className="w-3 h-3 animate-pulse" />
                 live · {network}
               </span>

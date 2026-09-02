@@ -131,9 +131,9 @@ const BOUNTY_TIERS = [
 ]
 
 const COLOR_MAP: Record<string, { text: string; bg: string; border: string; dot: string }> = {
-  red: { text: 'text-red-400', bg: 'bg-red-500/5', border: 'border-red-500/30', dot: 'bg-red-400' },
+  red: { text: 'text-destructive', bg: 'bg-destructive/5', border: 'border-destructive/30', dot: 'bg-destructive' },
   orange: { text: 'text-orange-400', bg: 'bg-orange-500/5', border: 'border-orange-500/30', dot: 'bg-orange-400' },
-  amber: { text: 'text-amber-400', bg: 'bg-amber-500/5', border: 'border-amber-500/30', dot: 'bg-amber-400' },
+  amber: { text: 'text-amber-400', bg: 'bg-amber-500/8', border: 'border-amber-500/40', dot: 'bg-amber-400' },
   blue: { text: 'text-blue-400', bg: 'bg-blue-500/5', border: 'border-blue-500/30', dot: 'bg-blue-400' },
 }
 
@@ -142,7 +142,7 @@ export function SecurityPage() {
     <div className="relative min-h-screen flex flex-col bg-background">
       <Nav />
 
-      <main className="flex-1 relative pt-24 md:pt-32">
+      <main className="flex-1 relative pt-32 md:pt-36">
         <div className="absolute inset-0 bg-grid opacity-20 pointer-events-none" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full bg-vault/8 blur-[140px] pointer-events-none" />
 
@@ -226,8 +226,8 @@ export function SecurityPage() {
                       </div>
                       <div className={`inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider px-3 py-1.5 rounded-full ${
                         audit.status === 'Completed'
-                          ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
-                          : 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
+                          ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600'
+                          : 'bg-amber-500/10 border border-amber-500/40 text-amber-400'
                       }`}>
                         {audit.status === 'Completed' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
                         {audit.status}
@@ -243,7 +243,7 @@ export function SecurityPage() {
                               <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
                               <span className={`text-xs font-mono ${c.text}`}>{f.count} {f.severity}</span>
                               {audit.allFixed && (
-                                <span className="text-[10px] font-mono text-emerald-400/70">fixed</span>
+                                <span className="text-[10px] font-mono text-emerald-600/70">fixed</span>
                               )}
                             </div>
                           )
@@ -285,7 +285,7 @@ export function SecurityPage() {
           {/* The Aug 30 delay transparency */}
           <section className="mt-20">
             <Reveal>
-              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-6 md:p-8">
+              <div className="rounded-2xl border border-amber-500/40 bg-amber-500/8 p-6 md:p-8">
                 <div className="flex items-center gap-2 text-amber-400 mb-4">
                   <AlertTriangle className="w-5 h-5" />
                   <span className="text-xs font-mono uppercase tracking-wider">Why we delayed the testnet</span>
@@ -295,19 +295,19 @@ export function SecurityPage() {
                 </h3>
                 <ul className="mt-4 space-y-3 text-sm text-muted-foreground leading-relaxed">
                   <li className="flex items-start gap-2">
-                    <span className="text-red-400 mt-0.5">→</span>
+                    <span className="text-destructive mt-0.5">→</span>
                     <span><strong className="text-foreground">VaultEngine liquidation queue:</strong> Front-runnable by mempool watchers, allowing attackers to steal collateral before legitimate liquidators could act. Fixed by committing to a sealed-bid auction.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-red-400 mt-0.5">→</span>
+                    <span className="text-destructive mt-0.5">→</span>
                     <span><strong className="text-foreground">PSM rounding error:</strong> A truncation bug in the fee calculation allowed minting tiny amounts of xUSD without depositing the corresponding XEL. Fixed with proper decimal scaling.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-red-400 mt-0.5">→</span>
+                    <span className="text-destructive mt-0.5">→</span>
                     <span><strong className="text-foreground">VaultSwapV2 TWAP manipulation:</strong> Sandwich attacks could move the TWAP during low-liquidity periods. Fixed with a minimum-liquidity check and a longer window.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-red-400 mt-0.5">→</span>
+                    <span className="text-destructive mt-0.5">→</span>
                     <span><strong className="text-foreground">Miner heartbeat reorg handling:</strong> Chain reorganizations could slash miners incorrectly. Fixed by requiring 6 confirmations before slashing.</span>
                   </li>
                 </ul>

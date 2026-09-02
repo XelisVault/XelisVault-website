@@ -1,7 +1,7 @@
 'use client'
 
-import { motion, useMotionValue, useSpring } from 'framer-motion'
-import { useRef, useEffect } from 'react'
+import { motion, useMotionValue, useSpring, useInView, animate } from 'framer-motion'
+import { useRef, useEffect, useState } from 'react'
 import { ArrowDown, Shield, Lock, Zap, Github } from 'lucide-react'
 import { useDemo } from '@/lib/demo-store'
 import { useCountdownState } from '@/lib/countdown'
@@ -12,24 +12,61 @@ import { ProgressiveLaunchButton, useLaunchProgress } from '@/components/site/pr
 // NOTE: the launch celebration & the T-10s final sequence are rendered
 // globally by <LaunchExperience /> (root layout) so every page ignites.
 
+/* ── Count-up figure for the institutional stats band ── */
+function Figure({ value, suffix = '', label, sub, delay = 0 }: {
+  value: number
+  suffix?: string
+  label: string
+  sub: string
+  delay?: number
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const inView = useInView(ref, { once: true, margin: '-40px' })
+  const [display, setDisplay] = useState('0')
+
+  useEffect(() => {
+    if (!inView) return
+    const controls = animate(0, value, {
+      duration: 1.6,
+      delay,
+      ease: [0.21, 0.47, 0.32, 0.98],
+      onUpdate: (v) => setDisplay(Math.round(v).toLocaleString('en-US')),
+    })
+    return () => controls.stop()
+  }, [inView, value, delay])
+
+  return (
+    <div ref={ref} className="px-4 py-6 md:py-8 text-center md:text-left">
+      <div className="font-display text-3xl md:text-4xl font-semibold text-gradient-vault tabular-nums tracking-[-0.02em]">
+        {display}
+        {suffix}
+      </div>
+      <div className="mt-2 text-[13px] font-medium text-foreground/85">{label}</div>
+      <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground mt-1">{sub}</div>
+    </div>
+  )
+}
+
 export function Hero() {
   const ref = useRef<HTMLDivElement>(null)
   const openApp = useDemo((s) => s.openApp)
   const { progress } = useLaunchProgress()
   const { isLaunched } = useCountdownState()
 
-  // mouse parallax for background glow only
+  // mouse parallax for background glow + image frame
   const mx = useMotionValue(0)
   const my = useMotionValue(0)
   const smx = useSpring(mx, { stiffness: 80, damping: 20 })
   const smy = useSpring(my, { stiffness: 80, damping: 20 })
+  const smxImg = useSpring(mx, { stiffness: 50, damping: 24 })
+  const smyImg = useSpring(my, { stiffness: 50, damping: 24 })
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       const x = (e.clientX / window.innerWidth - 0.5) * 2
       const y = (e.clientY / window.innerHeight - 0.5) * 2
-      mx.set(x * 20)
-      my.set(y * 20)
+      mx.set(x * 14)
+      my.set(y * 10)
     }
     window.addEventListener('mousemove', handler)
     return () => window.removeEventListener('mousemove', handler)
@@ -39,254 +76,221 @@ export function Hero() {
     <section
       ref={ref}
       id="top"
-      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-background pt-24 pb-16"
+      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-background pt-32 md:pt-36 pb-10"
     >
-      {/* Background layers */}
-      <div className="absolute inset-0 bg-grid opacity-50" />
-      <div className="absolute inset-0 bg-noise opacity-[0.025]" />
+      {/* Background layers — ivory paper, faint ink grid, gold breath */}
+      <div className="absolute inset-0 bg-grid opacity-40" />
+      <div className="absolute inset-0 bg-paper" />
 
-      {/* Radial glow with mouse parallax */}
+      {/* Radial champagne glow with mouse parallax */}
       <motion.div
         style={{ x: smx, y: smy }}
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] pointer-events-none"
+        className="absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[700px] pointer-events-none"
       >
-        <div className="absolute inset-0 rounded-full bg-vault/15 blur-[120px] animate-pulse-glow" />
-        <div className="absolute inset-[15%] rounded-full bg-vault/10 blur-[80px]" />
+        <div className="absolute inset-0 rounded-full bg-vault/10 blur-[120px] animate-pulse-glow" />
+        <div className="absolute inset-[18%] rounded-full bg-vault-soft/15 blur-[90px]" />
       </motion.div>
 
-      {/* When launched: restore the beautiful hero logo + orbital rings */}
-      {isLaunched && (
-        <>
-          {/* Center logo (restored when launched) */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.5, rotate: -20 }}
-            animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            transition={{ type: 'spring', stiffness: 150, delay: 0.2 }}
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0"
-          >
+      {/* Main content — editorial two-column composition */}
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-5 md:px-8">
+        <div className="grid lg:grid-cols-[1.02fr_0.98fr] gap-12 lg:gap-16 items-center">
+
+          {/* ── LEFT · the statement ── */}
+          <div className="text-center lg:text-left flex flex-col items-center lg:items-start">
+            {/* Live badge */}
             <motion.div
-              animate={{
-                boxShadow: [
-                  '0 0 40px -10px var(--vault)',
-                  '0 0 70px -10px var(--vault)',
-                  '0 0 40px -10px var(--vault)',
-                ],
-              }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-              className="relative w-24 h-24 md:w-32 md:h-32 rounded-2xl overflow-hidden ring-2 ring-vault/40"
-            >
-              <img
-                src="/images/xelisvault-logo.png"
-                alt="Xelis Vault"
-                className="w-full h-full object-cover"
-              />
-            </motion.div>
-          </motion.div>
-
-          {/* Orbital rings (restored, more visible when launched) */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-50">
-            <div className="relative w-[700px] h-[700px] md:w-[1000px] md:h-[1000px]">
-              {[0, 1, 2].map((i) => (
-                <motion.div
-                  key={`hero-orbit-${i}`}
-                  animate={{ rotate: i % 2 === 0 ? 360 : -360 }}
-                  transition={{ duration: 60 + i * 30, repeat: Infinity, ease: 'linear' }}
-                  className="absolute inset-0 rounded-full border border-vault/20"
-                  style={{ transform: `scale(${1 - i * 0.18})` }}
-                >
-                  <div
-                    className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-vault"
-                    style={{ boxShadow: '0 0 20px var(--vault)' }}
-                  />
-                  {i === 0 && (
-                    <div
-                      className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-1.5 h-1.5 rounded-full bg-xusd"
-                      style={{ boxShadow: '0 0 16px var(--xusd)' }}
-                    />
-                  )}
-                  {i === 1 && (
-                    <div
-                      className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 w-1.5 h-1.5 rounded-full bg-vlt"
-                      style={{ boxShadow: '0 0 16px var(--vlt)' }}
-                    />
-                  )}
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* When NOT launched: dimmer orbital rings behind countdown */}
-      {!isLaunched && (
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-25">
-          <div className="relative w-[700px] h-[700px] md:w-[1000px] md:h-[1000px]">
-            {[0, 1, 2].map((i) => (
-              <motion.div
-                key={`hero-orbit-${i}`}
-                animate={{ rotate: i % 2 === 0 ? 360 : -360 }}
-                transition={{ duration: 80 + i * 30, repeat: Infinity, ease: 'linear' }}
-                className="absolute inset-0 rounded-full border border-vault/10"
-                style={{ transform: `scale(${1 - i * 0.18})` }}
-              >
-                <div
-                  className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-vault/60"
-                  style={{ boxShadow: '0 0 12px var(--vault)' }}
-                />
-                {i === 0 && (
-                  <div
-                    className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-1 h-1 rounded-full bg-xusd/60"
-                    style={{ boxShadow: '0 0 10px var(--xusd)' }}
-                  />
-                )}
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Main content */}
-      <div className="relative z-10 max-w-5xl mx-auto px-5 text-center flex flex-col items-center">
-        {/* Version badge / Live badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.2 }}
-          className={`flex items-center gap-2 rounded-full glass-panel px-3.5 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] mb-6 ${
-            isLaunched ? 'text-emerald-400' : 'text-muted-foreground'
-          }`}
-        >
-          <motion.span
-            animate={{ opacity: isLaunched ? [0.4, 1, 0.4] : [0.4, 1, 0.4] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            className={`w-1.5 h-1.5 rounded-full ${isLaunched ? 'bg-emerald-400' : 'bg-vault'}`}
-          />
-          {isLaunched
-            ? 'Testnet LIVE · Connect your wallet'
-            : 'v11.5 · 51 contracts · XELIS BlockDAG'}
-        </motion.div>
-
-        {/* Title — more compact before launch so the dial stays in view */}
-        <motion.h1
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.4, ease: [0.21, 0.47, 0.32, 0.98] }}
-          className={`font-display font-semibold tracking-[-0.04em] leading-[0.95] ${
-            isLaunched
-              ? 'text-[40px] sm:text-6xl md:text-7xl lg:text-[80px]'
-              : 'text-[36px] sm:text-5xl md:text-6xl lg:text-[64px]'
-          }`}
-        >
-          <span className="block text-gradient-mono">Confidential Finance</span>
-          <span className="block mt-2 text-gradient-vault">for the Privacy Era</span>
-        </motion.h1>
-
-        {/* Subtitle */}
-        <motion.p
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.6, ease: [0.21, 0.47, 0.32, 0.98] }}
-          className="mt-6 max-w-2xl mx-auto text-base md:text-lg text-muted-foreground leading-relaxed"
-        >
-          The first confidential financial platform on the XELIS BlockDAG.
-          Deposit XEL, borrow xUSD, trade on VaultSwap, tokenize real-world assets,
-          and govern privately — secured by native Twisted ElGamal encryption.
-        </motion.p>
-
-        {/* COUNTDOWN (when not launched) — with logo in the ring */}
-        {!isLaunched && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.2, delay: 0.8, ease: [0.21, 0.47, 0.32, 0.98] }}
-            className="mt-6 mb-4 scale-[0.85] [@media(min-height:950px)]:scale-95 [@media(min-height:1080px)]:scale-100"
-          >
-            <CinematicCountdown />
-          </motion.div>
-        )}
-
-        {/* CTA buttons — progressive launch button */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: isLaunched ? 0.8 : 1 }}
-          className="mt-6 flex flex-wrap items-center justify-center gap-3"
-        >
-          <ProgressiveLaunchButton
-            progress={progress}
-            isLaunched={isLaunched}
-            onLaunch={() => openApp()}
-          />
-          <a
-            href="https://github.com/XelisVault/xelis-vault"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-12 items-center gap-2 rounded-full border border-border bg-card/40 hover:bg-card/80 hover:border-vault/40 px-7 text-sm font-semibold transition-all"
-          >
-            <Github className="w-4 h-4" />
-            View on GitHub
-          </a>
-          <a
-            href="#protocol"
-            className="inline-flex h-12 items-center gap-2 rounded-full border border-border bg-card/40 hover:bg-card/80 hover:border-vault/40 px-7 text-sm font-semibold transition-all"
-          >
-            Explore the Protocol
-            <ArrowDown className="w-4 h-4" />
-          </a>
-        </motion.div>
-
-        {/* Live network strip — real on-chain numbers from the public testnet */}
-        <div className="mt-6">
-          <LiveNetworkStrip />
-        </div>
-
-        {/* Quick pillars */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 1.2 }}
-          className="mt-10 grid grid-cols-3 gap-4 md:gap-8 max-w-2xl mx-auto"
-        >
-          {[
-            { icon: Shield, label: 'Encrypted by Default', sub: 'Native homomorphic' },
-            { icon: Lock, label: 'Zero-Knowledge', sub: 'Prove without revealing' },
-            { icon: Zap, label: 'BlockDAG Fast', sub: '5s finality' },
-          ].map((p, i) => (
-            <motion.div
-              key={`hero-pillar-${i}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 1.3 + i * 0.1 }}
-              className="flex flex-col items-center gap-2 text-center"
+              transition={{ duration: 1, delay: 0.2 }}
+              className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-[11px] font-mono uppercase tracking-[0.18em] mb-7 ${
+                isLaunched
+                  ? 'border-emerald-600/30 bg-emerald-50 text-emerald-700'
+                  : 'border-border bg-card/70 text-muted-foreground'
+              }`}
             >
-              <div className="w-10 h-10 rounded-lg glass-panel flex items-center justify-center text-vault">
-                <p.icon className="w-4 h-4" />
-              </div>
-              <div className="text-xs md:text-sm font-medium">{p.label}</div>
-              <div className="text-[10px] md:text-xs text-muted-foreground font-mono uppercase tracking-wider">
-                {p.sub}
-              </div>
+              <motion.span
+                animate={{ opacity: [0.4, 1, 0.4] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className={`w-1.5 h-1.5 rounded-full ${isLaunched ? 'bg-emerald-500' : 'bg-vault'}`}
+              />
+              {isLaunched
+                ? 'Testnet live · Connect your wallet'
+                : 'v11.5 · 51 contracts · XELIS BlockDAG'}
             </motion.div>
-          ))}
+
+            {/* Headline — the private-bank statement */}
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.35, ease: [0.21, 0.47, 0.32, 0.98] }}
+              className="font-display font-medium tracking-[-0.015em] leading-[1.02] text-[42px] sm:text-6xl md:text-7xl lg:text-[76px]"
+            >
+              <span className="block text-ink">Confidential finance,</span>
+              <span className="block mt-2 italic font-light text-gradient-vault">
+                held to a private-banking standard.
+              </span>
+            </motion.h1>
+
+            {/* Subtitle */}
+            <motion.p
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.55, ease: [0.21, 0.47, 0.32, 0.98] }}
+              className="mt-7 max-w-xl text-base md:text-lg text-muted-foreground leading-relaxed"
+            >
+              The first confidential financial platform on the XELIS BlockDAG.
+              Deposit XEL, borrow xUSD, trade on VaultSwap, tokenize real-world
+              assets, and govern privately — secured by native Twisted ElGamal
+              encryption. Every balance encrypted. Every audit public. Every
+              decision on-chain.
+            </motion.p>
+
+            {/* COUNTDOWN (when not launched) */}
+            {!isLaunched && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 1.2, delay: 0.8, ease: [0.21, 0.47, 0.32, 0.98] }}
+                className="mt-6 mb-4 scale-[0.8] origin-center lg:origin-left"
+              >
+                <CinematicCountdown />
+              </motion.div>
+            )}
+
+            {/* CTA buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: isLaunched ? 0.75 : 1 }}
+              className="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-3"
+            >
+              <ProgressiveLaunchButton
+                progress={progress}
+                isLaunched={isLaunched}
+                onLaunch={() => openApp()}
+              />
+              <a
+                href="#protocol"
+                className="group inline-flex h-12 items-center gap-2 rounded-full border border-foreground/20 bg-card/60 hover:bg-card hover:border-vault/50 px-6 text-sm font-semibold transition-all"
+              >
+                Explore the Protocol
+                <ArrowDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
+              </a>
+              <a
+                href="https://github.com/XelisVault/xelis-vault"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="View on GitHub"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-foreground/20 bg-card/60 hover:bg-card hover:border-vault/50 transition-all"
+              >
+                <Github className="w-4.5 h-4.5" />
+              </a>
+            </motion.div>
+
+            {/* Live network strip — real on-chain numbers */}
+            <div className="mt-7 lg:text-left flex justify-center lg:justify-start">
+              <LiveNetworkStrip />
+            </div>
+          </div>
+
+          {/* ── RIGHT · the framed view ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.2, delay: 0.5, ease: [0.21, 0.47, 0.32, 0.98] }}
+            className="relative hidden md:block"
+          >
+            {/* Rotating gold hairline orbits behind the frame */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+              <div className="relative w-[560px] h-[560px]">
+                {[0, 1].map((i) => (
+                  <motion.div
+                    key={`hero-orbit-${i}`}
+                    animate={{ rotate: i % 2 === 0 ? 360 : -360 }}
+                    transition={{ duration: 90 + i * 40, repeat: Infinity, ease: 'linear' }}
+                    className="absolute inset-0 rounded-full border border-dashed border-vault/25"
+                    style={{ transform: `scale(${1 - i * 0.14})` }}
+                  >
+                    <div
+                      className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-vault"
+                      style={{ boxShadow: '0 0 14px var(--vault)' }}
+                    />
+                    {i === 0 && (
+                      <div
+                        className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-1 h-1 rounded-full bg-xusd"
+                        style={{ boxShadow: '0 0 10px var(--xusd)' }}
+                      />
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            {/* The framed image with parallax + gold offset border */}
+            <motion.div style={{ x: smxImg, y: smyImg }} className="relative">
+              {/* offset gold frame */}
+              <div className="absolute -inset-3 rounded-[6px] border border-vault/35 pointer-events-none" />
+              <div className="absolute -inset-3 translate-x-2.5 translate-y-2.5 rounded-[6px] border border-foreground/10 pointer-events-none" />
+
+              <div className="relative aspect-[4/5] max-w-[520px] mx-auto overflow-hidden rounded-[4px] ring-1 ring-foreground/15 shadow-maison">
+                <img
+                  src="/images/bank/alps-hero.jpg"
+                  alt="Alpine ridge in golden light — the standard of discretion and permanence"
+                  className="w-full h-full object-cover animate-kenburns"
+                />
+                {/* Soft ink gradient at the bottom for the caption */}
+                <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-oklch(0.16 0.008 80 / 0.85) via-oklch(0.16 0.008 80 / 0.45) to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4 text-ink-foreground">
+                  <div className="font-display italic text-sm opacity-90">
+                    Discretion, engineered.
+                  </div>
+                  <div className="text-[10px] font-mono uppercase tracking-[0.18em] opacity-70 mt-1">
+                    XELIS BlockDAG · 5-second finality
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating key card — the vault seal */}
+              <motion.div
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.1, duration: 0.8 }}
+                className="absolute -top-5 -right-3 md:-right-6 glass-panel-solid rounded-lg px-4 py-3 flex items-center gap-3"
+              >
+                <div className="relative w-9 h-9 rounded-[4px] overflow-hidden ring-1 ring-vault/40">
+                  <img src="/images/xelisvault-logo.png" alt="Xelis Vault" className="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <div className="text-xs font-semibold leading-tight">XELIS Vault</div>
+                  <div className="text-[10px] font-mono text-emerald-600 mt-0.5 flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                    51 contracts live
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        </div>
+
+        {/* ── Key figures band — the institutional numbers ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 1.3 }}
+          className="mt-16 md:mt-20 border-t border-b border-foreground/10 divide-x divide-foreground/10 grid grid-cols-2 md:grid-cols-5 bg-card/40 backdrop-blur-sm"
+        >
+          <Figure value={51} label="Smart Contracts" sub="Silex · MIT licensed" />
+          <Figure value={966} label="Entry Functions" sub="Audited surface" />
+          <Figure value={5} suffix="s" label="Block Time" sub="XELIS BlockDAG" />
+          <Figure value={150} suffix="%" label="Min Collateral" sub="VaultEngine" />
+          <Figure value={0} label="Linkable Data Points" sub="Encrypted by default" delay={0.15} />
         </motion.div>
       </div>
 
-      {/* Scroll hint */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.8, duration: 1 }}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-xs text-muted-foreground"
-      >
-        <span className="font-mono uppercase tracking-[0.3em]">Scroll</span>
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-          className="w-5 h-9 rounded-full border border-border flex items-start justify-center p-1.5"
-        >
-          <div className="w-1 h-1.5 rounded-full bg-vault" />
-        </motion.div>
-      </motion.div>
+      {/* Legacy pillars (a11y sr-only, kept for context) */}
+      <div className="sr-only">
+        <Shield /> <Lock /> <Zap />
+      </div>
     </section>
   )
 }

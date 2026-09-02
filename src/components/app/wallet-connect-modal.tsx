@@ -62,7 +62,7 @@ export function WalletConnectModal() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+          className="app-dark fixed inset-0 z-[90] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
           onClick={() => setShowConnectModal(false)}
         >
           <motion.div

@@ -376,7 +376,7 @@ export function Contracts() {
                                         {contract.name}
                                       </span>
                                       {contract.phase === 'future' && (
-                                        <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wider text-amber-300">
+                                        <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wider text-amber-700">
                                           Phase 5+
                                         </span>
                                       )}

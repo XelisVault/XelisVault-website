@@ -5,9 +5,9 @@ import { useRef, type ReactNode } from 'react'
 
 export function SectionLabel({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`inline-flex items-center gap-2 text-xs font-mono uppercase tracking-[0.25em] text-vault ${className}`}>
-      <span className="block w-6 h-px bg-vault/60" />
-      {children}
+    <div className={`inline-flex items-center gap-2.5 text-[11px] font-mono font-medium uppercase tracking-[0.28em] text-vault ${className}`}>
+      <span className="block w-8 h-px bg-vault/70" />
+      <span className="first-letter:tracking-[0.32em]">{children}</span>
     </div>
   )
 }
