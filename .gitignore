@@ -61,3 +61,6 @@ server.log
 
 # Local research/reference clones (XSWD protocol verification)
 /.zscripts/
+dev.log
+worklog.md
+/agent-ctx
