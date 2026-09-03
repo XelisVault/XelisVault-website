@@ -82,14 +82,14 @@ export function Vlt() {
             <div className="absolute -inset-2.5 rounded-[6px] border border-vlt/30 pointer-events-none" />
             <div className="relative aspect-[4/3] overflow-hidden rounded-[4px] ring-1 ring-foreground/15 shadow-maison">
               <img
-                src="/images/bank/gold-bars.jpg"
-                alt="Stacked gold bars: scarcity as monetary policy"
+                src="/images/privacy/private-governance.jpg"
+                alt="A dark boardroom with faceless silhouettes and a golden seal: scarcity governed in private"
                 className="w-full h-full object-cover animate-kenburns"
               />
-              <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-oklch(0.2 0.01 80 / 0.55) to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-oklch(0.16 0.008 80 / 0.8) to-transparent" />
               <div className="absolute bottom-3 left-3 right-3 text-ink-foreground">
                 <div className="font-display italic text-sm">Scarcity, as monetary policy.</div>
-                <div className="text-[9px] font-mono uppercase tracking-[0.18em] opacity-70 mt-0.5">
+                <div className="text-[9px] font-mono uppercase tracking-[0.18em] opacity-85 mt-0.5">
                   10M fixed · burn-driven deflation
                 </div>
               </div>

@@ -74,7 +74,7 @@
   --secondary: oklch(0.945 0.005 85);
   --secondary-foreground: oklch(0.225 0.008 80);
   --muted: oklch(0.952 0.004 85);
-  --muted-foreground: oklch(0.475 0.012 80);     /* warm graphite */
+  --muted-foreground: oklch(0.42 0.014 80);     /* warm graphite, darker for AA contrast */
   --accent: oklch(0.52 0.09 70);
   --accent-foreground: oklch(0.985 0.003 85);
   --destructive: oklch(0.47 0.14 24);             /* muted bordeaux */
@@ -97,7 +97,7 @@
 
   /* Brand specific — deep institutional tones for light surfaces */
   --vault: oklch(0.52 0.09 70);                  /* champagne bronze */
-  --vault-soft: oklch(0.72 0.055 75);            /* light gold tint */
+  --vault-soft: oklch(0.78 0.06 78);            /* light gold tint, readable on ink */
   --xusd: oklch(0.47 0.07 210);                  /* deep teal */
   --vlt: oklch(0.47 0.12 5);                     /* bordeaux */
 
@@ -125,7 +125,7 @@
   --secondary: oklch(0.215 0.01 80);
   --secondary-foreground: oklch(0.93 0.004 85);
   --muted: oklch(0.205 0.01 80);
-  --muted-foreground: oklch(0.64 0.014 80);
+  --muted-foreground: oklch(0.76 0.01 80);
   --accent: oklch(0.79 0.095 78);
   --accent-foreground: oklch(0.155 0.01 80);
   --destructive: oklch(0.62 0.17 25);
@@ -141,7 +141,7 @@
   --sidebar-border: oklch(0.955 0.004 85 / 11%);
   --sidebar-ring: oklch(0.79 0.095 78);
   --vault: oklch(0.79 0.095 78);                 /* champagne gold on ink */
-  --vault-soft: oklch(0.58 0.06 78);
+  --vault-soft: oklch(0.68 0.06 78);
   --xusd: oklch(0.76 0.07 210);                  /* light teal */
   --vlt: oklch(0.72 0.09 25);                    /* muted bordeaux */
 }

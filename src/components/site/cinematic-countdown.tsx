@@ -496,11 +496,11 @@ export function FinalSequenceOverlay({ seconds }: { seconds: number }) {
       </div>
 
       {/* corner telemetry */}
-      <div className="absolute top-6 left-6 md:top-8 md:left-8 font-mono text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-muted-foreground/50">
+      <div className="absolute top-6 left-6 md:top-8 md:left-8 font-mono text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-muted-foreground/70">
         <div>XELIS · BlockDAG</div>
         <div className="mt-1">Genesis height 1</div>
       </div>
-      <div className="absolute top-6 right-6 md:top-8 md:right-8 text-right font-mono text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-muted-foreground/50">
+      <div className="absolute top-6 right-6 md:top-8 md:right-8 text-right font-mono text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-muted-foreground/70">
         <div>Target 14:00 UTC</div>
         <div className="mt-1 text-amber-400/70">T-MINUS {seconds}</div>
       </div>

@@ -365,7 +365,7 @@ export function WelcomeSequence({
             />
             Vault Archive · Playback
           </div>
-          <div className="absolute top-8 right-8 font-mono text-[10px] md:text-xs uppercase tracking-[0.35em] text-muted-foreground/50 flex items-center gap-2">
+          <div className="absolute top-8 right-8 font-mono text-[10px] md:text-xs uppercase tracking-[0.35em] text-muted-foreground/70 flex items-center gap-2">
             <Clock className="w-3.5 h-3.5" />
             {agoRef.current}
           </div>

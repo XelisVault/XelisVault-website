@@ -107,14 +107,14 @@ export function MiningDelegation() {
             <div className="absolute -inset-2.5 rounded-[6px] border border-xusd/30 pointer-events-none" />
             <div className="relative aspect-[4/3] overflow-hidden rounded-[4px] ring-1 ring-foreground/15 shadow-maison">
               <img
-                src="/images/bank/alpine-lake.jpg"
-                alt="Still alpine lake reflecting the mountains: steady, predictable yield"
+                src="/images/privacy/steady-emission.jpg"
+                alt="A calm river of golden particles flowing through encrypted darkness: steady, private emission"
                 className="w-full h-full object-cover animate-kenburns"
               />
-              <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-oklch(0.2 0.01 80 / 0.5) to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-oklch(0.16 0.008 80 / 0.8) to-transparent" />
               <div className="absolute bottom-3 left-3 right-3 text-ink-foreground">
                 <div className="font-display italic text-sm">Steady, like still water.</div>
-                <div className="text-[9px] font-mono uppercase tracking-[0.18em] opacity-70 mt-0.5">
+                <div className="text-[9px] font-mono uppercase tracking-[0.18em] opacity-85 mt-0.5">
                   Halving emission · 25s cycles
                 </div>
               </div>

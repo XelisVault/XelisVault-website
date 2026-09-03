@@ -98,7 +98,7 @@ export function Airdrop() {
                       <span className="text-xs font-medium">{c.label}</span>
                       <span className="text-[11px] text-muted-foreground ml-2 hidden sm:inline">{c.rate}</span>
                     </div>
-                    <span className={`font-mono text-xs shrink-0 ${pts > 0 ? 'text-emerald-400' : 'text-muted-foreground/50'}`}>
+                    <span className={`font-mono text-xs shrink-0 ${pts > 0 ? 'text-emerald-400' : 'text-muted-foreground/70'}`}>
                       {pts.toLocaleString()} pts
                     </span>
                   </div>

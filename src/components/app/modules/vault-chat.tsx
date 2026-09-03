@@ -58,7 +58,7 @@ export function VaultChat() {
             'Tombstone deletions that preserve Merkle integrity',
           ].map((f, i) => (
             <div key={f} className="flex gap-3 border-b border-border/60 last:border-0 py-2.5">
-              <span className="font-mono text-[10px] text-muted-foreground/50 shrink-0">{String(i + 1).padStart(2, '0')}</span>
+              <span className="font-mono text-[10px] text-muted-foreground/70 shrink-0">{String(i + 1).padStart(2, '0')}</span>
               <span className="text-xs text-muted-foreground leading-relaxed">{f}</span>
             </div>
           ))}

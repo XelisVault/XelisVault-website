@@ -142,7 +142,7 @@ export function Oracle() {
 
       {loading && <div className="max-w-md mx-auto"><LoadingRows /></div>}
 
-      <div className="text-center text-[10px] font-mono text-muted-foreground/50 pb-2">
+      <div className="text-center text-[10px] font-mono text-muted-foreground/70 pb-2">
         Oracle data refreshes every 8 s from the live testnet
       </div>
     </div>

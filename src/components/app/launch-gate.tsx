@@ -338,7 +338,7 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5 }}
-        className="mt-8 text-xs font-mono text-muted-foreground/40"
+        className="mt-8 text-xs font-mono text-muted-foreground/60"
       >
         The team is working around the clock · Check back soon
       </motion.div>

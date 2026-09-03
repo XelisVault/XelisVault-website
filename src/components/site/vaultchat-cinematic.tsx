@@ -266,7 +266,7 @@ export function VaultChatCinematic() {
                 ? 'bg-vault/15 text-vault border border-vault/40'
                 : i < phaseIndex
                 ? 'text-emerald-400/60'
-                : 'text-muted-foreground/40'
+                : 'text-muted-foreground/60'
             }`}
           >
             {i < phaseIndex && <Check size={10} />}

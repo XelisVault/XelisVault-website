@@ -131,7 +131,7 @@ function ContractCard({ meta, hash, index }: { meta: ContractMeta; hash: string 
     >
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className={`font-mono text-[10px] shrink-0 ${meta.deployed ? 'text-vault' : 'text-muted-foreground/40'}`}>{String(index + 1).padStart(2, '0')}</span>
+          <span className={`font-mono text-[10px] shrink-0 ${meta.deployed ? 'text-vault' : 'text-muted-foreground/60'}`}>{String(index + 1).padStart(2, '0')}</span>
           <span className="font-mono text-sm font-semibold truncate">{meta.name}</span>
         </div>
         {meta.deployed ? (

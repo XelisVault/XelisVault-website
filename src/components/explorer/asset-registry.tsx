@@ -68,7 +68,7 @@ export function AssetRegistry({ assets }: { assets: AssetInfo[] }) {
                   native
                 </span>
               )}
-              <span className="text-[9px] font-mono text-muted-foreground/50 w-[92px] text-right hidden md:block shrink-0">
+              <span className="text-[9px] font-mono text-muted-foreground/70 w-[92px] text-right hidden md:block shrink-0">
                 @ topo {fmtNum(a.topoheight)}
               </span>
               <ExternalLink className="w-3 h-3 text-muted-foreground/40 group-hover:text-vault transition-colors shrink-0" />

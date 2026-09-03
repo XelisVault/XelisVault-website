@@ -88,16 +88,16 @@ export function Xusd() {
 
               <div className="relative aspect-[4/5] overflow-hidden rounded-[4px] ring-1 ring-foreground/15 shadow-maison">
                 <img
-                  src="/images/bank/handshake.jpg"
-                  alt="A handshake in warm light: one dollar in, one dollar out"
+                  src="/images/privacy/encrypted-transfer.jpg"
+                  alt="Two anonymous silhouettes exchanging a sealed golden sphere through a stream of cipher glyphs: one encrypted dollar in, one out"
                   className="w-full h-full object-cover animate-kenburns"
                 />
                 <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-oklch(0.16 0.008 80 / 0.85) via-oklch(0.16 0.008 80 / 0.45) to-transparent" />
                 <div className="absolute bottom-4 left-4 right-4 text-ink-foreground">
-                  <div className="font-display italic text-sm opacity-90">
+                  <div className="font-display italic text-sm opacity-95">
                     One dollar in, one dollar out.
                   </div>
-                  <div className="text-[10px] font-mono uppercase tracking-[0.18em] opacity-70 mt-1">
+                  <div className="text-[10px] font-mono uppercase tracking-[0.18em] opacity-85 mt-1">
                     PSM · instant mint & redeem at $1
                   </div>
                 </div>

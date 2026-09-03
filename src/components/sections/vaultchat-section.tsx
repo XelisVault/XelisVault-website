@@ -273,7 +273,7 @@ export function VaultChatSection() {
                     'Merkle root anchored every ~80 min (configurable)',
                   ].map((li, i) => (
                     <li key={i} className="flex items-baseline gap-4 py-3 border-b border-foreground/8">
-                      <span className="font-mono text-xs text-muted-foreground/50 shrink-0">{String(i + 1).padStart(2, '0')}</span>
+                      <span className="font-mono text-xs text-muted-foreground/70 shrink-0">{String(i + 1).padStart(2, '0')}</span>
                       <span>{li}</span>
                     </li>
                   ))}
@@ -288,7 +288,7 @@ export function VaultChatSection() {
                     'Anti-cheat: users verify storage, bad relayers get blacklisted',
                   ].map((li, i) => (
                     <li key={i} className="flex items-baseline gap-4 py-3 border-b border-foreground/8">
-                      <span className="font-mono text-xs text-muted-foreground/50 shrink-0">{String(i + 1).padStart(2, '0')}</span>
+                      <span className="font-mono text-xs text-muted-foreground/70 shrink-0">{String(i + 1).padStart(2, '0')}</span>
                       <span>{li}</span>
                     </li>
                   ))}

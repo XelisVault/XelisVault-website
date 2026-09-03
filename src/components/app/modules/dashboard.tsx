@@ -162,7 +162,7 @@ export function Dashboard() {
           ].map((c, i) => (
             <div key={c.title} className="border-t border-border pt-3">
               <div className="flex items-baseline gap-2.5">
-                <span className="font-mono text-[10px] text-muted-foreground/50">{String(i + 1).padStart(2, '0')}</span>
+                <span className="font-mono text-[10px] text-muted-foreground/70">{String(i + 1).padStart(2, '0')}</span>
                 <div className="text-sm font-semibold">{c.title}</div>
               </div>
               <div className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed pl-6">{c.desc}</div>
@@ -175,7 +175,7 @@ export function Dashboard() {
         <div className="max-w-md mx-auto"><LoadingRows /></div>
       )}
 
-      <div className="text-center text-[10px] font-mono text-muted-foreground/50 pb-2">
+      <div className="text-center text-[10px] font-mono text-muted-foreground/70 pb-2">
         Live data from the public XELIS testnet node · auto-refresh every 12s
       </div>
     </div>

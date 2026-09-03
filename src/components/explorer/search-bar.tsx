@@ -89,7 +89,7 @@ export function SearchBar({ onResolve }: { onResolve: (t: SearchTarget) => void 
           onKeyDown={(e) => { if (e.key === 'Enter') resolve() }}
           placeholder="Inspect anything, block hash · topoheight · tx hash · xet:address  ( / )"
           spellCheck={false}
-          className="flex-1 bg-transparent outline-none text-sm font-mono placeholder:text-muted-foreground/50 min-w-0"
+          className="flex-1 bg-transparent outline-none text-sm font-mono placeholder:text-muted-foreground/70 min-w-0"
         />
         <button
           onClick={resolve}

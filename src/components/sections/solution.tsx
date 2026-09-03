@@ -73,14 +73,14 @@ export function Solution() {
               <div className="absolute -inset-2.5 rounded-[6px] border border-vault/30 pointer-events-none" />
               <div className="relative aspect-[3/4] overflow-hidden rounded-[4px] ring-1 ring-foreground/15 shadow-maison">
                 <img
-                  src="/images/bank/architecture.jpg"
-                  alt="Modern glass tower seen from below: layered institutional architecture"
+                  src="/images/privacy/crypto-layers.jpg"
+                  alt="Stacked obsidian layers engraved with golden cipher seals: privacy in protocol layers"
                   className="w-full h-full object-cover animate-kenburns"
                 />
-                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-oklch(0.2 0.01 80 / 0.5) to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-oklch(0.16 0.008 80 / 0.8) to-transparent" />
                 <div className="absolute bottom-3 left-3 right-3 text-ink-foreground">
                   <div className="font-display italic text-sm">Engineered in layers.</div>
-                  <div className="text-[9px] font-mono uppercase tracking-[0.18em] opacity-70 mt-0.5">
+                  <div className="text-[9px] font-mono uppercase tracking-[0.18em] opacity-85 mt-0.5">
                     6 layers · 51 contracts
                   </div>
                 </div>
@@ -100,7 +100,7 @@ export function Solution() {
             {PILLARS.map((p, i) => (
               <RevealItem key={`solution-pillar-${i}`}>
                 <div className="group grid md:grid-cols-[110px_1fr] gap-x-10 border-b border-foreground/10 py-9 md:py-10">
-                  <div className="font-display text-5xl md:text-6xl font-light text-vault/35 group-hover:text-vault/60 transition-colors md:text-left text-left tabular-nums">
+                  <div className="font-display text-5xl md:text-6xl font-light text-vault/50 group-hover:text-vault/75 transition-colors md:text-left text-left tabular-nums">
                     0{i + 1}
                   </div>
                   <div>

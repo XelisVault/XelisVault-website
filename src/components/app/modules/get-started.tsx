@@ -60,7 +60,7 @@ export function GetStarted() {
                 onClick={() => toggle(step.id)}
                 className="w-full flex items-baseline gap-4 py-4 text-left group"
               >
-                <span className={`font-mono text-xs tracking-[0.18em] shrink-0 w-7 ${done ? 'text-emerald-400' : isOpen ? 'text-vault' : 'text-muted-foreground/50'}`}>
+                <span className={`font-mono text-xs tracking-[0.18em] shrink-0 w-7 ${done ? 'text-emerald-400' : isOpen ? 'text-vault' : 'text-muted-foreground/70'}`}>
                   {String(i + 1).padStart(2, '0')}
                 </span>
                 <div className="flex-1 min-w-0">
@@ -223,7 +223,7 @@ function StepExplore() {
         ].map((x, i) => (
           <div key={x.t} className="border-t border-border pt-3">
             <div className="flex items-baseline gap-2.5">
-              <span className="font-mono text-[10px] text-muted-foreground/50">{String(i + 1).padStart(2, '0')}</span>
+              <span className="font-mono text-[10px] text-muted-foreground/70">{String(i + 1).padStart(2, '0')}</span>
               <div className="text-sm font-semibold">{x.t}</div>
             </div>
             <div className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed pl-6">{x.d}</div>

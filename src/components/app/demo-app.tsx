@@ -191,7 +191,7 @@ export function DemoApp() {
               <nav className="flex-1 overflow-y-auto py-5 space-y-6 custom-scrollbar">
                 {groups.map((g) => (
                   <div key={g}>
-                    <div className="px-5 mb-2 text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/50">
+                    <div className="px-5 mb-2 text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/70">
                       {g}
                     </div>
                     <div>
@@ -208,7 +208,7 @@ export function DemoApp() {
                                 : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-card/70'
                             }`}
                           >
-                            <span className={`font-mono text-[10px] tracking-wider ${isActive ? 'text-vault' : 'text-muted-foreground/50'}`}>
+                            <span className={`font-mono text-[10px] tracking-wider ${isActive ? 'text-vault' : 'text-muted-foreground/70'}`}>
                               {pad2(globalIdx)}
                             </span>
                             <span className="font-medium">{n.label}</span>
@@ -368,7 +368,7 @@ export function DemoApp() {
                                 : 'border-transparent text-muted-foreground'
                             }`}
                           >
-                            <span className={`font-mono text-[9px] tracking-wider ${isActive ? 'text-vault' : 'text-muted-foreground/50'}`}>
+                            <span className={`font-mono text-[9px] tracking-wider ${isActive ? 'text-vault' : 'text-muted-foreground/70'}`}>
                               {pad2(globalIdx)}
                             </span>
                             {n.label}

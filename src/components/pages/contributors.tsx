@@ -320,7 +320,7 @@ export function ContributorsPage() {
 
                               {/* External link indicator */}
                               {contributor.profileUrl && (
-                                <div className="absolute bottom-3 right-3 text-muted-foreground/30">
+                                <div className="absolute bottom-3 right-3 text-muted-foreground/60">
                                   <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M7 17L17 7M17 7H7m10 0v10" />
                                   </svg>

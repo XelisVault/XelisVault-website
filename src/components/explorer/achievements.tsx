@@ -165,7 +165,7 @@ export function Achievements({
                 title={a.desc}
               >
                 <div className={`text-xl leading-none ${on ? '' : 'opacity-25 grayscale'}`}>{a.icon}</div>
-                <div className={`mt-1 text-[9px] font-mono leading-tight ${on ? 'text-amber-200/90' : 'text-muted-foreground/50'}`}>
+                <div className={`mt-1 text-[9px] font-mono leading-tight ${on ? 'text-amber-200/90' : 'text-muted-foreground/70'}`}>
                   {a.title}
                 </div>
                 {!on && <EyeOff className="absolute top-1.5 right-1.5 w-2.5 h-2.5 text-muted-foreground/30" />}

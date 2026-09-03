@@ -73,7 +73,7 @@ export function LiveNetworkStrip() {
             <span className="absolute inline-flex w-full h-full rounded-full bg-emerald-500 opacity-60 animate-ping" />
             <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-emerald-500" />
           </span>
-          <span className="text-[9px] font-mono font-semibold uppercase tracking-[0.18em] text-emerald-700">
+          <span className="text-[9px] font-mono font-semibold uppercase tracking-[0.18em] text-emerald-800">
             Live testnet
           </span>
         </span>

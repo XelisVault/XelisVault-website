@@ -131,7 +131,7 @@ export function Miner() {
           ].map((x, i) => (
             <div key={x.t} className="border-t border-border pt-3">
               <div className="flex items-baseline gap-2.5">
-                <span className="font-mono text-[10px] text-muted-foreground/50">{String(i + 1).padStart(2, '0')}</span>
+                <span className="font-mono text-[10px] text-muted-foreground/70">{String(i + 1).padStart(2, '0')}</span>
                 <div className="text-xs font-semibold">{x.t}</div>
               </div>
               <div className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed pl-6">{x.d}</div>

@@ -76,7 +76,7 @@ export function Hero() {
               transition={{ duration: 1, delay: 0.2 }}
               className={`inline-flex items-center gap-2 px-4 py-1.5 text-[11px] font-mono uppercase tracking-[0.18em] mb-7 ${
                 isLaunched
-                  ? 'text-emerald-700'
+                  ? 'text-emerald-800'
                   : 'text-muted-foreground'
               }`}
             >
@@ -143,9 +143,9 @@ export function Hero() {
               />
               <a
                 href="#protocol"
-                className="group inline-flex items-center gap-2 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
+                className="group inline-flex items-center gap-2 text-sm font-medium text-foreground hover:text-vault transition-colors"
               >
-                <span className="border-b border-foreground/25 group-hover:border-vault group-hover:text-vault transition-colors pb-0.5">
+                <span className="border-b border-foreground/35 group-hover:border-vault group-hover:text-vault transition-colors pb-0.5">
                   Explore the Protocol
                 </span>
               </a>
@@ -157,12 +157,12 @@ export function Hero() {
             </div>
           </div>
 
-          {/* RIGHT: the framed view */}
+          {/* RIGHT: the framed view — visible on mobile so privacy is legible from the first screen */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1.2, delay: 0.5, ease: [0.21, 0.47, 0.32, 0.98] }}
-            className="relative hidden md:block"
+            className="relative mt-6 lg:mt-0"
           >
             {/* The framed image with gold offset border */}
             <div className="relative">
@@ -170,19 +170,19 @@ export function Hero() {
               <div className="absolute -inset-3 rounded-[6px] border border-vault/35 pointer-events-none" />
               <div className="absolute -inset-3 translate-x-2.5 translate-y-2.5 rounded-[6px] border border-foreground/10 pointer-events-none" />
 
-              <div className="relative aspect-[4/5] max-w-[520px] mx-auto overflow-hidden rounded-[4px] ring-1 ring-foreground/15 shadow-maison">
+              <div className="relative aspect-[4/5] max-w-[340px] sm:max-w-[420px] md:max-w-[520px] mx-auto overflow-hidden rounded-[4px] ring-1 ring-foreground/15 shadow-maison">
                 <img
-                  src="/images/bank/alps-hero.jpg"
-                  alt="Alpine ridge in golden light: the standard of discretion and permanence"
+                  src="/images/privacy/hero-privacy.jpg"
+                  alt="A sealed circular vault with a golden combination dial, wrapped in a glowing cipher lattice: privacy engineered at the core"
                   className="w-full h-full object-cover animate-kenburns"
                 />
                 {/* Soft ink gradient at the bottom for the caption */}
                 <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-oklch(0.16 0.008 80 / 0.85) via-oklch(0.16 0.008 80 / 0.45) to-transparent" />
                 <div className="absolute bottom-4 left-4 right-4 text-ink-foreground">
-                  <div className="font-display italic text-sm opacity-90">
-                    Discretion, engineered.
+                  <div className="font-display italic text-sm opacity-95">
+                    Privacy, engineered.
                   </div>
-                  <div className="text-[10px] font-mono uppercase tracking-[0.18em] opacity-70 mt-1">
+                  <div className="text-[11px] font-mono uppercase tracking-[0.18em] opacity-95 mt-1">
                     XELIS BlockDAG · 5-second finality
                   </div>
                 </div>

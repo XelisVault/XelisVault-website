@@ -27,6 +27,7 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://xelisvault.network"),
   title: "XELIS Vault · Confidential Finance, Institutional Grade",
   description:
     "The first confidential financial platform on XELIS BlockDAG. Deposit XEL, borrow xUSD, trade on VaultSwap, tokenize real-world assets, lend peer-to-peer, and govern privately, secured by native Twisted ElGamal homomorphic encryption. Built to a private-banking standard, open-source under MIT.",

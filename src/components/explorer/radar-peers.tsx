@@ -104,7 +104,7 @@ export function MempoolRadar({
           <div className="text-[10px] font-mono text-muted-foreground/60">loading…</div>
         )}
         {feeRates && (
-          <div className="text-[9px] font-mono text-muted-foreground/50">
+          <div className="text-[9px] font-mono text-muted-foreground/70">
             atomic/byte · ≈ {feeRateToXelPerKb(feeRates.default)} XET per KB
           </div>
         )}
@@ -189,7 +189,7 @@ export function PeersPanel({
             </span>
           </div>
         ))}
-        <div className="text-[9px] font-mono text-muted-foreground/50 pt-1">
+        <div className="text-[9px] font-mono text-muted-foreground/70 pt-1">
           cyan = synced · amber = catching up · center = your vantage
         </div>
       </div>

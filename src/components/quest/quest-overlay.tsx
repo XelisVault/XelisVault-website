@@ -263,7 +263,7 @@ export function QuestOverlay({ open, onClose }: { open: boolean; onClose: () => 
                               ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
                               : isCurrent
                               ? `bg-vault text-white`
-                              : 'bg-card/40 border border-border text-muted-foreground/30 cursor-not-allowed'
+                              : 'bg-card/40 border border-border text-muted-foreground/60 cursor-not-allowed'
                           }`}
                           title={isAccessible ? `Puzzle ${p.id}: ${p.title}` : 'Locked, solve previous puzzles first'}
                         >
@@ -520,7 +520,7 @@ function CompletionScreen({ onRestart }: { onRestart: () => void }) {
         Restart the quest
       </button>
 
-      <div className="mt-8 text-[10px] font-mono text-muted-foreground/40">
+      <div className="mt-8 text-[10px] font-mono text-muted-foreground/60">
         XELIS Vault, Privacy, proven. Mathematics, vindicated.
       </div>
     </motion.div>
