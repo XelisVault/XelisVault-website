@@ -1,0 +1,7 @@
+datacenter-1.jpg :: This image shows a dimly lit, modern data center with rows of server racks glowing with blue and white indicator lights, conveying a high-tech, sterile, and futuristic atmosphere. | REAL: yes
+datacenter-2.jpg :: This image shows a long, clean corridor of server racks in a modern data center, bathed in cool blue light that creates a high-tech, sterile, and futuristic atmosphere. | REAL: no
+fiber-0.jpg :: This image shows a close-up of glowing pink fiber optic cables with light points at their tips against a dark blue bokeh background, creating a futuristic and high-tech mood. | REAL: no
+fiber-1.jpg :: This image shows a close-up of glowing fiber optic strands in vibrant blue and pink hues against a dark background, creating a futuristic and ethereal mood. REAL: no
+fiber-3.jpg :: This image displays a coiled bundle of fiber optic light strands glowing with a soft, ethereal purple luminescence against a dark background, creating a futuristic and magical mood, with smaller inset examples showing the same product in green, blue, and pink. | REAL: y
+boardroom-0.jpg :: This image depicts a stark, minimalist conference room with a long black table and leather chairs, illuminated by bright horizontal windows against dark walls, creating a somber, serious, and modern corporate atmosphere. | REAL: yes
+boardroom-1.jpg :: This image shows a sleek, modern corporate conference room with a long white table, black ergonomic chairs, and large windows, conveying a professional, clean, and sophisticated atmosphere. | REAL: yes

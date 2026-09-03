@@ -1,0 +1,6 @@
+vault-door-0.jpg :: This image shows a brightly decorated, colorful interior space, likely a sunroom or porch, featuring a striped sofa, patterned armchairs, a wooden coffee table, and lush green plants against green lattice walls. | REAL: yes
+vault-door-1.jpg :: This image shows a group of people reacting with fear and shock in a dimly lit, purple-and-red-lit environment that appears to be a haunted house or horror attraction, with a person in zombie makeup visible on the left. | REAL: yes
+vault-door-2.jpg :: This image shows the illuminated Hongya Cave (洪崖洞) traditional stilt-house complex in Chongqing, China, at night, with modern skyscrapers rising behind it and a river in the foreground. | REAL: yes
+vault-door-3.jpg :: This image shows a modern, spacious hotel lobby or lounge area featuring curved light blue sofas, a large fluted column, circular ceiling fixtures, and lush green plants against frosted glass windows. | REAL: yes
+datacenter-0.jpg :: This image shows a long corridor in a data center with rows of server racks on both sides featuring glowing indicator lights. | REAL: no
+datacenter-1.jpg :: PARSE-FAIL

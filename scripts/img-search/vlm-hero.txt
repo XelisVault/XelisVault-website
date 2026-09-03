@@ -1,0 +1,6 @@
+safe-door-0.jpg :: This image shows a large, dark gray commercial or residential safe with a combination dial, handle, and key lock on its front door. | REAL: yes
+safe-door-2.jpg :: This image shows two vintage metal safes, one rusted and the other black with gold trim, displayed indoors against a white wall. | REAL: no
+gold-vault-0.jpg :: This image shows stacks of gold bars arranged on shelves in front of safe deposit boxes in a vault. | REAL: no
+gold-vault-2.jpg :: This image shows a pile of gold bars of various sizes with embossed markings and serial numbers. | REAL: yes
+deposit-box-1.jpg :: This image shows a 3D rendered illustration of a row of metallic safe deposit boxes with one drawer partially open. | REAL: no
+padlock-2.jpg :: This image shows a close-up of a dark, textured fabric surface with shimmering golden glitter or sequin details and visible "Unsplash+" watermarks repeated across it. |  | REAL: no

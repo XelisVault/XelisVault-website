@@ -1,0 +1,54 @@
+🚀 Initializing Z-AI SDK...
+🔎 Searching images: "close up of antique watch mechanism gears dark moody"
+✅ Got 6 images
+{
+  "success": true,
+  "query": "close up of antique watch mechanism gears dark moody",
+  "count": 6,
+  "ranked": false,
+  "captioned_count": 0,
+  "results": [
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/b742e8c369a3.jpg",
+      "caption": "",
+      "source": "Dreamstime.com",
+      "original_width": "1600px",
+      "original_height": "1157px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/046b75266d0b.jpg",
+      "caption": "",
+      "source": "Dreamstime.com",
+      "original_width": "1600px",
+      "original_height": "1153px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/29244d473d2e.png",
+      "caption": "",
+      "source": "eBay",
+      "original_width": "1000px",
+      "original_height": "1000px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/15faaa732823.jpg",
+      "caption": "",
+      "source": "Etsy",
+      "original_width": "1649px",
+      "original_height": "1649px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/c60e49d25f35.png",
+      "caption": "",
+      "source": "eBay",
+      "original_width": "1200px",
+      "original_height": "1200px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/48db5897edc8.jpg",
+      "caption": "",
+      "source": "Chrono Hunter",
+      "original_width": "800px",
+      "original_height": "1227px"
+    }
+  ]
+}

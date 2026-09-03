@@ -1,0 +1,51 @@
+{
+  "success": true,
+  "query": "gold bars stacked inside a dark bank vault",
+  "count": 6,
+  "ranked": false,
+  "captioned_count": 0,
+  "results": [
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/0245ed88dbb6.jpg",
+      "caption": "",
+      "source": "Alamy",
+      "original_width": "1300px",
+      "original_height": "847px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/fdcc228f1689.jpg",
+      "caption": "",
+      "source": "Barchart.com",
+      "original_width": "1097px",
+      "original_height": "763px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/8d57e9b08324.jpg",
+      "caption": "",
+      "source": "The Denver Post",
+      "original_width": "1200px",
+      "original_height": "900px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/ff61e3a8992c.png",
+      "caption": "",
+      "source": "goldvaulttrading.com",
+      "original_width": "1254px",
+      "original_height": "1254px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/2179fd8722ee.jpg",
+      "caption": "",
+      "source": "Alamy",
+      "original_width": "1300px",
+      "original_height": "956px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3dccc7240cdd.jpg",
+      "caption": "",
+      "source": "TheStreet",
+      "original_width": "2560px",
+      "original_height": "1607px"
+    }
+  ]
+}

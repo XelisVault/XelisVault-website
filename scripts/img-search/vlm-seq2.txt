@@ -1,0 +1,8 @@
+datacenter-1.jpg :: PARSE-FAIL
+datacenter-2.jpg :: PARSE-FAIL
+fiber-0.jpg :: PARSE-FAIL
+fiber-1.jpg :: PARSE-FAIL
+fiber-3.jpg :: PARSE-FAIL
+boardroom-0.jpg :: PARSE-FAIL
+boardroom-1.jpg :: PARSE-FAIL
+boardroom-2.jpg :: PARSE-FAIL

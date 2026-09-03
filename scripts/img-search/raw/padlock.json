@@ -1,0 +1,51 @@
+{
+  "success": true,
+  "query": "golden padlock on dark black background macro photography",
+  "count": 6,
+  "ranked": false,
+  "captioned_count": 0,
+  "results": [
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/306815283d88.jpg",
+      "caption": "",
+      "source": "StockCake",
+      "original_width": "768px",
+      "original_height": "1376px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/941562159a4a.jpg",
+      "caption": "",
+      "source": "Wallpaper Abyss - Alpha Coders",
+      "original_width": "1920px",
+      "original_height": "1282px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/7dacc535fc2b.jpg",
+      "caption": "",
+      "source": "Unsplash",
+      "original_width": "3000px",
+      "original_height": "4500px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/57b859cdeb8a.jpg",
+      "caption": "",
+      "source": "Alamy",
+      "original_width": "1083px",
+      "original_height": "1390px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/923369f6c8db.jpg",
+      "caption": "",
+      "source": "Digital Photography School",
+      "original_width": "1500px",
+      "original_height": "1200px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/8f42f114b30a.jpg",
+      "caption": "",
+      "source": "Magnific",
+      "original_width": "720px",
+      "original_height": "1280px"
+    }
+  ]
+}

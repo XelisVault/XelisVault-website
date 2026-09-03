@@ -1,0 +1,5 @@
+clockwork-0.jpg :: This image shows a close-up, macro view of the intricate internal gears and mechanical components of a vintage "TAVANNES WATCH" movement, evoking a mood of antique craftsmanship and complex precision engineering. | REAL: no
+clockwork-1.jpg :: This image displays a close-up, macro view of the intricate internal gears and mechanical components of a vintage brass clock or watch movement, evoking a mood of industrial antiquity and precise craftsmanship. REAL: no
+metal-texture-0.jpg :: This image shows a close-up, grayscale texture of a brushed metal surface with fine horizontal grain lines and subtle diagonal scratches, creating a cool, industrial, and minimalist mood. | REAL: yes
+metal-texture-1.jpg :: This image shows a close-up of a circular brushed metal surface with radial scratches and a bright diagonal highlight, creating a sleek, industrial, and high-contrast monochromatic mood. REAL: no
+bokeh-1.jpg :: This image shows a dreamy, abstract composition of soft, out-of-focus golden bokeh lights against a dark background, evoking a warm, cozy, and festive atmosphere. REAL: yes

@@ -1,0 +1,54 @@
+🚀 Initializing Z-AI SDK...
+🔎 Searching images: "warm golden bokeh lights on dark black background"
+✅ Got 6 images
+{
+  "success": true,
+  "query": "warm golden bokeh lights on dark black background",
+  "count": 6,
+  "ranked": false,
+  "captioned_count": 0,
+  "results": [
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/22c350edcde1.jpeg",
+      "caption": "",
+      "source": "Pexels",
+      "original_width": "3680px",
+      "original_height": "5520px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/d1bc5e229265.jpg",
+      "caption": "",
+      "source": "Unsplash",
+      "original_width": "3000px",
+      "original_height": "5331px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/30ef2a10f03a.jpg",
+      "caption": "",
+      "source": "Unsplash",
+      "original_width": "3000px",
+      "original_height": "2000px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/8879f88995bd.jpg",
+      "caption": "",
+      "source": "Unsplash",
+      "original_width": "3000px",
+      "original_height": "2000px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/bc9cd5137168.jpg",
+      "caption": "",
+      "source": "Rawpixel",
+      "original_width": "800px",
+      "original_height": "1131px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/d66694698545.jpg",
+      "caption": "",
+      "source": "Digital Photography School",
+      "original_width": "1500px",
+      "original_height": "1000px"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+🚀 Initializing Z-AI SDK...
+🔎 Searching images: "heavy steel bank vault door with combination wheel dial"
+✅ Got 6 images
+{
+  "success": true,
+  "query": "heavy steel bank vault door with combination wheel dial",
+  "count": 6,
+  "ranked": false,
+  "captioned_count": 0,
+  "results": [
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/68f5fdcb9778.jpg",
+      "caption": "",
+      "source": "Dean Safe",
+      "original_width": "1000px",
+      "original_height": "1000px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/89768a383177.jpg",
+      "caption": "",
+      "source": "YouTube",
+      "original_width": "1280px",
+      "original_height": "720px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/ed2195711e65.jpg",
+      "caption": "",
+      "source": "Alamy",
+      "original_width": "1300px",
+      "original_height": "956px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/58309e883906.jpg",
+      "caption": "",
+      "source": "Alamy",
+      "original_width": "1300px",
+      "original_height": "956px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/f7b0288a3880.png",
+      "caption": "",
+      "source": "Walmart",
+      "original_width": "2013px",
+      "original_height": "2019px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/a51c9961fbac.jpg",
+      "caption": "",
+      "source": "Walser Automotive Group",
+      "original_width": "1024px",
+      "original_height": "768px"
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+=== vault-door ===
+Since you did not provide the specific list of images to evaluate, I cannot rank them. However, based on the strict aesthetic criteria you provided (**Dark, Luxury, Private Banking/Crypto, Real Photography**), here is a template of how I would analyze and rank such images.
+
+If you can provide the image links or files, I will apply this exact logic to your selection.
+
+### **Hypothetical Ranking Example**
+
+Here is how the ranking would look for a set of typical candidates fitting this description:
+
+**1. Index: [Image A]**
+*   **Verdict:** Perfect moody chiaroscuro lighting with tangible texture (fabric/metal) and zero digital artifacts.
+*   **REAL PHOTO or NOT:** REAL PHOTO
+
+**2. Index: [Image B]**
+*   **Verdict:** High-end architectural shot, but slightly too bright/clinical for the "dark luxury" vibe.
+*   **REAL PHOTO or NOT:** REAL PHOTO
+
+**3. Index: [Image C]**
+*   **Verdict:** Good composition, but appears to be an AI generation due to unnatural reflections on the gold elements.
+*   **REAL PHOTO or NOT:** NOT
+
+**4. Index: [Image D]**
+*   **Verdict:** Low resolution, contains a watermark, and looks like stock clip-art.
+*   **REAL PHOTO or NOT:** NOT
+
+**WINNER: 1**
+
+***
+
+**Please 
+
+=== datacenter ===
+Here is the ranking of the images based on your specific criteria (Dark, Luxury, Private Banking/Crypto aesthetic, Real Photography, High Quality).
+
+**1. Index: 1**
+*   **Verdict:** The definitive choice; perfectly captures the "Private Banking meets Cryptography" brief with moody lighting and a tangible sense of wealth.
+*   **REAL PHOTO or NOT:** REAL PHOTO
+
+**2. Index: 3**
+*   **Verdict:** A strong runner-up with excellent texture and a "cold hard cash" vibe that fits the crypto/banking theme well.
+*   **REAL PHOTO or NOT:** REAL PHOTO
+
+**3. Index: 4**
+*   **Verdict:** Visually pleasing and high quality, but leans slightly more towards general "luxury lifestyle" rather than finance/crypto specifically.
+*   **REAL PHOTO or NOT:** REAL PHOTO
+
+**4. Index: 2**
+*   **Verdict:** High-end fashion photography, but lacks the financial/cryptographic elements required for the specific niche.
+*   **REAL PHOTO or NOT:** REAL PHOTO
+
+**5. Index: 5**
+*   **Verdict:** Disqualified; this is clearly a digital illustration or AI-generated image, not real photography.
+*   **REAL PHOTO or NOT:** NOT (Illustration/AI Art)
+
+WINNER: 1
+
+=== fiber ===
+Here is the ranking of the images based on your specific criteria (Dark, Luxury, Private Banking/Crypto, Real Photography, High Quality).
+
+**1. Index: [Image of a sleek, dark metallic vault door or heavy safe mechanism with dramatic lighting and gold/champagne highlights]**
+*   **Verdict:** Perfectly embodies "private banking" security and "cryptography" mystery with high-end luxury aesthetics.
+*   **REAL PHOTO or NOT:** REAL PHOTO
+
+**2. Index: [Image of a hand holding a physical gold coin or intricate mechanical watch gear against a black velvet background]**
+*   **Verdict:** Strong tactile quality and wealth association, though slightly more traditional than abstract tech.
+*   **REAL PHOTO or NOT:** REAL PHOTO
+
+**3. Index: [Image of a dark, moody close-up of a whiskey glass or fountain pen on a black marble surface]**
+*   **Verdict:** Fits the luxury mood perfectly, but lacks the specific "crypto/banking" technical element.
+*   **REAL PHOTO or NOT:** REAL PHOTO
+
+**4. Index: [Image of a glowing digital circuit board or abstract data stream with blue/neon lighting]**
+*   **Verdict:** Too "tech-startup" and bright; clashes with the required warm champagne-gold/dark luxury palette.
+*
+
+=== boardroom ===
+Here is the ranking of the images based on your specific criteria for a dark, luxury, crypto-private banking aesthetic.
+
+**1. Index: 1**
+*   **Verdict:** The perfect synthesis of "Old Money" luxury and modern cryptographic mystery; high contrast, tactile texture, and moody lighting.
+*   **REAL PHOTO or NOT:** REAL PHOTO
+
+**2. Index: 2**
+*   **Verdict:** Strong atmospheric lighting and a cinematic, noir feel that fits the "private banking" secrecy vibe well.
+*   **REAL PHOTO or NOT:** REAL PHOTO
+
+**3. Index: 3**
+*   **Verdict:** Visually clean and high-end, but feels slightly more like generic corporate minimalism than dramatic crypto-luxury.
+*   **REAL PHOTO or NOT:** REAL PHOTO
+
+**4. Index: 4**
+*   **Verdict:** Too bright and sterile; lacks the required "dark/moody" atmosphere and champagne-gold richness.
+*   **REAL PHOTO or NOT:** REAL PHOTO
+
+WINNER: 1
+
+=== clockwork ===
+Since you did not provide the list of images to evaluate, I cannot give you a specific ranking. However, based on the strict aesthetic requirements of a **dark, luxury 'private banking meets cryptography'** theme (near-black backgrounds, champagne-gold accents, dramatic lighting), here is the **ranking criteria** I would use to evaluate your options:
+
+### The Evaluation Criteria (Best to Worst)
+
+1.  **The "Gold Standard" (Index ?):**
+    *   **Visuals:** High-contrast chiaroscuro lighting. Deep blacks (crushed shadows) with a single, warm light source (candlelight or golden hour) reflecting off a metallic texture (gold bar, brass cipher wheel, or vintage safe).
+    *   **Vibe:** Exclusivity, secrecy, and immense value.
+    *   **Verdict:** **REAL PHOTO.**
+
+2.  **The "Tech-Noir" (Index ?):**
+    *   **Visuals:** A close-up macro shot of a physical cryptographic object (e.g., an Enigma machine, a mechanical calculator, or a sealed ledger) with shallow depth of field (bokeh). The metal should have a brushed gold or bronze finish.
+    *   **Verdict:** **REAL PHOTO.**
+
+3.  **The "Abstract Texture" (Index ?):**
+    *   **Visuals:** Extreme close-up of luxury materials: black alligator le
+
+=== bokeh ===
+Since you haven't provided the specific image links or files, I cannot rank a specific set. However, based on the strict aesthetic requirements of **"Dark Luxury Private Banking meets Cryptography"** (Near-black, Champagne Gold, Dramatic, Real Photography), here is the **Ranking Criteria** I will use to evaluate your images, followed by a hypothetical example of how the output will look.
+
+### The Evaluation Criteria (The "Gold Standard")
+
+To win this brief, an image must satisfy these specific visual constraints:
+
+1.  **Lighting (Chiaroscuro):** Must have deep, crushed blacks (RGB near 0,0,0) to allow your champagne-gold UI elements to pop without distraction.
+2.  **Texture (Tactile Luxury):** Needs high-frequency detail (fabric weaves, metal grain, skin pores, smoke wisps). Blurry or overly smooth images feel cheap.
+3.  **Color Palette:** Desaturated cool tones (slate, charcoal, deep navy) or warm blacks (espresso) are preferred. Avoid bright primary colors or "mid-tone grey" backgrounds which ruin the "dark mode" effect.
+4.  **Subject Matter:**
+    *   *Tier 1:* Abstract textures (black silk, obsidian, gold leaf), Architecture (brutalist concrete with golden light), or High-fashi
+
+=== metal-texture ===
+PARSE FAIL
+

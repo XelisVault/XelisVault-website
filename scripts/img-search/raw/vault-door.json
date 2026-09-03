@@ -1,0 +1,51 @@
+{
+  "success": true,
+  "query": "massive circular bank vault door in a dark room, dramatic lighting",
+  "count": 6,
+  "ranked": false,
+  "captioned_count": 0,
+  "results": [
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/890353e518d0.jpg",
+      "caption": "",
+      "source": "aspire design and home",
+      "original_width": "1010px",
+      "original_height": "1060px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3a67b30f2b96.jpg",
+      "caption": "",
+      "source": "Condé Nast Traveler",
+      "original_width": "1688px",
+      "original_height": "1688px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/80158e1901aa.jpg",
+      "caption": "",
+      "source": "Six Flags",
+      "original_width": "1920px",
+      "original_height": "1282px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/c70104fbd251.jpg",
+      "caption": "",
+      "source": "LillaGreen",
+      "original_width": "2048px",
+      "original_height": "1536px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/1b278eb499b8.jpg",
+      "caption": "",
+      "source": "WeRoad",
+      "original_width": "1280px",
+      "original_height": "720px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/91a633cd676d.jpg",
+      "caption": "",
+      "source": "BBC Good Food",
+      "original_width": "5000px",
+      "original_height": "3334px"
+    }
+  ]
+}

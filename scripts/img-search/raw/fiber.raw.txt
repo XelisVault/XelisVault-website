@@ -1,0 +1,54 @@
+🚀 Initializing Z-AI SDK...
+🔎 Searching images: "fiber optic light strands glowing in the dark"
+✅ Got 6 images
+{
+  "success": true,
+  "query": "fiber optic light strands glowing in the dark",
+  "count": 6,
+  "ranked": false,
+  "captioned_count": 0,
+  "results": [
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/f984aef6d1cd.jpg",
+      "caption": "",
+      "source": "Amazon.ca",
+      "original_width": "894px",
+      "original_height": "894px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/e6b4c913249d.jpg",
+      "caption": "",
+      "source": "Dreamstime.com",
+      "original_width": "1600px",
+      "original_height": "1210px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/180e00b2be40.jpg",
+      "caption": "",
+      "source": "Alamy",
+      "original_width": "1300px",
+      "original_height": "956px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/1a1b97f50dd0.jpg",
+      "caption": "",
+      "source": "Ants on a Melon",
+      "original_width": "1024px",
+      "original_height": "1268px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/a5677b0992ab.jpg",
+      "caption": "",
+      "source": "YouTube",
+      "original_width": "1280px",
+      "original_height": "720px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/44438c002677.jpg",
+      "caption": "",
+      "source": "Fun & Function",
+      "original_width": "1200px",
+      "original_height": "1200px"
+    }
+  ]
+}

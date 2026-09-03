@@ -1,0 +1,51 @@
+{
+  "success": true,
+  "query": "dark data center server room with rows of glowing servers",
+  "count": 6,
+  "ranked": false,
+  "captioned_count": 0,
+  "results": [
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/e082ab3b1cab.jpg",
+      "caption": "",
+      "source": "PresentationGO",
+      "original_width": "1285px",
+      "original_height": "720px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/88bf14ee591d.jpg",
+      "caption": "",
+      "source": "Shutterstock",
+      "original_width": "1500px",
+      "original_height": "956px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/d4a25b00cbfb.jpg",
+      "caption": "",
+      "source": "Sager Electronics",
+      "original_width": "2780px",
+      "original_height": "1158px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3bbd59dad7d3.jpg",
+      "caption": "",
+      "source": "Alamy",
+      "original_width": "1300px",
+      "original_height": "775px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/b67a8bfd58f2.jpg",
+      "caption": "",
+      "source": "123RF",
+      "original_width": "1300px",
+      "original_height": "731px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/6e4732e03c02.jpg",
+      "caption": "",
+      "source": "Aggreko",
+      "original_width": "1000px",
+      "original_height": "1000px"
+    }
+  ]
+}

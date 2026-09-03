@@ -1,0 +1,51 @@
+{
+  "success": true,
+  "query": "dark modern corporate boardroom empty table dramatic light",
+  "count": 6,
+  "ranked": false,
+  "captioned_count": 0,
+  "results": [
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/56c7700a5e89.jpg",
+      "caption": "",
+      "source": "Wallpaper",
+      "original_width": "1540px",
+      "original_height": "944px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/f84f59fb17d0.jpg",
+      "caption": "",
+      "source": "K2 Space",
+      "original_width": "2560px",
+      "original_height": "1707px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/b4946e4d19c7.jpg",
+      "caption": "",
+      "source": "Alamy",
+      "original_width": "1300px",
+      "original_height": "956px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/80c49f899124.jpg",
+      "caption": "",
+      "source": "Chagrin Valley Custom Furniture",
+      "original_width": "2560px",
+      "original_height": "1920px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/5449677bf038.png",
+      "caption": "",
+      "source": "SplitShire",
+      "original_width": "1280px",
+      "original_height": "720px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/7256a6dcd497.jpg",
+      "caption": "",
+      "source": "seawavetable",
+      "original_width": "1080px",
+      "original_height": "1080px"
+    }
+  ]
+}

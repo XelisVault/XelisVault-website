@@ -1,0 +1,29 @@
+fiber-1.jpg :: PARSE-FAIL
+datacenter-2.jpg :: PARSE-FAIL
+vault-door-0.jpg :: PARSE-FAIL
+fiber-3.jpg :: PARSE-FAIL
+datacenter-1.jpg :: PARSE-FAIL
+fiber-0.jpg :: PARSE-FAIL
+vault-door-1.jpg :: PARSE-FAIL
+vault-door-3.jpg :: PARSE-FAIL
+datacenter-0.jpg :: PARSE-FAIL
+fiber-2.jpg :: This image shows a coiled blue electroluminescent wire or light-up cable glowing against a dark background.
+REAL: no
+vault-door-2.jpg :: This image shows the illuminated Hongya Cave (洪崖洞) traditional stilt house complex and modern skyscrapers in Chongqing, China, at night.
+REAL: yes
+boardroom-1.jpg :: PARSE-FAIL
+clockwork-0.jpg :: PARSE-FAIL
+bokeh-1.jpg :: PARSE-FAIL
+metal-texture-2.jpg :: PARSE-FAIL
+metal-texture-0.jpg :: PARSE-FAIL
+metal-texture-1.jpg :: PARSE-FAIL
+boardroom-2.jpg :: PARSE-FAIL
+bokeh-2.jpg :: PARSE-FAIL
+clockwork-2.jpg :: PARSE-FAIL
+boardroom-0.jpg :: PARSE-FAIL
+clockwork-1.jpg :: PARSE-FAIL
+bokeh-3.jpg :: PARSE-FAIL
+clockwork-3.jpg :: This image shows a luxury wristwatch with a red guilloché dial, silver case, black leather strap, and the brand name "SCHWARZ ETIENNE" on the face.
+REAL: yes
+bokeh-0.jpeg :: This image shows a bokeh effect of out-of-focus yellow lights against a dark background.
+REAL: yes

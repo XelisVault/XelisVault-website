@@ -1,0 +1,6 @@
+safe-door-3.jpg :: This image shows a rusted metal safe surrounded by charred debris and artifacts in a dimly lit, somber museum exhibit with brown and gray tones. | REAL: no
+gold-vault-4.jpg :: This image shows six shiny 999.9 fine gold bars arranged in two rows against a bright, clean white background, conveying a mood of wealth and luxury. | REAL: no
+gold-vault-5.jpg :: This image shows a stack of gold ingots next to piles of silver coins on a reflective surface, set against a dark teal background with a warm, luxurious mood. | REAL: yes
+deposit-box-2.jpg :: This image shows a close-up of black metal safe deposit boxes with keys inserted in the locks, set against a dark, secure, and professional mood. | REAL: no
+padlock-1.jpg :: This image shows a golden padlock with a key inserted, resting on a reflective surface against a soft bokeh background of warm brown and cool blue tones, creating a serene and secure mood. | REAL: yes
+padlock-4.jpg :: This image shows a black Sony a6400 mirrorless camera with a 30mm lens floating against a soft, out-of-focus bokeh background of muted earthy browns and grays that creates a calm and professional mood. | REAL: yes
