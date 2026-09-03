@@ -373,7 +373,7 @@ export function WelcomeSequence({
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.3, type: 'spring', stiffness: 160 }}
-            className="relative w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden ring-2"
+            className="relative w-20 h-20 md:w-24 md:h-24 rounded-none overflow-hidden ring-2"
             style={{ '--tw-ring-color': `${alpha(EMERALD, 0.6)}` } as React.CSSProperties}
           >
             <img src="/images/xelisvault-logo.png" alt="Xelis Vault" className="w-full h-full object-cover" />
@@ -486,7 +486,7 @@ export function WelcomeSequence({
                 ],
               }}
               transition={{ duration: 2.4, repeat: Infinity }}
-              className="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden ring-2"
+              className="w-20 h-20 md:w-24 md:h-24 rounded-none overflow-hidden ring-2"
               style={{ '--tw-ring-color': `${alpha(EMERALD, 0.6)}` } as React.CSSProperties}
             >
               <img src="/images/xelisvault-logo.png" alt="Xelis Vault" className="w-full h-full object-cover" />
@@ -590,7 +590,7 @@ export function WelcomeSequence({
                 finish()
               }
             }}
-            className="relative mt-2 inline-flex h-12 items-center gap-2.5 rounded-full px-8 text-sm font-semibold text-white"
+            className="relative mt-2 inline-flex h-12 items-center gap-2.5 rounded-none px-8 text-sm font-semibold text-white"
             style={{
               background: `linear-gradient(120deg, ${EMERALD}, oklch(0.55 0.16 175))`,
               boxShadow: `0 0 40px -6px ${alpha(EMERALD, 0.7)}`,
@@ -622,7 +622,7 @@ export function WelcomeSequence({
             setSkipping(true)
             finish()
           }}
-          className="absolute bottom-5 right-5 z-10 inline-flex items-center gap-1 rounded-full border border-border bg-card/50 backdrop-blur px-4 py-2 text-xs font-mono uppercase tracking-wider text-muted-foreground transition-colors"
+          className="absolute bottom-5 right-5 z-10 inline-flex items-center gap-1 rounded-none border border-border bg-card/50 backdrop-blur px-4 py-2 text-xs font-mono uppercase tracking-wider text-muted-foreground transition-colors"
         >
           Skip <ChevronRight className="w-3.5 h-3.5" />
         </motion.button>

@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowRightLeft, Coins, Gauge, Lock, Unlock, Zap } from 'lucide-react'
 import { useWallet, canSign } from '@/lib/wallet-store'
 import { getPsmInfo, getOracleAggregate, type PsmInfo } from '@/lib/xelis/reads'
 import { invoke, depositXel, depositXusd, GAS } from '@/lib/xelis/invoke'
@@ -71,10 +70,10 @@ export function PSM() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="XEL reserve" value={formatAmount(info?.xelReserve)} icon={<TokenIcon symbol="XEL" size="xs" />} loading={loading && !info} />
-        <StatCard label="xUSD reserve" value={formatAmount(info?.xusdReserve)} accent="xusd" icon={<TokenIcon symbol="xUSD" size="xs" />} />
-        <StatCard label="Oracle price" value={`$${price.toFixed(4)}`} sub="XEL/USD median" icon={<Gauge className="w-4 h-4" />} />
-        <StatCard label="Status" value={info?.paused ? 'Paused' : 'Live'} accent={info?.paused ? 'amber' : 'emerald'} icon={info?.paused ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />} />
+        <StatCard label="XEL reserve" value={formatAmount(info?.xelReserve)} loading={loading && !info} />
+        <StatCard label="xUSD reserve" value={formatAmount(info?.xusdReserve)} accent="xusd" />
+        <StatCard label="Oracle price" value={`$${price.toFixed(4)}`} sub="XEL/USD median" />
+        <StatCard label="Status" value={info?.paused ? 'Paused' : 'Live'} accent={info?.paused ? 'amber' : 'emerald'} />
         <StatCard label="Mint fee" value={`${mintFee * 100}%`} accent="amber" />
         <StatCard label="Redeem fee" value={`${redeemFee * 100}%`} accent="amber" />
         <StatCard label="Your XEL" value={formatAmount(toAtomic(xelBalance))} />
@@ -90,11 +89,11 @@ export function PSM() {
         <div className="grid grid-cols-2 gap-2 mb-5">
           <button
             onClick={() => { setMode('mint'); setTx({ state: 'idle' }) }}
-            className={`rounded-xl border p-3.5 text-left transition-all ${mode === 'mint' ? 'border-xusd/40 bg-xusd/10' : 'border-border bg-card/40'}`}
+            className={`rounded-none border p-3.5 text-left transition-all${mode === 'mint' ? 'border-xusd/40 bg-xusd/10' : 'border-border bg-card/40'}`}
           >
             <div className="flex items-center gap-2 text-sm font-semibold">
               <TokenIcon symbol="XEL" size="xs" />
-              <ArrowRightLeft className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="font-mono text-muted-foreground text-xs">→</span>
               <TokenIcon symbol="xUSD" size="xs" />
               <span className="ml-1">Mint xUSD</span>
             </div>
@@ -102,11 +101,11 @@ export function PSM() {
           </button>
           <button
             onClick={() => { setMode('redeem'); setTx({ state: 'idle' }) }}
-            className={`rounded-xl border p-3.5 text-left transition-all ${mode === 'redeem' ? 'border-vault/40 bg-vault/10' : 'border-border bg-card/40'}`}
+            className={`rounded-none border p-3.5 text-left transition-all${mode === 'redeem' ? 'border-vault/40 bg-vault/10' : 'border-border bg-card/40'}`}
           >
             <div className="flex items-center gap-2 text-sm font-semibold">
               <TokenIcon symbol="xUSD" size="xs" />
-              <ArrowRightLeft className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="font-mono text-muted-foreground text-xs">→</span>
               <TokenIcon symbol="XEL" size="xs" />
               <span className="ml-1">Redeem XEL</span>
             </div>
@@ -127,7 +126,7 @@ export function PSM() {
 
             {/* Quote */}
             {amountNum > 0 && (
-              <div className="mt-3 rounded-xl border border-border bg-background/40 p-3.5 space-y-1.5">
+              <div className="mt-3 rounded-none border border-border bg-background/40 p-3.5 space-y-1.5">
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Rate</span>
                   <span className="font-mono">{mode === 'mint' ? `1 XEL = $${(price * (1 - mintFee)).toFixed(4)}` : `1 xUSD = ${(1 / price * (1 - redeemFee)).toFixed(6)} XEL`}</span>
@@ -151,7 +150,6 @@ export function PSM() {
 
             <div className="mt-4 flex items-center gap-3">
               <ActionButton onClick={submit} variant="xusd" disabled={!canTx || amountNum <= 0} loading={busy}>
-                <Zap className="w-4 h-4" />
                 {mode === 'mint' ? 'Mint xUSD' : 'Redeem for XEL'}
               </ActionButton>
               {!canTx && <span className="text-[11px] text-muted-foreground">Requires an XSWD wallet connection</span>}

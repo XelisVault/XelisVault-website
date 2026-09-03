@@ -37,7 +37,7 @@ export function SoundToggle() {
       onClick={() => launchAudio.toggle()}
       aria-label={enabled ? 'Mute soundtrack' : 'Enable soundtrack'}
       title={enabled ? 'Soundtrack on' : 'Soundtrack off'}
-      className={`hidden md:inline-flex h-9 items-center rounded-full border px-3.5 text-[11px] font-mono uppercase tracking-[0.14em] transition-all ${
+      className={`hidden md:inline-flex h-9 items-center rounded-none border px-3.5 text-[11px] font-mono uppercase tracking-[0.14em] transition-all${
         enabled
           ? 'border-vault/40 bg-vault/10 text-vault hover:bg-vault/20'
           : 'border-border text-muted-foreground hover:text-foreground hover:bg-card/80'
@@ -65,7 +65,7 @@ function SoundGateChip() {
           exit={{ opacity: 0, y: 16 }}
           transition={{ duration: 0.35 }}
           onClick={() => launchAudio.retry()}
-          className="fixed bottom-6 left-1/2 z-[110] -translate-x-1/2 inline-flex h-10 items-center gap-2 rounded-full border border-vault/50 bg-background/80 backdrop-blur-md px-5 text-[13px] font-medium text-foreground shadow-[0_0_32px_-8px_var(--vault)] hover:border-vault hover:bg-vault/10 transition-colors"
+          className="fixed bottom-6 left-1/2 z-[110] -translate-x-1/2 inline-flex h-10 items-center gap-2 rounded-none border border-vault/50 bg-background/80 backdrop-blur-md px-5 text-[13px] font-medium text-foreground hover:border-vault hover:bg-vault/10 transition-colors"
         >
           <Volume2 className="w-4 h-4 text-vault" />
           Enable sound

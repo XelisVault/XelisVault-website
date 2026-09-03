@@ -161,7 +161,7 @@ export function DevelopersPage() {
                     href={d.href}
                     target={d.href.startsWith('http') ? '_blank' : undefined}
                     rel={d.href.startsWith('http') ? 'noreferrer' : undefined}
-                    className="block rounded-2xl glass-panel p-6 hover:border-vault/40 hover:bg-card/60 transition-all h-full"
+                    className="block rounded-none glass-panel p-6 hover:border-vault/40 hover:bg-card/60 transition-all h-full"
                   >
                     <h3 className="font-display text-lg font-semibold">{d.title}</h3>
                     <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{d.description}</p>
@@ -185,7 +185,7 @@ export function DevelopersPage() {
             <div className="mt-8 space-y-4">
               {RESOURCES.map((r, i) => (
                 <Reveal key={r.name} delay={0.05 * i}>
-                  <div className="rounded-2xl glass-panel p-6">
+                  <div className="rounded-none glass-panel p-6">
                     <div className="flex items-start justify-between gap-4 flex-wrap">
                       <div className="min-w-0 flex-1">
                         <h3 className="font-display text-lg font-semibold">{r.name}</h3>
@@ -195,7 +195,7 @@ export function DevelopersPage() {
                         href={r.href}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex h-9 items-center gap-2 rounded-full border border-border bg-card/40 hover:bg-card/80 hover:border-vault/40 px-4 text-xs font-medium transition-all shrink-0"
+                        className="inline-flex h-9 items-center gap-2 rounded-none border border-border bg-card/40 hover:bg-card/80 hover:border-vault/40 px-4 text-xs font-medium transition-all shrink-0"
                       >
                         Open repo <ArrowUpRight className="w-3 h-3 opacity-50" />
                       </a>
@@ -221,7 +221,7 @@ export function DevelopersPage() {
             <div className="mt-8 space-y-6">
               {EXAMPLES.map((ex, i) => (
                 <Reveal key={ex.title} delay={0.05 * i}>
-                  <div className="rounded-2xl glass-panel p-6">
+                  <div className="rounded-none glass-panel p-6">
                     <h3 className="font-display text-lg font-semibold">{ex.title}</h3>
                     <p className="mt-1 text-sm text-muted-foreground">{ex.description}</p>
                     <CopyBlock text={ex.code} code />
@@ -244,7 +244,7 @@ export function DevelopersPage() {
               </p>
             </Reveal>
             <Reveal delay={0.1}>
-              <div className="mt-6 rounded-2xl border border-dashed border-border p-6 text-center">
+              <div className="mt-6 rounded-none border border-dashed border-border p-6 text-center">
                 <Calendar className="w-6 h-6 text-muted-foreground mx-auto" />
                 <p className="mt-3 text-sm text-muted-foreground max-w-md mx-auto">
                   No hackathons or developer calls are scheduled right now. Join the Discord to be
@@ -254,7 +254,7 @@ export function DevelopersPage() {
                   href="https://discord.gg/UHpYAWbG"
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-5 inline-flex h-10 items-center gap-2 rounded-full border border-border bg-card/40 hover:bg-card/80 hover:border-vault/40 px-5 text-sm font-medium transition-all"
+                  className="mt-5 inline-flex h-10 items-center gap-2 rounded-none border border-border bg-card/40 hover:bg-card/80 hover:border-vault/40 px-5 text-sm font-medium transition-all"
                 >
                   Join Discord for event updates
                   <ArrowUpRight className="w-3 h-3 opacity-50" />
@@ -277,7 +277,7 @@ export function DevelopersPage() {
               </p>
             </Reveal>
             <Reveal delay={0.1}>
-              <div className="mt-6 rounded-2xl glass-panel p-6 flex items-center justify-between gap-4 flex-wrap">
+              <div className="mt-6 rounded-none glass-panel p-6 flex items-center justify-between gap-4 flex-wrap">
                 <div>
                   <h3 className="font-display text-lg font-semibold">Security bug bounty</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
@@ -286,7 +286,7 @@ export function DevelopersPage() {
                 </div>
                 <a
                   href="/security"
-                  className="inline-flex h-11 items-center gap-2 rounded-full bg-vault px-6 text-sm font-semibold text-white hover:bg-vault/85 transition-all hover:shadow-[0_0_24px_-4px_var(--vault)]"
+                  className="inline-flex h-11 items-center gap-2 rounded-none bg-vault px-6 text-sm font-semibold text-white hover:bg-vault/85 transition-all hover:"
                 >
                   View bounty details
                 </a>
@@ -317,18 +317,18 @@ function CopyBlock({ text, code = false }: { text: string; code?: boolean }) {
   return (
     <div className="mt-4 relative group">
       {code ? (
-        <pre className="rounded-xl border border-border bg-black/40 p-4 overflow-x-auto text-[12px] font-mono leading-relaxed text-foreground/90">
+        <pre className="rounded-none border border-border bg-black/40 p-4 overflow-x-auto text-[12px] font-mono leading-relaxed text-foreground/90">
           <code>{text}</code>
         </pre>
       ) : (
-        <div className="rounded-xl border border-border bg-black/40 p-4 font-mono text-[12px] text-foreground/90 break-all">
+        <div className="rounded-none border border-border bg-black/40 p-4 font-mono text-[12px] text-foreground/90 break-all">
           <span className="text-muted-foreground/60 select-none">$ </span>
           {text}
         </div>
       )}
       <button
         onClick={copy}
-        className="absolute top-2 right-2 inline-flex items-center gap-1.5 rounded-md border border-border bg-card/80 hover:bg-card hover:border-vault/40 px-2.5 py-1.5 text-[11px] font-mono transition-all"
+        className="absolute top-2 right-2 inline-flex items-center gap-1.5 rounded-[3px] border border-border bg-card/80 hover:bg-card hover:border-vault/40 px-2.5 py-1.5 text-[11px] font-mono transition-all"
       >
         {copied ? (
           <>

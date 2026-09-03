@@ -224,12 +224,12 @@ export function DocsPage() {
               const isOpen = openGuide === g.id
               return (
                 <Reveal key={g.id} delay={i * 0.05}>
-                  <div className={`rounded-2xl border transition-colors ${isOpen ? 'border-vault/30 bg-card/40' : 'border-border bg-card/25'}`}>
+                  <div className={`rounded-none border transition-colors${isOpen ? 'border-vault/30 bg-card/40' : 'border-border bg-card/25'}`}>
                     <button
                       onClick={() => setOpenGuide(isOpen ? null : g.id)}
                       className="w-full flex items-center gap-4 px-5 py-4 text-left"
                     >
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+                      <div className={`w-10 h-10 rounded-none flex items-center justify-center shrink-0 border${
                         isOpen ? 'bg-vault/15 border-vault/30 text-vault' : 'bg-card/60 border-border text-muted-foreground'
                       }`}>
                         <g.icon className="w-4.5 h-4.5" />
@@ -247,7 +247,7 @@ export function DocsPage() {
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="overflow-hidden">
                         <div className="px-5 pb-5 pt-1 grid md:grid-cols-2 gap-3">
                           {g.steps.map((s, idx) => (
-                            <div key={s.t} className="rounded-xl border border-border bg-background/40 p-4">
+                            <div key={s.t} className="rounded-none border border-border bg-background/40 p-4">
                               <div className="flex items-center gap-2 mb-1.5">
                                 <span className="font-mono text-[10px] text-vault font-bold">{String(idx + 1).padStart(2, '0')}</span>
                                 <span className="text-xs font-semibold">{s.t}</span>
@@ -282,10 +282,10 @@ export function DocsPage() {
                   href={`${GITHUB_DOCS}/${s.file}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="group block h-full rounded-2xl border border-border bg-card/30 p-5 hover:border-vault/40 hover:bg-card/50 transition-all"
+                  className="group block h-full rounded-none border border-border bg-card/30 p-5 hover:border-vault/40 hover:bg-card/50 transition-all"
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <div className="w-9 h-9 rounded-xl bg-vault/10 border border-vault/25 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-none bg-vault/10 border border-vault/25 flex items-center justify-center">
                       <s.icon className="w-4 h-4 text-vault" />
                     </div>
                     <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-vault transition-colors" />
@@ -322,7 +322,7 @@ export function DocsPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             {REFERENCE.map((r, i) => (
               <Reveal key={r.label} delay={i * 0.05}>
-                <div className="rounded-2xl border border-border bg-card/30 p-5">
+                <div className="rounded-none border border-border bg-card/30 p-5">
                   <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground mb-2">{r.label}</div>
                   <div className="font-mono text-2xl font-semibold text-vault">{r.value}</div>
                   <div className="text-[11px] text-muted-foreground mt-2 leading-relaxed">{r.note}</div>
@@ -333,7 +333,7 @@ export function DocsPage() {
 
           {/* Entry points */}
           <Reveal>
-            <div className="rounded-2xl border border-border bg-card/30 p-6">
+            <div className="rounded-none border border-border bg-card/30 p-6">
               <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
                 <GitBranch className="w-4 h-4 text-vault" />
                 Key links
@@ -355,7 +355,7 @@ export function DocsPage() {
                     href={l.href}
                     target="_blank"
                     rel="noreferrer"
-                    className="group flex items-center justify-between gap-2 rounded-lg border border-border bg-background/40 px-3.5 py-2.5 text-xs hover:border-vault/40 hover:text-vault transition-all"
+                    className="group flex items-center justify-between gap-2 rounded-none border border-border bg-background/40 px-3.5 py-2.5 text-xs hover:border-vault/40 hover:text-vault transition-all"
                   >
                     <span>{l.label}</span>
                     <ArrowUpRight className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 shrink-0" />
@@ -380,9 +380,9 @@ export function DocsPage() {
             {CHANGELOG.map((c, i) => (
               <Reveal key={c.version} delay={i * 0.05}>
                 <div className="relative pl-6 md:pl-8">
-                  <div className="absolute left-0 top-1.5 w-2.5 h-2.5 rounded-full bg-vault border-2 border-background shadow-[0_0_12px_var(--vault)]" />
+                  <div className="absolute left-0 top-1.5 w-2.5 h-2.5 rounded-full bg-vault border-2 border-background " />
                   {i < CHANGELOG.length - 1 && <div className="absolute left-[4px] top-5 bottom-[-16px] w-px bg-border" />}
-                  <div className="rounded-2xl border border-border bg-card/30 p-5">
+                  <div className="rounded-none border border-border bg-card/30 p-5">
                     <div className="flex flex-wrap items-center gap-2.5 mb-2">
                       <span className="font-mono text-sm font-semibold text-vault">{c.version}</span>
                       <Badge tone={c.tone}>{c.title}</Badge>
@@ -404,7 +404,7 @@ export function DocsPage() {
 
           {/* Install CTA */}
           <Reveal delay={0.1}>
-            <div className="mt-10 rounded-2xl border border-vault/25 bg-gradient-to-br from-vault/10 via-card/30 to-transparent p-6 md:p-8">
+            <div className="mt-10 rounded-none border border-vault/25 bg-gradient-to-br from-vault/10 via-card/30 to-transparent p-6 md:p-8">
               <h3 className="font-display text-xl font-semibold mb-2">Ready to dive in?</h3>
               <p className="text-sm text-muted-foreground leading-relaxed mb-5 max-w-xl">
                 Install the full CLI toolkit, wallet, miner, relayer and community CLI, in one line.
@@ -412,7 +412,7 @@ export function DocsPage() {
               </p>
               <div className="space-y-2 max-w-2xl">
                 {[CLI_INSTALL.linux, CLI_INSTALL.windows].map((cmd) => (
-                  <div key={cmd} className="flex items-center gap-3 rounded-xl border border-border bg-background/80 px-4 py-3">
+                  <div key={cmd} className="flex items-center gap-3 rounded-none border border-border bg-background/80 px-4 py-3">
                     <Terminal className="w-4 h-4 text-vault shrink-0" />
                     <code className="flex-1 truncate font-mono text-xs">{cmd}</code>
                   </div>

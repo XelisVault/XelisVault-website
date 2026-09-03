@@ -597,7 +597,7 @@ export function CinematicCountdown() {
           <motion.span
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="rounded-full border px-2 py-0.5 text-[9px] tracking-[0.25em]"
+            className="rounded-none border px-2 py-0.5 text-[9px] tracking-[0.25em]"
             style={{ borderColor: `${labelColor}55`, color: labelColor, background: `${labelColor}11` }}
           >
             {meta.badge}
@@ -712,7 +712,7 @@ export function CinematicCountdown() {
                     ],
               }}
               transition={{ duration: hot ? 0.9 : 3, repeat: Infinity, ease: 'easeInOut' }}
-              className="relative w-11 h-11 md:w-12 md:h-12 rounded-lg overflow-hidden ring-1 ring-vault/50"
+              className="relative w-11 h-11 md:w-12 md:h-12 rounded-none overflow-hidden ring-1 ring-vault/50"
             >
               <img src="/images/xelisvault-logo.png" alt="Xelis Vault" className="w-full h-full object-cover" />
             </motion.div>
@@ -779,7 +779,7 @@ export function CompactCountdown() {
 
   if (isLaunched) {
     return (
-      <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/15 border border-emerald-500/40 px-4 py-2">
+      <div className="inline-flex items-center gap-2 rounded-none bg-emerald-500/15 border border-emerald-500/40 px-4 py-2">
         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
         <span className="text-xs font-mono font-bold text-emerald-300 uppercase tracking-wider">
           Testnet Live
@@ -792,7 +792,7 @@ export function CompactCountdown() {
 
   return (
     <div
-      className="inline-flex items-center gap-2 rounded-full glass-panel px-4 py-2"
+      className="inline-flex items-center gap-2 rounded-none glass-panel px-4 py-2"
       style={hot ? { borderColor: 'oklch(0.75 0.18 60 / 0.35)' } : undefined}
     >
       <motion.span

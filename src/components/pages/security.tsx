@@ -188,9 +188,9 @@ export function SecurityPage() {
                 <RevealItem key={f.title}>
                   <motion.div
                     whileHover={{ y: -4 }}
-                    className="rounded-2xl glass-panel p-6 h-full"
+                    className="rounded-none glass-panel p-6 h-full"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-vault/10 border border-vault/30 flex items-center justify-center mb-4">
+                    <div className="w-10 h-10 rounded-none bg-vault/10 border border-vault/30 flex items-center justify-center mb-4">
                       <f.icon className="w-5 h-5 text-vault" />
                     </div>
                     <h3 className="font-display text-lg font-semibold">{f.title}</h3>
@@ -215,7 +215,7 @@ export function SecurityPage() {
             <div className="mt-8 space-y-4">
               {AUDIT_HISTORY.map((audit, i) => (
                 <Reveal key={audit.version} delay={0.1 * i}>
-                  <div className="rounded-2xl glass-panel p-6">
+                  <div className="rounded-none glass-panel p-6">
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                       <div>
                         <div className="flex items-center gap-2">
@@ -224,7 +224,7 @@ export function SecurityPage() {
                         </div>
                         <div className="mt-1 text-xs font-mono text-muted-foreground">{audit.period}</div>
                       </div>
-                      <div className={`inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider px-3 py-1.5 rounded-full ${
+                      <div className={`inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider px-3 py-1.5 rounded-none${
                         audit.status === 'Completed'
                           ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600'
                           : 'bg-amber-500/10 border border-amber-500/40 text-amber-400'
@@ -239,8 +239,8 @@ export function SecurityPage() {
                         {audit.findings.map((f) => {
                           const c = COLOR_MAP[f.color]
                           return (
-                            <div key={f.severity} className={`inline-flex items-center gap-2 rounded-lg ${c.bg} ${c.border} border px-3 py-1.5`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+                            <div key={f.severity} className={`inline-flex items-center gap-2 rounded-none${c.bg} ${c.border} border px-3 py-1.5`}>
+                              <span className={`w-1.5 h-1.5 rounded-full${c.dot}`} />
                               <span className={`text-xs font-mono ${c.text}`}>{f.count} {f.severity}</span>
                               {audit.allFixed && (
                                 <span className="text-[10px] font-mono text-emerald-600/70">fixed</span>
@@ -285,7 +285,7 @@ export function SecurityPage() {
           {/* The Aug 30 delay transparency */}
           <section className="mt-20">
             <Reveal>
-              <div className="rounded-2xl border border-amber-500/40 bg-amber-500/8 p-6 md:p-8">
+              <div className="rounded-none border border-amber-500/40 bg-amber-500/8 p-6 md:p-8">
                 <div className="flex items-center gap-2 text-amber-400 mb-4">
                   <AlertTriangle className="w-5 h-5" />
                   <span className="text-xs font-mono uppercase tracking-wider">Why we delayed the testnet</span>
@@ -340,7 +340,7 @@ export function SecurityPage() {
                 const c = COLOR_MAP[tier.color]
                 return (
                   <RevealItem key={tier.severity}>
-                    <div className={`rounded-2xl border ${c.border} ${c.bg} p-6 h-full`}>
+                    <div className={`rounded-none border${c.border} ${c.bg} p-6 h-full`}>
                       <div className="flex items-center justify-between">
                         <span className={`text-xs font-mono uppercase tracking-wider ${c.text}`}>
                           {tier.severity}
@@ -359,7 +359,7 @@ export function SecurityPage() {
             </RevealStagger>
 
             <Reveal delay={0.3}>
-              <div className="mt-8 rounded-2xl glass-panel p-6">
+              <div className="mt-8 rounded-none glass-panel p-6">
                 <h3 className="font-display text-lg font-semibold">Report a vulnerability</h3>
                 <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                   Email <a href="mailto:xelisvault@protonmail.org" className="text-vault hover:underline">xelisvault@protonmail.org</a> with a
@@ -369,7 +369,7 @@ export function SecurityPage() {
                 <div className="mt-4 flex flex-wrap gap-3">
                   <a
                     href="mailto:xelisvault@protonmail.org"
-                    className="inline-flex h-10 items-center gap-2 rounded-full bg-vault px-5 text-sm font-semibold text-white hover:bg-vault/85 transition-all"
+                    className="inline-flex h-10 items-center gap-2 rounded-none bg-vault px-5 text-sm font-semibold text-white hover:bg-vault/85 transition-all"
                   >
                     <Mail className="w-4 h-4" />
                     Email security team
@@ -378,7 +378,7 @@ export function SecurityPage() {
                     href="https://github.com/XelisVault/xelis-vault/security/policy"
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-card/40 hover:bg-card/80 hover:border-vault/40 px-5 text-sm font-semibold transition-all"
+                    className="inline-flex h-10 items-center gap-2 rounded-none border border-border bg-card/40 hover:bg-card/80 hover:border-vault/40 px-5 text-sm font-semibold transition-all"
                   >
                     <FileCheck className="w-4 h-4" />
                     View responsible disclosure policy

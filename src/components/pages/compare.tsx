@@ -99,7 +99,7 @@ export function ComparePage() {
 
           {/* What XELIS Vault IS vs IS NOT */}
           <Reveal delay={0.3}>
-            <div className="mt-8 rounded-xl border border-vault/30 bg-vault/5 p-5">
+            <div className="mt-8 rounded-none border border-vault/30 bg-vault/5 p-5">
               <div className="grid sm:grid-cols-2 gap-4 text-sm">
                 <div>
                   <div className="text-xs font-mono uppercase tracking-wider text-vault mb-1">XELIS Vault IS</div>
@@ -123,7 +123,7 @@ export function ComparePage() {
 
           {/* Comparison table */}
           <Reveal delay={0.4}>
-            <div className="mt-8 rounded-2xl glass-panel overflow-hidden">
+            <div className="mt-8 rounded-none glass-panel overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[820px]">
                   <thead>
@@ -153,7 +153,7 @@ export function ComparePage() {
 
           {/* Caveat / honesty */}
           <Reveal delay={0.5}>
-            <div className="mt-8 rounded-xl border border-border bg-card/30 p-4 flex items-start gap-3">
+            <div className="mt-8 rounded-none border border-border bg-card/30 p-4 flex items-start gap-3">
               <AlertCircle className="w-4 h-4 text-vault shrink-0 mt-0.5" />
               <div className="text-xs text-muted-foreground leading-relaxed">
                 <strong className="text-foreground">A note on fairness.</strong> Aztec, Railgun, and
@@ -169,7 +169,7 @@ export function ComparePage() {
 
           {/* Deep dive CTA */}
           <Reveal delay={0.6}>
-            <div className="mt-12 rounded-2xl glass-panel p-8 text-center">
+            <div className="mt-12 rounded-none glass-panel p-8 text-center">
               <h2 className="font-display text-2xl font-semibold">Want the technical deep dive?</h2>
               <p className="mt-3 text-sm text-muted-foreground max-w-xl mx-auto">
                 The XELIS Vault whitepaper covers the cryptographic primitives, the threat model, and
@@ -179,7 +179,7 @@ export function ComparePage() {
                 href="https://github.com/XelisVault/xelis-vault/blob/main/docs/WHITEPAPER.md"
                 target="_blank"
                 rel="noreferrer"
-                className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-vault px-6 text-sm font-semibold text-white hover:bg-vault/85 transition-all hover:shadow-[0_0_24px_-4px_var(--vault)]"
+                className="mt-6 inline-flex h-11 items-center gap-2 rounded-none bg-vault px-6 text-sm font-semibold text-white hover:bg-vault/85 transition-all hover:"
               >
                 <FileText className="w-4 h-4" />
                 Read the whitepaper

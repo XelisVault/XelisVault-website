@@ -433,7 +433,7 @@ export function MiningDelegation() {
                 href="https://github.com/XelisVault/xelis-vault/blob/main/docs/MINER_GUIDE.md"
                 target="_blank"
                 rel="noreferrer"
-                className="group inline-flex h-11 items-center rounded-full bg-vault px-7 text-sm font-semibold text-white hover:bg-vault/85 transition-all"
+                className="group inline-flex h-11 items-center rounded-none bg-vault px-7 text-sm font-semibold text-white hover:bg-vault/85 transition-all"
               >
                 Read the miner guide
               </a>

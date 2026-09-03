@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Banknote, Lock, Percent, ShieldCheck, Undo2 } from 'lucide-react'
+import { ArrowDownToLine, ArrowUpFromLine, Banknote, Lock, Undo2 } from 'lucide-react'
 import { useWallet } from '@/lib/wallet-store'
 import {
   getVaultEngineConfig, getVaultsForOwner, getRecentVaults,
@@ -150,11 +150,11 @@ export function VaultEngine() {
     <div className="space-y-6 max-w-4xl">
       {/* Config stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Min collateral ratio" value={`${minCrPct}%`} icon={<ShieldCheck className="w-4 h-4" />} loading={loading && !config} />
-        <StatCard label="Max LTV" value={`${(maxLtv * 100).toFixed(0)}%`} icon={<Percent className="w-4 h-4" />} />
-        <StatCard label="Stability fee" value={`${((config?.stabilityFeeBps ?? 200) / 100).toFixed(0)}% APR`} accent="amber" icon={<Banknote className="w-4 h-4" />} />
-        <StatCard label="Liquidation penalty" value={`${((config?.liqPenaltyBps ?? 1000) / 100).toFixed(0)}%`} accent="amber" icon={<AlertTriangle className="w-4 h-4" />} />
-        <StatCard label="Total vaults" value={config?.vaultCount ?? '–'} icon={<Lock className="w-4 h-4" />} />
+        <StatCard label="Min collateral ratio" value={`${minCrPct}%`} loading={loading && !config} />
+        <StatCard label="Max LTV" value={`${(maxLtv * 100).toFixed(0)}%`} />
+        <StatCard label="Stability fee" value={`${((config?.stabilityFeeBps ?? 200) / 100).toFixed(0)}% APR`} accent="amber" />
+        <StatCard label="Liquidation penalty" value={`${((config?.liqPenaltyBps ?? 1000) / 100).toFixed(0)}%`} accent="amber" />
+        <StatCard label="Total vaults" value={config?.vaultCount ?? '–'} />
         <StatCard label="XEL / USD" value={`$${price.toFixed(4)}`} accent="xusd" sub="oracle aggregate" />
         <StatCard label="Your XEL" value={formatAmount(toAtomic(xelBalance))} sub="wallet balance" />
         <StatCard label="Your xUSD" value={formatAmount(toAtomic(xusdBalance))} accent="xusd" sub="wallet balance" />
@@ -171,8 +171,7 @@ export function VaultEngine() {
         ) : myVaults === null ? (
           <LoadingRows rows={2} />
         ) : myVaults.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border p-6 text-center">
-            <Lock className="w-6 h-6 text-vault/50 mx-auto mb-2" />
+          <div className="border border-border p-6 text-center">
             <p className="text-sm text-muted-foreground">No open vaults yet. Deposit XEL below to create your first one.</p>
           </div>
         ) : (
@@ -182,7 +181,7 @@ export function VaultEngine() {
               const healthy = cr == null || cr >= minCrPct * 1.25
               const risky = cr != null && cr < minCrPct * 1.25
               return (
-                <div key={v.id} className={`rounded-xl border p-4 ${risky ? 'border-amber-500/30 bg-amber-500/5' : 'border-border bg-background/40'}`}>
+                <div key={v.id} className={`rounded-none border p-4${risky ? 'border-amber-500/30 bg-amber-500/5' : 'border-border bg-background/40'}`}>
                   <div className="flex items-center justify-between gap-3 mb-3">
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-xs text-muted-foreground">#{v.id}</span>
@@ -228,7 +227,7 @@ export function VaultEngine() {
             <button
               key={id}
               onClick={() => { setTab(id); setTx({ state: 'idle' }) }}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+              className={`inline-flex items-center gap-1.5 rounded-none px-3 py-2 text-xs font-medium transition-all${
                 tab === id ? 'bg-vault/15 text-vault border border-vault/30' : 'text-muted-foreground border border-transparent hover:bg-card/60'
               }`}
             >
@@ -245,7 +244,7 @@ export function VaultEngine() {
               value={vaultId}
               onChange={(e) => setVaultId(e.target.value.replace(/\D/g, ''))}
               placeholder="0"
-              className="mt-1 w-full rounded-xl border border-border bg-background/60 px-3.5 py-2.5 font-mono text-sm outline-none focus:border-vault/50"
+              className="mt-1 w-full rounded-none border border-border bg-background/60 px-3.5 py-2.5 font-mono text-sm outline-none focus:border-vault/50"
             />
             {selectedVault && (
               <p className="mt-1 text-[11px] text-muted-foreground">
@@ -298,7 +297,7 @@ export function VaultEngine() {
         ) : (
           <div className="space-y-2">
             {recent.map((v) => (
-              <div key={v.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/30 px-3.5 py-2.5">
+              <div key={v.id} className="flex items-center justify-between gap-3 rounded-none border border-border/60 bg-background/30 px-3.5 py-2.5">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span className="font-mono text-xs text-muted-foreground shrink-0">#{v.id}</span>
                   <HashLink hash={v.owner} type="account" />

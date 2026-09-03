@@ -25,7 +25,7 @@ export function QuestLogoTrigger() {
     <button
       onClick={handleClick}
       aria-label="Xelis Vault"
-      className="w-9 h-9 rounded-md overflow-hidden ring-1 ring-vault/40 hover:ring-vault/70 transition-all cursor-pointer block"
+      className="w-9 h-9 rounded-[3px] overflow-hidden ring-1 ring-vault/40 hover:ring-vault/70 transition-all cursor-pointer block"
       title=""
     >
       <img src="/images/xelisvault-logo.png" alt="Xelis Vault" className="w-full h-full object-cover" />

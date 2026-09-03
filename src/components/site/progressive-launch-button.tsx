@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Lock, Rocket } from 'lucide-react'
+import { Lock } from 'lucide-react'
 
 /**
  * Progressive Launch Button
@@ -58,17 +58,14 @@ export function ProgressiveLaunchButton({
       transition={{ duration: 1, delay: 1 }}
       whileHover={isLaunched ? { scale: 1.03 } : {}}
       whileTap={isLaunched ? { scale: 0.98 } : {}}
-      className="group relative inline-flex h-12 items-center gap-2.5 rounded-full px-7 text-sm font-semibold transition-all overflow-hidden"
+      className="group relative inline-flex h-12 items-center gap-2.5 rounded-none px-7 text-sm font-semibold transition-colors duration-300 hover:!bg-vault hover:!border-vault hover:!text-primary-foreground overflow-hidden"
       style={{
-        background: isLaunched ? 'var(--vault)' : 'oklch(0.07 0.02 280)',
+        background: isLaunched ? 'var(--ink)' : 'transparent',
         border: isLaunched
-          ? '1px solid var(--vault)'
-          : `1px ${progress > 0.5 ? 'solid' : 'dashed'} oklch(0.62 0.22 295 / ${0.3 + progress * 0.4})`,
-        color: isLaunched ? '#fff' : 'var(--foreground)',
+          ? '1px solid var(--ink)'
+          : `1px ${progress > 0.5 ? 'solid' : 'dashed'} oklch(0.52 0.09 70 / ${0.35 + progress * 0.4})`,
+        color: isLaunched ? 'var(--ink-foreground)' : 'var(--foreground)',
         cursor: isLaunched ? 'pointer' : 'not-allowed',
-        boxShadow: isLaunched
-          ? '0 0 36px -6px var(--vault)'
-          : `0 0 ${progress * 24}px -8px var(--vault)`,
       }}
     >
       {/* Progress fill (grows from left to right) */}
@@ -103,16 +100,8 @@ export function ProgressiveLaunchButton({
 
       {/* Content */}
       <div className="relative flex items-center gap-2.5 z-10">
-        {/* Lock / Rocket icon */}
-        {isLaunched ? (
-          <motion.div
-            initial={{ rotate: -90, opacity: 0 }}
-            animate={{ rotate: 0, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 200 }}
-          >
-            <Rocket className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-          </motion.div>
-        ) : (
+        {/* Lock icon while waiting */}
+        {isLaunched ? null : (
           <div className="relative w-4 h-4 flex items-center justify-center">
             <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
               {/* Lock body */}

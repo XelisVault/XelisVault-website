@@ -155,7 +155,7 @@ export function ExplorerPage() {
           <Reveal>
             <div className="flex flex-wrap items-center gap-3 mb-5">
               <SectionLabel>The Observatory</SectionLabel>
-              <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-emerald-700">
+              <span className="flex items-center gap-1.5 rounded-none border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-emerald-700">
                 <Radio className="w-3 h-3 animate-pulse" />
                 live · {network}
               </span>
@@ -197,7 +197,7 @@ export function ExplorerPage() {
           {/* ---- Witness session + sound ---- */}
           <Reveal delay={0.22}>
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-4 rounded-2xl glass-panel px-4 py-3">
+              <div className="flex items-center gap-4 rounded-none glass-panel px-4 py-3">
                 <div>
                   <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-muted-foreground">your observation</div>
                   <div className="flex items-baseline gap-2 mt-0.5">
@@ -222,14 +222,14 @@ export function ExplorerPage() {
                     {live.session.txsSealed} txs · {fmtXEL(live.session.xelBurned)} XET burned
                   </div>
                   <div className="text-[9px] font-mono text-muted-foreground/70">
-                    {live.session.sideBlocks} side blocks · busiest #{live.session.biggestTopo ?? '—'}
+                    {live.session.sideBlocks} side blocks · busiest #{live.session.biggestTopo ?? 'n/a'}
                   </div>
                 </div>
               </div>
 
               <button
                 onClick={toggleSound}
-                className={`inline-flex h-11 items-center gap-2 rounded-2xl border px-4 text-[12px] font-mono uppercase tracking-wider transition-colors ${
+                className={`inline-flex h-11 items-center gap-2 rounded-none border px-4 text-[12px] font-mono uppercase tracking-wider transition-colors${
                   soundOn
                     ? 'border-vault/50 bg-vault/15 text-vault'
                     : 'border-border bg-card/40 text-muted-foreground hover:text-foreground'
@@ -328,7 +328,7 @@ export function ExplorerPage() {
             <div className="mt-10 flex flex-wrap items-center gap-3">
               <button
                 onClick={() => openApp()}
-                className="inline-flex h-11 items-center gap-2 rounded-full bg-vault hover:bg-vault/85 text-white px-6 text-sm font-semibold transition-all hover:shadow-[0_0_28px_-6px_var(--vault)]"
+                className="inline-flex h-11 items-center gap-2 rounded-none bg-vault hover:bg-vault/85 text-white px-6 text-sm font-semibold transition-all hover:"
               >
                 <Rocket className="w-4 h-4" />
                 Open the Vault
@@ -340,7 +340,7 @@ export function ExplorerPage() {
                 rel="noreferrer"
                 initial={{ opacity: 0.6 }}
                 animate={{ opacity: 1 }}
-                className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card/40 hover:bg-card/80 hover:border-vault/40 px-6 text-sm font-semibold transition-all"
+                className="inline-flex h-11 items-center gap-2 rounded-none border border-border bg-card/40 hover:bg-card/80 hover:border-vault/40 px-6 text-sm font-semibold transition-all"
               >
                 <Eye className="w-4 h-4" />
                 Official {network} explorer

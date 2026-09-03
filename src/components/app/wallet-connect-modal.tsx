@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { AlertTriangle, Check, Copy, Download, Terminal, Wallet, X, Zap } from 'lucide-react'
+import { Check, Copy, X } from 'lucide-react'
 import { useWallet } from '@/lib/wallet-store'
 import { copyText, CLI_INSTALL, GENESIX_URL } from '@/lib/xelis/cli'
 import { Badge } from './shared'
@@ -62,7 +62,7 @@ export function WalletConnectModal() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="app-dark fixed inset-0 z-[90] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+          className="app-dark fixed inset-0 z-[90] flex items-center justify-center p-4 bg-background/80 "
           onClick={() => setShowConnectModal(false)}
         >
           <motion.div
@@ -71,12 +71,12 @@ export function WalletConnectModal() {
             exit={{ opacity: 0, scale: 0.95, y: 16 }}
             transition={{ type: 'spring', damping: 26, stiffness: 320 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl overflow-hidden"
+            className="w-full max-w-md rounded-none border border-border bg-card shadow-2xl overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg overflow-hidden ring-1 ring-vault/40">
+                <div className="w-8 h-8 rounded-none overflow-hidden ring-1 ring-vault/40">
                   <img src="/images/xelisvault-logo.png" alt="" className="w-full h-full object-cover" />
                 </div>
                 <div>
@@ -86,7 +86,7 @@ export function WalletConnectModal() {
               </div>
               <button
                 onClick={() => setShowConnectModal(false)}
-                className="w-8 h-8 rounded-full hover:bg-muted/50 flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-none hover:bg-muted/50 flex items-center justify-center transition-colors"
                 aria-label="Close"
               >
                 <X className="w-4 h-4" />
@@ -96,7 +96,7 @@ export function WalletConnectModal() {
             {/* Connected state */}
             {isConnected ? (
               <div className="p-5 space-y-4">
-                <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                <div className="flex items-center gap-3 rounded-none border border-emerald-500/30 bg-emerald-500/10 p-4">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                   <div className="min-w-0">
                     <div className="text-xs font-semibold text-emerald-300">
@@ -107,7 +107,7 @@ export function WalletConnectModal() {
                 </div>
                 <button
                   onClick={() => { disconnect(); setShowConnectModal(false) }}
-                  className="w-full rounded-xl border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted/50 transition-all"
+                  className="w-full rounded-none border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted/50 transition-all"
                 >
                   Disconnect
                 </button>
@@ -117,9 +117,9 @@ export function WalletConnectModal() {
                 {/* Method tabs */}
                 <div className="flex border-b border-border">
                   {([
-                    ['xswd', 'XSWD', Zap],
-                    ['cli', 'CLI', Terminal],
-                  ] as const).map(([id, label, Icon]) => (
+                    ['xswd', 'XSWD'],
+                    ['cli', 'CLI'],
+                  ] as const).map(([id, label]) => (
                     <button
                       key={id}
                       onClick={() => setMethod(id)}
@@ -127,7 +127,6 @@ export function WalletConnectModal() {
                         method === id ? 'border-vault text-vault bg-vault/5' : 'border-transparent text-muted-foreground hover:text-foreground'
                       }`}
                     >
-                      <Icon className="w-3.5 h-3.5" />
                       {label}
                     </button>
                   ))}
@@ -145,10 +144,9 @@ export function WalletConnectModal() {
                       </p>
                       <a
                         href={GENESIX_URL} target="_blank" rel="noreferrer"
-                        className="flex items-center justify-between gap-2 rounded-xl border border-border bg-background/50 px-4 py-3 hover:border-vault/40 transition-colors"
+                        className="flex items-center justify-between gap-2 rounded-none border border-border bg-background/50 px-4 py-3 hover:border-vault/40 transition-colors"
                       >
                         <span className="flex items-center gap-2.5 text-xs">
-                          <Download className="w-4 h-4 text-vault" />
                           Get Genesix, the official XELIS wallet
                         </span>
                         <span className="text-[10px] font-mono text-muted-foreground">free</span>
@@ -157,9 +155,8 @@ export function WalletConnectModal() {
                       <button
                         onClick={tryXSWD}
                         disabled={busy || connectionState === 'connecting' || connectionState === 'awaiting-approval' || connectionState === 'authorizing'}
-                        className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-vault px-4 py-3 text-sm font-semibold text-white hover:bg-vault/85 transition-all disabled:opacity-60"
+                        className="w-full inline-flex items-center justify-center gap-2 rounded-none bg-vault px-4 py-3 text-sm font-semibold text-background hover:bg-vault/90 transition-all disabled:opacity-60"
                       >
-                        <Wallet className="w-4 h-4" />
                         {connectionState === 'connecting' && 'Looking for wallet…'}
                         {connectionState === 'awaiting-approval' && 'Approve in your wallet…'}
                         {connectionState === 'authorizing' && 'Confirm permissions…'}
@@ -167,16 +164,16 @@ export function WalletConnectModal() {
                       </button>
 
                       {(connectionState === 'awaiting-approval' || connectionState === 'authorizing') && (
-                        <div className="rounded-xl border border-vault/30 bg-vault/10 p-3.5 text-xs text-vault leading-relaxed">
+                        <div className="rounded-none border border-vault/30 bg-vault/10 p-3.5 text-xs text-vault leading-relaxed">
                           {connectionState === 'awaiting-approval' ? (
                             <>
-                              <span className="font-semibold">Step 1 of 2 —</span> accept the{' '}
+                              <span className="font-semibold">Step 1 of 2 ·</span> accept the{' '}
                               <span className="font-semibold">XELIS Vault</span> application in the Genesix popup.
                               You have 5 minutes, the site waits for you.
                             </>
                           ) : (
                             <>
-                              <span className="font-semibold">Step 2 of 2 —</span> confirm the{' '}
+                              <span className="font-semibold">Step 2 of 2 ·</span> confirm the{' '}
                               <span className="font-semibold">permissions popup</span> (one grouped popup for
                               everything: address, balances, transactions). No further prompts after this.
                             </>
@@ -188,20 +185,17 @@ export function WalletConnectModal() {
                       )}
 
                       {xswdError && (
-                        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5">
-                          <div className="flex items-start gap-2">
-                            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                            <div className="text-xs text-amber-200 leading-relaxed">
-                              {xswdError}
-                              <div className="mt-2 flex gap-2">
-                                <button onClick={tryXSWD} className="rounded-lg border border-amber-500/40 px-2.5 py-1 text-[11px] font-medium hover:bg-amber-500/20 transition-colors">
-                                  Retry
-                                </button>
-                                <button onClick={() => setMethod('cli')} className="rounded-lg border border-amber-500/40 px-2.5 py-1 text-[11px] font-medium hover:bg-amber-500/20 transition-colors">
-                                  Use the CLI instead
-                                </button>
-                              </div>
-                            </div>
+                        <div className="border-l-2 border-amber-500/60 rounded-none border border-amber-500/30 bg-amber-500/10 p-3.5">
+                          <div className="text-xs text-amber-200 leading-relaxed">
+                            {xswdError}
+                          </div>
+                          <div className="mt-2 flex gap-2">
+                            <button onClick={tryXSWD} className="rounded-none border border-amber-500/40 px-2.5 py-1 text-[11px] font-medium hover:bg-amber-500/20 transition-colors">
+                              Retry
+                            </button>
+                            <button onClick={() => setMethod('cli')} className="rounded-none border border-amber-500/40 px-2.5 py-1 text-[11px] font-medium hover:bg-amber-500/20 transition-colors">
+                              Use the CLI instead
+                            </button>
                           </div>
                         </div>
                       )}
@@ -225,9 +219,8 @@ export function WalletConnectModal() {
                         <button
                           key={os}
                           onClick={() => copy(os)}
-                          className="group w-full flex items-center gap-3 rounded-xl border border-border bg-background/80 px-4 py-3 text-left hover:border-vault/40 transition-colors"
+                          className="group w-full flex items-center gap-3 rounded-none border border-border bg-background/80 px-4 py-3 text-left hover:border-vault/40 transition-colors"
                         >
-                          <Terminal className="w-4 h-4 text-vault shrink-0" />
                           <div className="min-w-0 flex-1">
                             <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
                               {os === 'linux' ? 'linux / macOS' : 'windows powershell'}
@@ -242,7 +235,7 @@ export function WalletConnectModal() {
                         </button>
                       ))}
 
-                      <div className="rounded-xl border border-border bg-background/40 p-3.5 space-y-2">
+                      <div className="rounded-none border border-border bg-background/40 p-3.5 space-y-2">
                         <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">after install</div>
                         {[
                           { cmd: 'xvault --setup', desc: 'guided first-run setup (wallet + config)' },

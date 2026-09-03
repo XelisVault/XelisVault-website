@@ -64,7 +64,7 @@ export function Features() {
                       transition={{ delay: 0.4 + i * 0.15 }}
                       className={`flex ${m.from === 'me' ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-xs font-mono ${
+                      <div className={`max-w-[75%] rounded-none px-3.5 py-2 text-xs font-mono${
                         m.from === 'me'
                           ? 'bg-vlt/15 border border-vlt/30 text-vlt rounded-br-sm'
                           : 'bg-card/60 border border-border rounded-bl-sm'

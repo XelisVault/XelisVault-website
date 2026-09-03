@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Activity, Gauge, Radio, ShieldCheck, Users, Zap } from 'lucide-react'
 import { getOracleAggregate, getOracleFeed, getOracleConfig, getMinerStats, type OracleAggregate, type OracleFeed } from '@/lib/xelis/reads'
 import { getNetworkInfo } from '@/lib/xelis/rpc'
 import { StatCard, Panel, Badge, LoadingRows, LiveDot, DataRow } from '../shared'
@@ -64,8 +63,8 @@ export function Oracle() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 min-w-[220px]">
-            <StatCard label="Updated" value={`${staleness} blocks ago`} accent={staleness > 30 ? 'amber' : 'emerald'} sub={`@ topoheight ${agg?.topo ?? 0}`} icon={<Radio className="w-4 h-4" />} />
-            <StatCard label="Providers" value={minerStats?.activeOracle ?? '–'} sub={`of ${minerStats?.count ?? 0} registered`} icon={<Users className="w-4 h-4" />} />
+            <StatCard label="Updated" value={`${staleness} blocks ago`} accent={staleness > 30 ? 'amber' : 'emerald'} sub={`@ topoheight ${agg?.topo ?? 0}`} />
+            <StatCard label="Providers" value={minerStats?.activeOracle ?? '–'} sub={`of ${minerStats?.count ?? 0} registered`} />
           </div>
         </div>
       </Panel>
@@ -74,7 +73,7 @@ export function Oracle() {
       <div className="grid md:grid-cols-2 gap-6">
         <Panel title="Network health" desc="The oracle degrades gracefully as provider count changes.">
           <div className="space-y-3">
-            <div className={`rounded-xl border p-3.5 ${health.tone === 'emerald' ? 'border-emerald-500/25 bg-emerald-500/5' : health.tone === 'amber' ? 'border-amber-500/25 bg-amber-500/5' : 'border-red-500/25 bg-red-500/5'}`}>
+            <div className={`rounded-none border p-3.5${health.tone === 'emerald' ? 'border-emerald-500/25 bg-emerald-500/5' : health.tone === 'amber' ? 'border-amber-500/25 bg-amber-500/5' : 'border-red-500/25 bg-red-500/5'}`}>
               <div className="flex items-center gap-2 mb-1">
                 <LiveDot tone={health.tone === 'emerald' ? 'emerald' : health.tone === 'amber' ? 'amber' : 'red'} />
                 <span className="text-sm font-semibold">{health.label} mode</span>
@@ -98,7 +97,7 @@ export function Oracle() {
               'Deviation >20% from the 30-entry TWAP trips the circuit breaker',
             ].map((s, i) => (
               <li key={i} className="flex gap-3 text-xs text-muted-foreground leading-relaxed">
-                <span className="shrink-0 w-5 h-5 rounded-md bg-vault/15 text-vault font-mono text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
+                <span className="shrink-0 w-5 h-5 rounded-[3px] bg-vault/15 text-vault font-mono text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
                 {s}
               </li>
             ))}
@@ -143,8 +142,7 @@ export function Oracle() {
 
       {loading && <div className="max-w-md mx-auto"><LoadingRows /></div>}
 
-      <div className="flex items-center justify-center gap-2 text-[10px] font-mono text-muted-foreground/50 pb-2">
-        <Activity className="w-3 h-3" />
+      <div className="text-center text-[10px] font-mono text-muted-foreground/50 pb-2">
         Oracle data refreshes every 8 s from the live testnet
       </div>
     </div>

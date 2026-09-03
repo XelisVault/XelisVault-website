@@ -1,47 +1,48 @@
 'use client'
 
 // Shared UI primitives for the testnet app modules.
+// Editorial language: hairline rules, mono small caps, serif numerals,
+// sharp corners — a private-bank ledger, not a dashboard template.
 
 import { useState, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Copy, Loader2, Terminal, ExternalLink, ArrowRight, Wallet } from 'lucide-react'
+import { Check, Copy, Loader2, Terminal, ExternalLink, ArrowRight } from 'lucide-react'
 import { copyText, CLI_COMMANDS } from '@/lib/xelis/cli'
 import { useWallet } from '@/lib/wallet-store'
 import { EXPLORER_URL } from '@/lib/xelis/rpc'
 
 // ---------------------------------------------------------------------------
-// Cards & stats
+// Stats & panels — ledger rows, not glass cards
 // ---------------------------------------------------------------------------
 
+const ACCENTS: Record<string, string> = {
+  vault: 'text-vault',
+  vlt: 'text-vlt',
+  xusd: 'text-xusd',
+  emerald: 'text-emerald-400',
+  amber: 'text-amber-400',
+}
+
 export function StatCard({
-  label, value, sub, icon, accent = 'vault', loading,
+  label, value, sub, accent = 'vault', loading, icon,
 }: {
   label: string
   value: ReactNode
   sub?: ReactNode
-  icon?: ReactNode
   accent?: 'vault' | 'vlt' | 'xusd' | 'emerald' | 'amber'
   loading?: boolean
+  /** Deprecated — kept for call-site compatibility, deliberately not rendered. */
+  icon?: ReactNode
 }) {
-  const accents: Record<string, string> = {
-    vault: 'text-vault',
-    vlt: 'text-vlt',
-    xusd: 'text-xusd',
-    emerald: 'text-emerald-400',
-    amber: 'text-amber-400',
-  }
   return (
-    <div className="rounded-xl border border-border bg-card/40 backdrop-blur p-4">
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">{label}</span>
-        {icon && <span className={accents[accent]}>{icon}</span>}
-      </div>
+    <div className="border-t border-border pt-3">
+      <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">{label}</span>
       {loading ? (
-        <div className="h-7 w-24 rounded bg-muted animate-pulse" />
+        <div className="mt-2 h-6 w-20 bg-muted animate-pulse" />
       ) : (
-        <div className={`font-mono text-xl font-semibold ${accents[accent]} leading-tight`}>{value}</div>
+        <div className={`mt-1.5 font-display text-[26px] leading-none font-semibold tracking-[-0.01em] ${ACCENTS[accent]}`}>{value}</div>
       )}
-      {sub && <div className="mt-1 text-[11px] text-muted-foreground">{sub}</div>}
+      {sub && <div className="mt-2 text-[11px] font-mono text-muted-foreground">{sub}</div>}
     </div>
   )
 }
@@ -56,17 +57,19 @@ export function Panel({
   className?: string
 }) {
   return (
-    <section className={`rounded-2xl border border-border bg-card/30 backdrop-blur p-5 ${className}`}>
+    <section className={`border border-border bg-card ${className}`}>
       {(title || actions) && (
-        <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
           <div>
             {title && <h3 className="font-display text-base font-semibold tracking-tight">{title}</h3>}
-            {desc && <p className="mt-0.5 text-xs text-muted-foreground max-w-lg">{desc}</p>}
+            {desc && <p className="mt-1 text-xs text-muted-foreground max-w-lg leading-relaxed">{desc}</p>}
           </div>
           {actions}
         </div>
       )}
-      {children}
+      <div className="p-5">
+        {children}
+      </div>
     </section>
   )
 }
@@ -77,9 +80,9 @@ export function Panel({
 
 export function LoadingRows({ rows = 3 }: { rows?: number }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-0.5">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="h-10 rounded-lg bg-muted/60 animate-pulse" style={{ animationDelay: `${i * 120}ms` }} />
+        <div key={i} className="h-10 border-b border-border/60 bg-muted/40 animate-pulse" style={{ animationDelay: `${i * 120}ms` }} />
       ))}
     </div>
   )
@@ -88,16 +91,14 @@ export function LoadingRows({ rows = 3 }: { rows?: number }) {
 export function ConnectPrompt({ note }: { note?: string }) {
   const { setShowConnectModal } = useWallet()
   return (
-    <div className="flex flex-col items-center justify-center py-10 text-center">
-      <div className="w-12 h-12 rounded-2xl bg-vault/10 border border-vault/30 flex items-center justify-center mb-4">
-        <Wallet className="w-5 h-5 text-vault" />
-      </div>
-      <p className="text-sm text-muted-foreground max-w-xs mb-4">
+    <div className="flex flex-col items-center justify-center py-14 text-center border border-border">
+      <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground">Wallet required</span>
+      <p className="mt-3 text-sm text-muted-foreground max-w-xs leading-relaxed">
         {note ?? 'Connect your XELIS wallet to see your data and interact with the protocol.'}
       </p>
       <button
         onClick={() => setShowConnectModal(true)}
-        className="inline-flex items-center gap-2 rounded-full bg-vault px-5 py-2 text-sm font-semibold text-white hover:bg-vault/85 transition-all"
+        className="mt-6 inline-flex items-center gap-2 border border-vault/50 px-5 py-2 text-sm font-semibold text-vault hover:bg-vault/10 transition-colors"
       >
         Connect Wallet <ArrowRight className="w-4 h-4" />
       </button>
@@ -106,7 +107,7 @@ export function ConnectPrompt({ note }: { note?: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Inputs & buttons
+// Inputs & buttons — sharp, calm, institutional
 // ---------------------------------------------------------------------------
 
 export function AmountInput({
@@ -119,7 +120,7 @@ export function AmountInput({
   placeholder?: string
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-border bg-background/60 px-3.5 py-2.5 focus-within:border-vault/50 transition-colors">
+    <div className="flex items-center gap-2 border border-border bg-background px-3.5 py-2.5 focus-within:border-vault/50 transition-colors">
       <input
         type="number"
         inputMode="decimal"
@@ -154,16 +155,16 @@ export function ActionButton({
   className?: string
 }) {
   const variants: Record<string, string> = {
-    primary: 'bg-vault text-white hover:bg-vault/85 disabled:bg-vault/30',
-    xusd: 'bg-xusd/90 text-black hover:bg-xusd disabled:bg-xusd/30',
-    ghost: 'border border-border bg-card/40 hover:bg-card/70 text-foreground',
-    danger: 'bg-red-500/90 text-white hover:bg-red-500 disabled:bg-red-500/30',
+    primary: 'bg-vault text-background hover:bg-vault/90 disabled:bg-vault/30 disabled:text-background/60',
+    xusd: 'bg-xusd text-background hover:bg-xusd/90 disabled:bg-xusd/30',
+    ghost: 'border border-border bg-transparent hover:border-vault/40 hover:text-vault text-foreground',
+    danger: 'border border-destructive/40 bg-destructive/10 text-red-300 hover:bg-destructive/20',
   }
   return (
     <button
       onClick={onClick}
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${className}`}
     >
       {loading && <Loader2 className="w-4 h-4 animate-spin" />}
       {children}
@@ -184,13 +185,13 @@ export interface TxFeedback {
 export function TxStatusBanner({ tx }: { tx: TxFeedback }) {
   if (tx.state === 'idle') return null
   const styles = {
-    broadcast: 'border-vault/30 bg-vault/10 text-vault',
-    success: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
-    error: 'border-red-500/30 bg-red-500/10 text-red-300',
+    broadcast: 'border-vault/30 bg-vault/5 text-vault',
+    success: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300',
+    error: 'border-destructive/40 bg-destructive/5 text-red-300',
     idle: '',
   }[tx.state]
   const label = {
-    broadcast: 'Broadcasting…',
+    broadcast: 'Broadcasting',
     success: 'Confirmed on-chain',
     error: 'Failed',
     idle: '',
@@ -199,10 +200,10 @@ export function TxStatusBanner({ tx }: { tx: TxFeedback }) {
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-xl border p-3 flex items-start gap-2.5 ${styles}`}
+      className={`border-l-2 border border-border pl-4 p-3 ${styles}`}
     >
-      <div className="text-xs font-semibold uppercase tracking-wider shrink-0">{label}</div>
-      <div className="text-xs leading-relaxed flex-1 break-all">
+      <div className="text-[10px] font-mono uppercase tracking-[0.18em] shrink-0">{label}</div>
+      <div className="mt-1 text-xs leading-relaxed break-all">
         {tx.message}
         {tx.hash && (
           <a
@@ -232,11 +233,10 @@ export function CliRow({ cmd, label }: { cmd: string; label?: string }) {
           setTimeout(() => setCopied(false), 1600)
         }
       }}
-      className="group w-full flex items-center gap-3 rounded-lg border border-border bg-background/80 px-3 py-2.5 text-left hover:border-vault/40 transition-colors"
+      className="group w-full flex items-center gap-3 border-b border-border/60 px-1 py-2.5 text-left hover:bg-vault/5 transition-colors"
     >
-      <span className="text-vault shrink-0"><Terminal className="w-3.5 h-3.5" /></span>
-      {label && <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground shrink-0">{label}</span>}
-      <code className="flex-1 truncate font-mono text-xs text-foreground/90">{cmd}</code>
+      {label && <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground shrink-0 w-24">{label}</span>}
+      <code className="flex-1 truncate font-mono text-xs text-foreground/90"><span className="text-vault mr-2">$</span>{cmd}</code>
       <span className="shrink-0 text-muted-foreground group-hover:text-vault transition-colors">
         {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
       </span>
@@ -246,15 +246,15 @@ export function CliRow({ cmd, label }: { cmd: string; label?: string }) {
 
 export function CliFallback({ title = 'Prefer the command line?', commands, note }: { title?: string; commands: Array<{ label?: string; cmd: string }>; note?: string }) {
   return (
-    <details className="group rounded-xl border border-border bg-card/30 overflow-hidden">
-      <summary className="flex items-center gap-2.5 px-4 py-3 cursor-pointer select-none list-none">
-        <Terminal className="w-4 h-4 text-vault shrink-0" />
-        <span className="text-xs font-medium">{title}</span>
-        <span className="ml-auto text-[10px] font-mono text-muted-foreground group-open:hidden">show commands</span>
-        <span className="ml-auto hidden text-[10px] font-mono text-muted-foreground group-open:inline">hide</span>
+    <details className="group border-t border-border pt-3">
+      <summary className="flex items-center gap-2.5 cursor-pointer select-none list-none">
+        <Terminal className="w-3.5 h-3.5 text-vault shrink-0" />
+        <span className="text-[11px] font-mono uppercase tracking-[0.14em] text-muted-foreground">{title}</span>
+        <span className="ml-auto text-[10px] font-mono text-muted-foreground/60 group-open:hidden">show</span>
+        <span className="ml-auto hidden text-[10px] font-mono text-muted-foreground/60 group-open:inline">hide</span>
       </summary>
-      <div className="px-4 pb-4 space-y-2">
-        {note && <p className="text-[11px] text-muted-foreground leading-relaxed pb-1">{note}</p>}
+      <div className="pb-2 space-y-0.5">
+        {note && <p className="text-[11px] text-muted-foreground leading-relaxed py-1">{note}</p>}
         {commands.map((c, i) => (
           <CliRow key={i} cmd={c.cmd} label={c.label} />
         ))}
@@ -273,7 +273,7 @@ export function ActionCliFallback({ action }: { action: keyof typeof CLI_COMMAND
   }
   return (
     <CliFallback
-      title={`CLI alternative, ${group.title ?? action}`}
+      title={`CLI alternative · ${group.title ?? action}`}
       commands={rows}
       note={group.hint}
     />
@@ -307,18 +307,19 @@ export function HashLink({ hash, type = 'contract' }: { hash: string; type?: 'co
   )
 }
 
+/** Flat mono small-caps tag — the editorial replacement for pill badges. */
 export function Badge({ children, tone = 'vault' }: { children: ReactNode; tone?: 'vault' | 'vlt' | 'emerald' | 'amber' | 'red' | 'muted' | 'xusd' }) {
   const tones: Record<string, string> = {
-    vault: 'bg-vault/15 text-vault border-vault/30',
-    vlt: 'bg-vlt/15 text-vlt border-vlt/30',
-    emerald: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-    amber: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-    red: 'bg-red-500/15 text-red-300 border-red-500/30',
-    xusd: 'bg-xusd/15 text-xusd border-xusd/30',
-    muted: 'bg-muted text-muted-foreground border-border',
+    vault: 'text-vault',
+    vlt: 'text-vlt',
+    emerald: 'text-emerald-400',
+    amber: 'text-amber-400',
+    red: 'text-red-400',
+    xusd: 'text-xusd',
+    muted: 'text-muted-foreground',
   }
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider ${tones[tone]}`}>
+    <span className={`inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.16em] ${tones[tone]}`}>
       {children}
     </span>
   )
@@ -334,8 +335,8 @@ export function LiveDot({ tone = 'emerald' }: { tone?: 'emerald' | 'amber' | 're
   }
   return (
     <span className="relative flex w-2 h-2 shrink-0">
-      <span className={`absolute inline-flex w-full h-full rounded-full ${tones[tone]} opacity-60 animate-ping`} />
-      <span className={`relative inline-flex w-2 h-2 rounded-full ${tones[tone]}`} />
+      <span className={`absolute inline-flex w-full h-full rounded-full${tones[tone]} opacity-60 animate-ping`} />
+      <span className={`relative inline-flex w-2 h-2 rounded-full${tones[tone]}`} />
     </span>
   )
 }

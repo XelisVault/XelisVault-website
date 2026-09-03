@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Rocket, AlertCircle, Github, Wrench, Heart, ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { CinematicCountdown } from '@/components/site/cinematic-countdown'
 import { useCountdownState } from '@/lib/countdown'
 
@@ -24,7 +24,7 @@ export function CountdownTimer({ compact = false }: { compact?: boolean }) {
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="inline-flex items-center gap-2 rounded-full bg-emerald-500/15 border border-emerald-500/40 px-4 py-2"
+        className="inline-flex items-center gap-2 rounded-none bg-emerald-500/15 border border-emerald-500/40 px-4 py-2"
       >
         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
         <span className="text-sm font-mono font-bold text-emerald-300 uppercase tracking-wider">
@@ -41,8 +41,7 @@ export function CountdownTimer({ compact = false }: { compact?: boolean }) {
 
   if (compact) {
     return (
-      <div className="inline-flex items-center gap-2 rounded-full glass-panel px-4 py-2">
-        <Rocket className="w-3.5 h-3.5 text-vault" />
+      <div className="inline-flex items-center gap-2 rounded-none glass-panel px-4 py-2">
         <span className="text-xs font-mono text-muted-foreground">New target in</span>
         <span className="text-xs font-mono font-bold text-vault">
           {days}d {hours}h {minutes}m {seconds}s
@@ -66,7 +65,6 @@ export function CountdownTimer({ compact = false }: { compact?: boolean }) {
       className="flex flex-col items-center gap-6"
     >
       <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-[0.3em] text-vault">
-        <Rocket className="w-4 h-4" />
         Revised Launch Countdown
       </div>
 
@@ -74,7 +72,7 @@ export function CountdownTimer({ compact = false }: { compact?: boolean }) {
         {units.map((unit, i) => (
           <div key={i} className="flex flex-col items-center">
             <div className="relative">
-              <div className="w-20 h-20 md:w-28 md:h-28 rounded-2xl glass-panel flex items-center justify-center">
+              <div className="w-20 h-20 md:w-28 md:h-28 rounded-none glass-panel flex items-center justify-center">
                 <motion.span
                   key={unit.value}
                   initial={{ y: -10, opacity: 0 }}
@@ -85,7 +83,7 @@ export function CountdownTimer({ compact = false }: { compact?: boolean }) {
                   {String(unit.value).padStart(2, '0')}
                 </motion.span>
               </div>
-              <div className="absolute inset-0 rounded-2xl bg-vault/5 blur-xl -z-10" />
+              <div className="absolute inset-0 rounded-none bg-vault/5 blur-xl -z-10" />
             </div>
             <div className="mt-2 text-[10px] md:text-xs font-mono uppercase tracking-wider text-muted-foreground">
               {unit.label}
@@ -116,7 +114,7 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
         initial={{ scale: 0, rotate: -180 }}
         animate={{ scale: 1, rotate: 0 }}
         transition={{ type: 'spring', stiffness: 100 }}
-        className="relative w-24 h-24 rounded-3xl overflow-hidden ring-2 ring-vault/40 shadow-[0_0_80px_-10px_var(--vault)] mb-8"
+        className="relative w-24 h-24 rounded-none overflow-hidden ring-2 ring-vault/40 mb-8"
       >
         <img src="/images/xelisvault-logo.png" alt="Xelis Vault" className="w-full h-full object-cover" />
       </motion.div>
@@ -127,8 +125,7 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
         transition={{ delay: 0.3 }}
         className="relative text-center mb-8 max-w-2xl"
       >
-        <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/15 border border-amber-500/40 px-4 py-2 mb-6">
-          <AlertCircle className="w-4 h-4 text-amber-400" />
+        <div className="inline-flex items-center gap-2 rounded-none bg-amber-500/15 border border-amber-500/40 px-4 py-2 mb-6">
           <span className="text-xs font-mono font-bold text-amber-300 uppercase tracking-wider">
             Testnet Launching August 30
           </span>
@@ -147,11 +144,10 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
         {/* Bouton cliquable pour voir les détails */}
         <motion.button
           onClick={() => setShowDetails(!showDetails)}
-          className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 px-6 py-3 text-sm font-semibold text-amber-200 transition-all"
+          className="inline-flex items-center gap-2 rounded-none border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 px-6 py-3 text-sm font-semibold text-amber-200 transition-all"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <AlertCircle className="w-4 h-4" />
           {showDetails ? 'Hide details' : 'Read the full update'}
           {showDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </motion.button>
@@ -166,11 +162,11 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
               transition={{ duration: 0.4 }}
               className="overflow-hidden mt-6"
             >
-              <div className="rounded-2xl glass-panel p-6 md:p-8 text-left space-y-5 max-w-2xl mx-auto">
+              <div className="rounded-none glass-panel p-6 md:p-8 text-left space-y-5 max-w-2xl mx-auto">
                 {/* Issue 1: XSWD */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-semibold text-amber-300">
-                    <span className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-[10px] font-mono">1</span>
+                    <span className="font-mono text-[11px] tracking-wider text-amber-300">1 ·</span>
                     XSWD Protocol Integration Issues
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed pl-7">
@@ -186,7 +182,7 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
                 {/* Issue 2: Contract vulnerabilities */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-semibold text-red-300">
-                    <span className="w-5 h-5 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-[10px] font-mono">2</span>
+                    <span className="font-mono text-[11px] tracking-wider text-amber-300">2 ·</span>
                     Critical Vulnerabilities Found in Contracts
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed pl-7">
@@ -228,7 +224,7 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
                 {/* Issue 3: Contract redeployment */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-semibold text-amber-300">
-                    <span className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-[10px] font-mono">3</span>
+                    <span className="font-mono text-[11px] tracking-wider text-amber-300">3 ·</span>
                     Contract Redeployment Required
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed pl-7">
@@ -242,26 +238,26 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
                 {/* Issue 4: CLI tool */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-semibold text-vault">
-                    <span className="w-5 h-5 rounded-full bg-vault/20 border border-vault/40 flex items-center justify-center text-[10px] font-mono">4</span>
+                    <span className="font-mono text-[11px] tracking-wider text-amber-300">4 ·</span>
                     What We're Doing Right Now
                   </div>
                   <ul className="text-sm text-muted-foreground leading-relaxed pl-7 space-y-1.5 mt-2">
                     <li className="flex items-start gap-2">
-                      <Wrench className="w-3.5 h-3.5 text-vault mt-1 shrink-0" />
+                      <span className="text-vault mt-0.5 font-mono text-xs">→</span>
                       <span>Patching all 4 contracts and redeploying on testnet</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <Wrench className="w-3.5 h-3.5 text-vault mt-1 shrink-0" />
+                      <span className="text-vault mt-0.5 font-mono text-xs">→</span>
                       <span>Rewriting the XSWD integration to handle edge cases properly</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <Wrench className="w-3.5 h-3.5 text-vault mt-1 shrink-0" />
+                      <span className="text-vault mt-0.5 font-mono text-xs">→</span>
                       <span>Building a <strong className="text-foreground">CLI tool</strong> on GitHub
                       that lets you interact with all contracts directly, deposit, borrow, swap,
                       mine, stake, without needing the web app</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <Wrench className="w-3.5 h-3.5 text-vault mt-1 shrink-0" />
+                      <span className="text-vault mt-0.5 font-mono text-xs">→</span>
                       <span>Writing a dedicated <strong className="text-foreground">miner script</strong>
                       with full setup wizard, register, stake, heartbeat, earn rewards</span>
                     </li>
@@ -269,7 +265,7 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
                 </div>
 
                 {/* Timeline */}
-                <div className="rounded-xl bg-vault/5 border border-vault/20 p-4 mt-2">
+                <div className="rounded-none bg-vault/5 border border-vault/20 p-4 mt-2">
                   <div className="text-xs font-mono uppercase tracking-wider text-vault mb-2">Revised Timeline</div>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
@@ -300,10 +296,9 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
                     August 30, 2026 at 14:00 UTC. We just need a little more time to make
                     sure everything is perfect.
                   </p>
-                  <div className="flex items-center gap-2 mt-4 text-sm">
-                    <Heart className="w-4 h-4 text-vault" />
-                    <span className="text-muted-foreground">Thank you for believing in privacy.</span>
-                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed italic mt-4 border-l-2 border-vault/40 pl-3">
+                    Thank you for believing in privacy.
+                  </p>
                 </div>
               </div>
             </motion.div>
@@ -325,16 +320,15 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
           href="https://github.com/XelisVault/xelis-vault"
           target="_blank"
           rel="noreferrer"
-          className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card/40 hover:bg-card/80 hover:border-vault/40 px-5 text-sm font-semibold transition-all"
+          className="inline-flex h-11 items-center gap-2 rounded-none border border-border bg-card/40 hover:bg-card/80 hover:border-vault/40 px-5 text-sm font-semibold transition-all"
         >
-          <Github className="w-4 h-4" />
           Follow progress on GitHub
         </a>
         <a
           href="https://discord.gg/UHpYAWbG"
           target="_blank"
           rel="noreferrer"
-          className="inline-flex h-11 items-center gap-2 rounded-full bg-vault text-white px-5 text-sm font-semibold transition-all hover:bg-vault/85"
+          className="inline-flex h-11 items-center gap-2 rounded-none bg-vault text-background px-5 text-sm font-semibold transition-all hover:bg-vault/85"
         >
           Join Discord for updates
         </a>
@@ -344,9 +338,8 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5 }}
-        className="mt-8 flex items-center gap-2 text-xs font-mono text-muted-foreground/40"
+        className="mt-8 text-xs font-mono text-muted-foreground/40"
       >
-        <Wrench className="w-3 h-3" />
         The team is working around the clock · Check back soon
       </motion.div>
     </div>

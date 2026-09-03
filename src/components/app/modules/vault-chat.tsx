@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { KeyRound, MessageSquareLock, Radio, Server, Users } from 'lucide-react'
 import { useWallet } from '@/lib/wallet-store'
 import { getChatStats, hasChatSession } from '@/lib/xelis/reads'
 import { StatCard, Panel, Badge, CliFallback, CliRow, LiveDot } from '../shared'
@@ -38,10 +37,10 @@ export function VaultChat() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Groups on-chain" value={stats?.groupsCount ?? '–'} icon={<Users className="w-4 h-4" />} loading={!stats} />
-        <StatCard label="Your session" value={hasSession == null ? '—' : hasSession ? 'Registered' : 'None'} accent={hasSession ? 'emerald' : 'amber'} icon={<KeyRound className="w-4 h-4" />} />
+        <StatCard label="Groups on-chain" value={stats?.groupsCount ?? '–'} loading={!stats} />
+        <StatCard label="Your session" value={hasSession == null ? '—' : hasSession ? 'Registered' : 'None'} accent={hasSession ? 'emerald' : 'amber'} />
         <StatCard label="Storage model" value="Ring buffer" sub="50 msgs/user, zero chain growth" />
-        <StatCard label="End-to-end" value="ChaCha20" sub="Poly1305 authenticated" accent="emerald" icon={<MessageSquareLock className="w-4 h-4" />} />
+        <StatCard label="End-to-end" value="ChaCha20" sub="Poly1305 authenticated" accent="emerald" />
       </div>
 
       <Panel
@@ -57,15 +56,15 @@ export function VaultChat() {
             'Group giveaways with per-wallet claim limits',
             'Premium direct storage, persistent, no relayer needed',
             'Tombstone deletions that preserve Merkle integrity',
-          ].map((f) => (
-            <div key={f} className="flex gap-2.5 rounded-xl border border-border bg-background/40 p-3">
-              <MessageSquareLock className="w-3.5 h-3.5 text-vault shrink-0 mt-0.5" />
+          ].map((f, i) => (
+            <div key={f} className="flex gap-3 border-b border-border/60 last:border-0 py-2.5">
+              <span className="font-mono text-[10px] text-muted-foreground/50 shrink-0">{String(i + 1).padStart(2, '0')}</span>
               <span className="text-xs text-muted-foreground leading-relaxed">{f}</span>
             </div>
           ))}
         </div>
 
-        <div className="rounded-xl border border-border bg-background/40 p-4">
+        <div className="rounded-none border border-border bg-background/40 p-4">
           <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-3">crypto stack</div>
           <div className="space-y-2">
             {CRYPTO_STACK.map((c, i) => (
@@ -86,7 +85,7 @@ export function VaultChat() {
         desc="Relayers are the messaging backbone, and earn from the 1,000,000 VLT relayer allocation (10% of supply over 10 years)."
         actions={<Badge tone="vlt">earns VLT</Badge>}
       >
-        <div className="mb-4 rounded-xl border border-vault/25 bg-vault/5 p-3.5">
+        <div className="mb-4 rounded-none border border-vault/25 bg-vault/5 p-3.5">
           <div className="flex items-center gap-2 mb-1">
             <LiveDot />
             <span className="text-xs font-semibold">Official relayer live</span>

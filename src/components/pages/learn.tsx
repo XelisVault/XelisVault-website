@@ -98,7 +98,7 @@ export function LearnPage() {
               <section key={cat.title}>
                 <Reveal>
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-vault/10 border border-vault/30 flex items-center justify-center shrink-0">
+                    <div className="w-12 h-12 rounded-none bg-vault/10 border border-vault/30 flex items-center justify-center shrink-0">
                       <cat.icon className="w-6 h-6 text-vault" />
                     </div>
                     <div>
@@ -116,7 +116,7 @@ export function LearnPage() {
                         target={article.href.startsWith('http') ? '_blank' : undefined}
                         rel={article.href.startsWith('http') ? 'noreferrer' : undefined}
                         whileHover={{ y: -3 }}
-                        className="block rounded-2xl glass-panel p-5 hover:border-vault/40 hover:bg-card/60 transition-all h-full"
+                        className="block rounded-none glass-panel p-5 hover:border-vault/40 hover:bg-card/60 transition-all h-full"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <h3 className="font-display font-medium leading-snug">{article.title}</h3>
@@ -149,8 +149,8 @@ export function LearnPage() {
             <RevealStagger className="mt-8 grid sm:grid-cols-2 md:grid-cols-4 gap-4">
               {VIDEOS.map((v) => (
                 <RevealItem key={v.title}>
-                  <div className="rounded-2xl border border-dashed border-border p-5 h-full">
-                    <div className="aspect-video rounded-lg bg-card/40 mb-4 flex items-center justify-center">
+                  <div className="rounded-none border border-dashed border-border p-5 h-full">
+                    <div className="aspect-video rounded-none bg-card/40 mb-4 flex items-center justify-center">
                       <Video className="w-8 h-8 text-muted-foreground/40" />
                     </div>
                     <h3 className="font-display font-medium text-sm leading-snug">{v.title}</h3>
@@ -166,7 +166,7 @@ export function LearnPage() {
 
           {/* Docs CTA */}
           <Reveal>
-            <div className="mt-20 rounded-2xl glass-panel p-8 text-center">
+            <div className="mt-20 rounded-none glass-panel p-8 text-center">
               <BookOpen className="w-8 h-8 text-vault mx-auto" />
               <h2 className="mt-4 font-display text-2xl font-semibold">Complete documentation</h2>
               <p className="mt-3 text-sm text-muted-foreground max-w-xl mx-auto">
@@ -178,7 +178,7 @@ export function LearnPage() {
                 href="https://github.com/XelisVault/xelis-vault"
                 target="_blank"
                 rel="noreferrer"
-                className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-vault px-6 text-sm font-semibold text-white hover:bg-vault/85 transition-all hover:shadow-[0_0_24px_-4px_var(--vault)]"
+                className="mt-6 inline-flex h-11 items-center gap-2 rounded-none bg-vault px-6 text-sm font-semibold text-white hover:bg-vault/85 transition-all hover:"
               >
                 <BookOpen className="w-4 h-4" />
                 View full documentation

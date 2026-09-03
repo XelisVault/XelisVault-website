@@ -152,7 +152,7 @@ export function Nav() {
               {/* Live Explorer, direct link */}
               <a
                 href="/explorer"
-                className="relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium text-vault hover:bg-vault/8 transition-colors"
+                className="relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-none text-[13px] font-medium text-vault hover:bg-vault/8 transition-colors"
               >
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75 animate-ping" />
@@ -170,7 +170,7 @@ export function Nav() {
                   onMouseLeave={() => setOpenGroup(null)}
                 >
                   <button
-                    className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors ${
+                    className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-none text-[13px] font-medium transition-colors${
                       openGroup === g.label
                         ? 'text-foreground bg-foreground/6'
                         : 'text-foreground/70 hover:text-foreground hover:bg-foreground/4'
@@ -189,12 +189,12 @@ export function Nav() {
                         transition={{ duration: 0.16 }}
                         className="absolute top-full left-0 pt-2.5 w-72"
                       >
-                        <div className="rounded-xl glass-panel-solid p-2">
+                        <div className="rounded-none glass-panel-solid p-2">
                           {g.items.map((item) => (
                             <a
                               key={item.href}
                               href={item.href}
-                              className="block rounded-lg px-3.5 py-2.5 text-[13px] font-medium hover:bg-vault/8 hover:text-vault transition-colors"
+                              className="block rounded-none px-3.5 py-2.5 text-[13px] font-medium hover:bg-vault/8 hover:text-vault transition-colors"
                             >
                               {item.label}
                             </a>
@@ -213,7 +213,7 @@ export function Nav() {
                 onMouseLeave={() => setResourcesOpen(false)}
               >
                 <button
-                  className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors ${
+                  className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-none text-[13px] font-medium transition-colors${
                     resourcesOpen
                       ? 'text-foreground bg-foreground/6'
                       : 'text-foreground/70 hover:text-foreground hover:bg-foreground/4'
@@ -232,13 +232,13 @@ export function Nav() {
                       transition={{ duration: 0.16 }}
                       className="absolute top-full right-0 pt-3 w-[540px]"
                     >
-                      <div className="rounded-xl glass-panel-solid p-3">
+                      <div className="rounded-none glass-panel-solid p-3">
                         <div className="grid grid-cols-2 gap-1">
                           {RESOURCES.map((r) => (
                             <a
                               key={r.href}
                               href={r.href}
-                              className="group block rounded-lg px-3.5 py-2.5 hover:bg-vault/8 transition-colors"
+                              className="group block rounded-none px-3.5 py-2.5 hover:bg-vault/8 transition-colors"
                             >
                               <div className="text-[13px] font-semibold leading-tight group-hover:text-vault transition-colors">{r.label}</div>
                               <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{r.desc}</div>
@@ -270,7 +270,7 @@ export function Nav() {
                 href="https://github.com/XelisVault/xelis-vault"
                 target="_blank"
                 rel="noreferrer"
-                className="hidden md:inline-flex h-9 items-center gap-2 rounded-full border border-border bg-card/60 hover:bg-card hover:border-vault/40 px-4 text-[13px] font-medium transition-all"
+                className="hidden md:inline-flex h-9 items-center gap-2 rounded-none border border-border bg-card/60 hover:bg-card hover:border-vault/40 px-4 text-[13px] font-medium transition-all"
               >
                 <Github className="w-4 h-4" />
                 GitHub
@@ -278,7 +278,7 @@ export function Nav() {
               <button
                 onClick={() => openApp()}
                 disabled={!isLaunched}
-                className={`hidden md:inline-flex h-9 items-center rounded-full px-5 text-[13px] font-semibold transition-all hover:shadow-[0_8px_24px_-8px_oklch(0.42_0.08_70/0.5)] disabled:cursor-not-allowed ${
+                className={`hidden md:inline-flex h-9 items-center px-5 text-[13px] font-semibold transition-colors hover:bg-vault hover:text-primary-foreground disabled:cursor-not-allowed${
                   isLaunched
                     ? 'bg-ink text-ink-foreground hover:bg-vault hover:text-primary-foreground'
                     : isFinalCountdown
@@ -297,7 +297,7 @@ export function Nav() {
               </button>
               <button
                 onClick={() => setOpen(true)}
-                className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-foreground/5"
+                className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-[3px] hover:bg-foreground/5"
                 aria-label="Open menu"
               >
                 <Menu className="w-5 h-5" />
@@ -320,7 +320,7 @@ export function Nav() {
               <span className="font-display font-semibold text-[17px]">Menu</span>
               <button
                 onClick={() => setOpen(false)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-foreground/5"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-[3px] hover:bg-foreground/5"
                 aria-label="Close menu"
               >
                 <X className="w-5 h-5" />
@@ -364,14 +364,14 @@ export function Nav() {
                   href="https://github.com/XelisVault/xelis-vault"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-full border border-border bg-card"
+                  className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-none border border-border bg-card"
                 >
                   <Github className="w-4 h-4" /> GitHub
                 </a>
                 <button
                   onClick={() => { if (isLaunched) { openApp(); setOpen(false) } }}
                   disabled={!isLaunched}
-                  className={`flex-1 inline-flex h-12 items-center justify-center rounded-full font-semibold disabled:cursor-not-allowed ${
+                  className={`flex-1 inline-flex h-12 items-center justify-center rounded-none font-semibold disabled:cursor-not-allowed${
                     isLaunched
                       ? 'bg-ink text-ink-foreground'
                       : 'bg-ink/70 text-ink-foreground/80'

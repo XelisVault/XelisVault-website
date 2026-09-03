@@ -227,7 +227,7 @@ function SceneIntro() {
         initial={{ scale: 0, rotate: -180 }}
         animate={{ scale: 1, rotate: 0 }}
         transition={{ type: 'spring', stiffness: 100, delay: 0.2 }}
-        className="relative w-24 h-24 md:w-32 md:h-32 mx-auto rounded-3xl overflow-hidden ring-2 ring-vault/40 shadow-[0_0_80px_-10px_var(--vault)] mb-8"
+        className="relative w-24 h-24 md:w-32 md:h-32 mx-auto rounded-none overflow-hidden ring-2 ring-vault/40 mb-8"
       >
         <img src="/images/xelisvault-logo.png" alt="Xelis Vault" className="w-full h-full object-cover" />
       </motion.div>
@@ -280,12 +280,12 @@ function SceneProblem() {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', delay: 0.2 }}
-        className="relative w-20 h-20 mx-auto rounded-2xl bg-destructive/8 border border-destructive/30 flex items-center justify-center text-destructive mb-6"
+        className="relative w-20 h-20 mx-auto rounded-none bg-destructive/8 border border-destructive/30 flex items-center justify-center text-destructive mb-6"
       >
         <Lock className="w-10 h-10" />
         {/* Scan line */}
         <motion.div
-          className="absolute inset-0 rounded-2xl overflow-hidden"
+          className="absolute inset-0 rounded-none overflow-hidden"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
@@ -351,7 +351,7 @@ function SceneSolution() {
         initial={{ scale: 0, rotate: -90 }}
         animate={{ scale: 1, rotate: 0 }}
         transition={{ type: 'spring', delay: 0.2 }}
-        className="relative w-20 h-20 mx-auto rounded-2xl bg-vault/15 border border-vault/40 flex items-center justify-center text-vault mb-6 shadow-[0_0_60px_-10px_var(--vault)]"
+        className="relative w-20 h-20 mx-auto rounded-none bg-vault/15 border border-vault/40 flex items-center justify-center text-vault mb-6"
       >
         <Shield className="w-10 h-10" />
       </motion.div>
@@ -387,7 +387,7 @@ function SceneSolution() {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 1 + i * 0.15 }}
-              className="px-3 py-1.5 rounded-full glass-panel text-xs font-mono text-vault"
+              className="px-3 py-1.5 rounded-none glass-panel text-xs font-mono text-vault"
             >
               {f}
             </motion.div>
@@ -418,7 +418,7 @@ function SceneXUSD() {
               <motion.div
                 animate={{ scale: [1, 1.2, 1] }}
                 transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
-                className="w-full h-full rounded-full bg-xusd/20 border border-xusd/40 shadow-[0_0_20px_var(--xusd)]"
+                className="w-full h-full rounded-full bg-xusd/20 border border-xusd/40 "
               />
             </div>
           ))}
@@ -429,7 +429,7 @@ function SceneXUSD() {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', delay: 0.2 }}
-        className="relative w-20 h-20 mx-auto rounded-2xl overflow-hidden ring-2 ring-xusd/40 shadow-[0_0_60px_-10px_var(--xusd)] mb-6"
+        className="relative w-20 h-20 mx-auto rounded-none overflow-hidden ring-2 ring-xusd/40 mb-6"
       >
         <img src="/images/xusd-logo.jpg" alt="xUSD" className="w-full h-full object-cover" />
       </motion.div>
@@ -504,7 +504,7 @@ function SceneOracle() {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', delay: 0.2 }}
-        className="relative w-20 h-20 mx-auto rounded-2xl bg-vault/15 border border-vault/40 flex items-center justify-center text-vault mb-6"
+        className="relative w-20 h-20 mx-auto rounded-none bg-vault/15 border border-vault/40 flex items-center justify-center text-vault mb-6"
       >
         <Activity className="w-10 h-10" />
       </motion.div>
@@ -588,7 +588,7 @@ function SceneVLT() {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', delay: 0.2 }}
-        className="relative w-20 h-20 mx-auto rounded-2xl bg-vlt/15 border border-vlt/40 flex items-center justify-center text-vlt mb-6 shadow-[0_0_60px_-10px_var(--vlt)]"
+        className="relative w-20 h-20 mx-auto rounded-none bg-vlt/15 border border-vlt/40 flex items-center justify-center text-vlt mb-6"
       >
         <Zap className="w-10 h-10" />
       </motion.div>
@@ -637,7 +637,7 @@ function SceneGovernance() {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', delay: 0.2 }}
-        className="relative w-20 h-20 mx-auto rounded-2xl bg-vlt/15 border border-vlt/40 flex items-center justify-center text-vlt mb-6"
+        className="relative w-20 h-20 mx-auto rounded-none bg-vlt/15 border border-vlt/40 flex items-center justify-center text-vlt mb-6"
       >
         <Vote className="w-10 h-10" />
       </motion.div>
@@ -724,7 +724,7 @@ function SceneFinale() {
         initial={{ scale: 0, rotate: -180 }}
         animate={{ scale: 1, rotate: 0 }}
         transition={{ type: 'spring', stiffness: 100, delay: 0.2 }}
-        className="relative w-20 h-20 mx-auto rounded-2xl overflow-hidden ring-2 ring-vault/40 shadow-[0_0_80px_-10px_var(--vault)] mb-8"
+        className="relative w-20 h-20 mx-auto rounded-none overflow-hidden ring-2 ring-vault/40 mb-8"
       >
         <img src="/images/xelisvault-logo.png" alt="Xelis Vault" className="w-full h-full object-cover" />
       </motion.div>

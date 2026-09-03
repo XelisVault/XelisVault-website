@@ -108,10 +108,10 @@ export function CommunityPage() {
                     href={c.href}
                     target="_blank"
                     rel="noreferrer"
-                    className="block rounded-2xl glass-panel p-6 hover:border-vault/40 hover:bg-card/60 transition-all"
+                    className="block rounded-none glass-panel p-6 hover:border-vault/40 hover:bg-card/60 transition-all"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-vault/10 border border-vault/30 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-none bg-vault/10 border border-vault/30 flex items-center justify-center">
                         <c.icon className="w-5 h-5 text-vault" />
                       </div>
                       <div>
@@ -141,7 +141,7 @@ export function CommunityPage() {
                     href={r.href}
                     target="_blank"
                     rel="noreferrer"
-                    className="block rounded-2xl glass-panel p-6 hover:border-vault/40 hover:bg-card/60 transition-all h-full"
+                    className="block rounded-none glass-panel p-6 hover:border-vault/40 hover:bg-card/60 transition-all h-full"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <h3 className="font-display text-lg font-semibold">{r.title}</h3>
@@ -169,7 +169,7 @@ export function CommunityPage() {
             </Reveal>
 
             <Reveal delay={0.2}>
-              <div className="mt-6 rounded-2xl border border-dashed border-border p-8 text-center">
+              <div className="mt-6 rounded-none border border-dashed border-border p-8 text-center">
                 <Wrench className="w-6 h-6 text-muted-foreground mx-auto" />
                 <p className="mt-4 text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
                   No community projects to showcase yet, the testnet has not launched. After August 30,
@@ -180,7 +180,7 @@ export function CommunityPage() {
                   href="https://discord.gg/UHpYAWbG"
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-vault px-6 text-sm font-semibold text-white hover:bg-vault/85 transition-all hover:shadow-[0_0_24px_-4px_var(--vault)]"
+                  className="mt-6 inline-flex h-11 items-center gap-2 rounded-none bg-vault px-6 text-sm font-semibold text-white hover:bg-vault/85 transition-all hover:"
                 >
                   <MessageCircle className="w-4 h-4" />
                   Join the Discord
@@ -192,7 +192,7 @@ export function CommunityPage() {
 
           {/* Contact */}
           <Reveal>
-            <div className="mt-20 rounded-2xl glass-panel p-6 text-center">
+            <div className="mt-20 rounded-none glass-panel p-6 text-center">
               <p className="text-sm text-muted-foreground">
                 For partnerships, press, or private enquiries:{' '}
                 <a href="mailto:xelisvault@protonmail.org" className="text-vault hover:underline font-mono">

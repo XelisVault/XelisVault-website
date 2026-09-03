@@ -304,7 +304,7 @@ function HeartsFX() {
           initial={{ scale: 0.6, opacity: 0 }}
           animate={{ scale: [0.6, 1.08, 1], opacity: 1 }}
           transition={{ duration: 0.6 }}
-          className="glass-panel rounded-2xl px-6 py-4"
+          className="glass-panel rounded-none px-6 py-4"
         >
           <div className="font-display text-xl md:text-2xl font-semibold" style={{ color: PINK }}>
             Pour léa

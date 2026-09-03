@@ -23,7 +23,7 @@ export function Xusd() {
             </Reveal>
             <Reveal delay={0.1}>
               <div className="mt-6 flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl overflow-hidden ring-1 ring-xusd/40 shadow-[0_0_40px_-10px_var(--xusd)]">
+                <div className="w-16 h-16 rounded-none overflow-hidden ring-1 ring-xusd/40">
                   <img src="/images/xusd-logo.jpg" alt="xUSD" className="w-full h-full object-cover" />
                 </div>
                 <div>

@@ -634,7 +634,7 @@ export function LaunchCelebration({
             {/* hub logo overlay */}
             {pi < 3 && (
               <motion.div
-                className="absolute w-12 h-12 md:w-14 md:h-14 rounded-xl overflow-hidden ring-2 ring-vault/50"
+                className="absolute w-12 h-12 md:w-14 md:h-14 rounded-none overflow-hidden ring-2 ring-vault/50"
                 initial={{ opacity: 0, scale: 0.6 }}
                 animate={{
                   opacity: 1,
@@ -853,7 +853,7 @@ export function LaunchCelebration({
                   ],
                 }}
                 transition={{ duration: 2.2, repeat: Infinity }}
-                className="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden ring-2 ring-vault/60"
+                className="w-20 h-20 md:w-24 md:h-24 rounded-none overflow-hidden ring-2 ring-vault/60"
               >
                 <img src="/images/xelisvault-logo.png" alt="Xelis Vault" className="w-full h-full object-cover" />
               </motion.div>
@@ -982,7 +982,7 @@ export function LaunchCelebration({
                       finish()
                     }
                   }}
-                  className="relative mt-2 inline-flex h-12 items-center gap-2.5 rounded-full px-8 text-sm font-semibold text-white"
+                  className="relative mt-2 inline-flex h-12 items-center gap-2.5 rounded-none px-8 text-sm font-semibold text-white"
                   style={{
                     background: 'linear-gradient(120deg, oklch(0.62 0.22 295), oklch(0.55 0.24 320))',
                     boxShadow: '0 0 40px -6px oklch(0.62 0.22 295 / 0.7)',
@@ -1046,7 +1046,7 @@ export function LaunchCelebration({
             setSkipping(true)
             finish()
           }}
-          className="absolute bottom-5 right-5 z-10 inline-flex items-center gap-1 rounded-full border border-border bg-card/50 backdrop-blur px-4 py-2 text-xs font-mono uppercase tracking-wider text-muted-foreground transition-colors"
+          className="absolute bottom-5 right-5 z-10 inline-flex items-center gap-1 rounded-none border border-border bg-card/50 backdrop-blur px-4 py-2 text-xs font-mono uppercase tracking-wider text-muted-foreground transition-colors"
         >
           Skip <ChevronRight className="w-3.5 h-3.5" />
         </motion.button>

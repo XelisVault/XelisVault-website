@@ -88,7 +88,7 @@ export function AboutPage() {
             </Reveal>
 
             <Reveal delay={0.1}>
-              <div className="mt-6 rounded-2xl glass-panel p-6">
+              <div className="mt-6 rounded-none glass-panel p-6">
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   The XELIS Vault team is anonymous by design, the same privacy principles that
                   drive the protocol apply to the people building it. Identity is verified through
@@ -124,8 +124,8 @@ export function AboutPage() {
             <RevealStagger className="mt-8 grid sm:grid-cols-2 gap-4">
               {PRINCIPLES.map((p) => (
                 <RevealItem key={p.title}>
-                  <motion.div whileHover={{ y: -4 }} className="rounded-2xl glass-panel p-6 h-full">
-                    <div className="w-10 h-10 rounded-xl bg-vault/10 border border-vault/30 flex items-center justify-center mb-4">
+                  <motion.div whileHover={{ y: -4 }} className="rounded-none glass-panel p-6 h-full">
+                    <div className="w-10 h-10 rounded-none bg-vault/10 border border-vault/30 flex items-center justify-center mb-4">
                       <p.icon className="w-5 h-5 text-vault" />
                     </div>
                     <h3 className="font-display text-lg font-semibold">{p.title}</h3>
@@ -147,7 +147,7 @@ export function AboutPage() {
 
             <Reveal delay={0.1}>
               <div className="mt-6 grid sm:grid-cols-2 gap-4">
-                <div className="rounded-2xl glass-panel p-6">
+                <div className="rounded-none glass-panel p-6">
                   <div className="text-xs font-mono uppercase tracking-wider text-vault">Blockchain partner</div>
                   <h3 className="mt-2 font-display text-lg font-semibold">XELIS Foundation</h3>
                   <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
@@ -158,7 +158,7 @@ export function AboutPage() {
                     xelis.io ↗
                   </a>
                 </div>
-                <div className="rounded-2xl glass-panel p-6">
+                <div className="rounded-none glass-panel p-6">
                   <div className="text-xs font-mono uppercase tracking-wider text-amber-400">Security partner</div>
                   <h3 className="mt-2 font-display text-lg font-semibold">External audit firm</h3>
                   <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
@@ -188,10 +188,10 @@ export function AboutPage() {
                 <RevealItem key={c.label}>
                   <a
                     href={`mailto:${c.email}`}
-                    className="block rounded-2xl glass-panel p-6 hover:border-vault/40 hover:bg-card/60 transition-all"
+                    className="block rounded-none glass-panel p-6 hover:border-vault/40 hover:bg-card/60 transition-all"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-vault/10 border border-vault/30 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-none bg-vault/10 border border-vault/30 flex items-center justify-center">
                         <c.icon className="w-5 h-5 text-vault" />
                       </div>
                       <div>
@@ -207,7 +207,7 @@ export function AboutPage() {
 
           {/* Closing */}
           <Reveal>
-            <div className="mt-20 rounded-2xl border border-vault/30 bg-vault/5 p-8 text-center">
+            <div className="mt-20 rounded-none border border-vault/30 bg-vault/5 p-8 text-center">
               <Heart className="w-8 h-8 text-vault mx-auto" />
               <p className="mt-4 text-lg font-display font-medium leading-relaxed">
                 Thank you for believing in privacy.

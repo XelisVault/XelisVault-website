@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Lock, Vote, Zap } from 'lucide-react'
 import { useWallet, canSign } from '@/lib/wallet-store'
 import { getGovernanceStats, getProposalCount } from '@/lib/xelis/reads'
 import { invoke, depositVlt, GAS } from '@/lib/xelis/invoke'
@@ -63,9 +62,9 @@ export function Governance() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="VLT staked" value={`${formatAmount(stats?.totalStaked)} VLT`} accent="vlt" icon={<TokenIcon symbol="VLT" size="xs" />} loading={!stats} />
+        <StatCard label="VLT staked" value={`${formatAmount(stats?.totalStaked)} VLT`} accent="vlt" loading={!stats} />
         <StatCard label="Stakers" value={stats?.stakesCount ?? '–'} sub="individual stakes" />
-        <StatCard label="Proposals" value={proposals} sub="all time" icon={<Vote className="w-4 h-4" />} />
+        <StatCard label="Proposals" value={proposals} sub="all time" />
         <StatCard label="Quorum" value="10%" sub="of voting power" />
       </div>
 
@@ -88,7 +87,7 @@ export function Governance() {
                 <input
                   type="number" min="7" max="730" value={lockDays}
                   onChange={(e) => setLockDays(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-border bg-background/60 px-3.5 py-2.5 font-mono text-sm outline-none focus:border-vault/50"
+                  className="mt-1 w-full rounded-none border border-border bg-background/60 px-3.5 py-2.5 font-mono text-sm outline-none focus:border-vault/50"
                 />
               </div>
             </div>
@@ -98,7 +97,7 @@ export function Governance() {
                 <button
                   key={t.days}
                   onClick={() => setLockDays(String(t.days))}
-                  className="rounded-lg border border-border bg-card/40 px-3 py-1.5 text-[11px] font-mono hover:border-vlt/40 hover:text-vlt transition-all"
+                  className="rounded-none border border-border bg-card/40 px-3 py-1.5 text-[11px] font-mono hover:border-vlt/40 hover:text-vlt transition-all"
                 >
                   {t.days}d · {t.mult}×
                 </button>
@@ -106,7 +105,7 @@ export function Governance() {
             </div>
 
             {Number(amount) > 0 && (
-              <div className="mt-3 rounded-xl border border-border bg-background/40 p-3.5 space-y-1">
+              <div className="mt-3 rounded-none border border-border bg-background/40 p-3.5 space-y-1">
                 <DataRow label="Voting power" value={`${(Number(amount) * boost.mult).toFixed(2)} vp`} accent="text-vlt" />
                 <DataRow label="Boost" value={`${boost.mult}× (${boost.days}-day tier)`} />
                 <DataRow label="Unstake" value={`after ${lockDays} days (undelegate delay applies)`} />
@@ -115,7 +114,6 @@ export function Governance() {
 
             <div className="mt-4 flex items-center gap-3">
               <ActionButton onClick={stake} disabled={!canTx || Number(amount) <= 0} loading={busy}>
-                <Lock className="w-4 h-4" />
                 Stake for governance
               </ActionButton>
               {!canTx && <span className="text-[11px] text-muted-foreground">Requires XSWD</span>}
@@ -140,7 +138,7 @@ export function Governance() {
             'Execution is permissionless once the delay elapses',
           ].map((s, i) => (
             <li key={i} className="flex gap-3 text-xs text-muted-foreground leading-relaxed">
-              <span className="shrink-0 w-5 h-5 rounded-md bg-vlt/15 text-vlt font-mono text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
+              <span className="shrink-0 w-5 h-5 rounded-[3px] bg-vlt/15 text-vlt font-mono text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
               {s}
             </li>
           ))}

@@ -2,11 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-  LayoutDashboard, Vault, ArrowLeftRight, Coins, Wind, PiggyBank, Vote,
-  MessageSquareLock, Activity, Pickaxe, X, ExternalLink, ChevronRight, ChevronLeft,
-  Wallet, Rocket, Gift, FileCode2,
-} from 'lucide-react'
+import { X, ChevronRight, ChevronLeft } from 'lucide-react'
 import { useDemo, type ModuleId } from '@/lib/demo-store'
 import { useWallet } from '@/lib/wallet-store'
 import { GetStarted } from './modules/get-started'
@@ -26,20 +22,22 @@ import { TokenIcon } from './token-icon'
 import { WalletConnectModal } from './wallet-connect-modal'
 import { LaunchGate, useLaunchStatus } from './launch-gate'
 
-const NAV: { id: ModuleId; label: string; icon: typeof LayoutDashboard; group: string }[] = [
-  { id: 'get-started', label: 'Get Started', icon: Rocket, group: 'Start' },
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Start' },
-  { id: 'vault', label: 'Vault Engine', icon: Vault, group: 'Core' },
-  { id: 'swap', label: 'VaultSwap', icon: ArrowLeftRight, group: 'Core' },
-  { id: 'psm', label: 'PSM', icon: Coins, group: 'Core' },
-  { id: 'savings', label: 'Savings', icon: PiggyBank, group: 'Core' },
-  { id: 'mixer', label: 'Privacy Mixer', icon: Wind, group: 'Privacy' },
-  { id: 'chat', label: 'VaultChat', icon: MessageSquareLock, group: 'Privacy' },
-  { id: 'oracle', label: 'Oracle', icon: Activity, group: 'Network' },
-  { id: 'governance', label: 'Governance', icon: Vote, group: 'Network' },
-  { id: 'miner', label: 'Miner', icon: Pickaxe, group: 'Network' },
-  { id: 'airdrop', label: 'Airdrop', icon: Gift, group: 'Rewards' },
-  { id: 'contracts', label: 'Contracts', icon: FileCode2, group: 'Rewards' },
+/* Typographic navigation — a numbered ledger index, in the tradition of
+   private-bank stationery. No iconography. */
+const NAV: { id: ModuleId; label: string; group: string }[] = [
+  { id: 'get-started', label: 'Get Started', group: 'Start' },
+  { id: 'dashboard', label: 'Dashboard', group: 'Start' },
+  { id: 'vault', label: 'Vault Engine', group: 'Core' },
+  { id: 'swap', label: 'VaultSwap', group: 'Core' },
+  { id: 'psm', label: 'PSM', group: 'Core' },
+  { id: 'savings', label: 'Savings', group: 'Core' },
+  { id: 'mixer', label: 'Privacy Mixer', group: 'Privacy' },
+  { id: 'chat', label: 'VaultChat', group: 'Privacy' },
+  { id: 'oracle', label: 'Oracle', group: 'Network' },
+  { id: 'governance', label: 'Governance', group: 'Network' },
+  { id: 'miner', label: 'Miner', group: 'Network' },
+  { id: 'airdrop', label: 'Airdrop', group: 'Rewards' },
+  { id: 'contracts', label: 'Contracts', group: 'Rewards' },
 ]
 
 const MODULE_TITLES: Record<ModuleId, { title: string; desc: string }> = {
@@ -57,6 +55,8 @@ const MODULE_TITLES: Record<ModuleId, { title: string; desc: string }> = {
   airdrop: { title: 'Airdrop', desc: 'Testnet contribution points toward 500,000 VLT' },
   contracts: { title: 'Contracts', desc: 'All deployed contracts, resolved live from the registry' },
 }
+
+const pad2 = (n: number) => String(n + 1).padStart(2, '0')
 
 export function DemoApp() {
   const { open, closeApp, activeModule, setModule } = useDemo()
@@ -150,13 +150,13 @@ export function DemoApp() {
           transition={{ duration: 0.3 }}
           className="app-dark fixed inset-0 z-[80] bg-background flex flex-col"
         >
-          {/* BANNER: testnet status */}
-          <div className="shrink-0 bg-gradient-to-r from-emerald-500/20 via-emerald-500/15 to-emerald-500/20 border-b border-emerald-500/30">
-            <div className="px-4 md:px-6 py-2 flex items-center justify-center gap-2 text-center">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-              <span className="text-xs font-mono text-emerald-200">
-                <span className="font-bold uppercase tracking-wider">Testnet Live</span>
-                <span className="opacity-70 mx-2">·</span>
+          {/* STATUS LINE — flat ink strip, mono, hairline border */}
+          <div className="shrink-0 border-b border-border bg-[oklch(0.105_0.008_80)]">
+            <div className="px-4 md:px-6 py-2 flex items-center justify-center gap-2.5 text-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <span className="text-[11px] font-mono uppercase tracking-[0.14em] text-foreground/70">
+                <span className="text-vault font-semibold">Testnet live</span>
+                <span className="opacity-40 mx-2">·</span>
                 {isWalletConnected
                   ? 'XSWD wallet connected · transactions require wallet approval'
                   : 'Live protocol data · connect a wallet to interact'}
@@ -166,12 +166,12 @@ export function DemoApp() {
 
           {/* MAIN APP */}
           <div className="flex-1 flex overflow-hidden">
-            {/* SIDEBAR */}
-            <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-border bg-card/30">
+            {/* SIDEBAR — numbered ledger index */}
+            <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-border">
               {/* Brand */}
               <div className="p-5 border-b border-border">
                 <div className="flex items-center gap-2.5">
-                  <div className="relative w-8 h-8 rounded-md overflow-hidden ring-1 ring-vault/40">
+                  <div className="relative w-8 h-8 rounded-[3px] overflow-hidden ring-1 ring-vault/40">
                     <img
                       src="/images/xelisvault-logo.png"
                       alt="Xelis Vault"
@@ -188,28 +188,30 @@ export function DemoApp() {
               </div>
 
               {/* Nav */}
-              <nav className="flex-1 overflow-y-auto p-3 space-y-5 custom-scrollbar">
+              <nav className="flex-1 overflow-y-auto py-5 space-y-6 custom-scrollbar">
                 {groups.map((g) => (
                   <div key={g}>
-                    <div className="px-3 mb-1.5 text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/60">
+                    <div className="px-5 mb-2 text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/50">
                       {g}
                     </div>
-                    <div className="space-y-0.5">
+                    <div>
                       {NAV.filter((n) => n.group === g).map((n) => {
+                        const globalIdx = NAV.indexOf(n)
                         const isActive = activeModule === n.id
                         return (
                           <button
                             key={n.id}
                             onClick={() => setModule(n.id)}
-                            className={`w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-all ${
+                            className={`w-full flex items-baseline gap-3 px-5 py-2 text-sm transition-colors border-l-2 ${
                               isActive
-                                ? 'bg-vault/15 text-vault border border-vault/30'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-card/60 border border-transparent'
+                                ? 'border-vault text-foreground bg-vault/5'
+                                : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-card/70'
                             }`}
                           >
-                            <n.icon className="w-4 h-4 shrink-0" />
+                            <span className={`font-mono text-[10px] tracking-wider ${isActive ? 'text-vault' : 'text-muted-foreground/50'}`}>
+                              {pad2(globalIdx)}
+                            </span>
                             <span className="font-medium">{n.label}</span>
-                            {isActive && <span className="ml-auto w-1 h-1 rounded-full bg-vault" />}
                           </button>
                         )
                       })}
@@ -219,15 +221,14 @@ export function DemoApp() {
               </nav>
 
               {/* Footer */}
-              <div className="p-3 border-t border-border space-y-0.5">
+              <div className="p-5 border-t border-border">
                 <a
                   href="https://github.com/XelisVault/xelis-vault"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-card/60 transition-all"
+                  className="text-[11px] font-mono uppercase tracking-[0.14em] text-muted-foreground hover:text-vault transition-colors"
                 >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  View source on GitHub
+                  Source on GitHub ↗
                 </a>
               </div>
             </aside>
@@ -235,11 +236,11 @@ export function DemoApp() {
             {/* MAIN AREA */}
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* TOPBAR */}
-              <header className="shrink-0 border-b border-border bg-card/20 backdrop-blur">
+              <header className="shrink-0 border-b border-border bg-background">
                 <div className="px-4 md:px-6 py-3 flex items-center justify-between gap-3">
                   {/* Mobile: brand + portfolio value */}
                   <div className="flex items-center gap-3 md:hidden min-w-0 flex-1">
-                    <div className="w-7 h-7 rounded-md overflow-hidden ring-1 ring-vault/40 shrink-0">
+                    <div className="w-7 h-7 rounded-[3px] overflow-hidden ring-1 ring-vault/40 shrink-0">
                       <img src="/images/xelisvault-logo.png" alt="Xelis Vault" className="w-full h-full object-cover" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -254,19 +255,22 @@ export function DemoApp() {
 
                   {/* Title (desktop) */}
                   <div className="hidden md:block">
-                    <h1 className="font-display text-lg font-semibold tracking-tight">
-                      {moduleTitle.title}
-                    </h1>
-                    <p className="text-xs text-muted-foreground">{moduleTitle.desc}</p>
+                    <div className="flex items-baseline gap-3">
+                      <span className="font-mono text-[10px] text-vault tracking-[0.18em]">{pad2(activeIndex)}</span>
+                      <h1 className="font-display text-lg font-semibold tracking-tight">
+                        {moduleTitle.title}
+                      </h1>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{moduleTitle.desc}</p>
                   </div>
 
                   {/* Wallet bar */}
                   <div className="flex items-center gap-2">
                     {/* Portfolio value (desktop only) */}
                     {isWalletConnected && (
-                      <div className="hidden md:flex items-center gap-2 rounded-full border border-border bg-card/40 px-3 py-1.5">
-                        <span className="text-[10px] font-mono uppercase text-muted-foreground">Portfolio</span>
-                        <span className="text-sm font-semibold font-mono">
+                      <div className="hidden md:flex items-baseline gap-2 border-l border-border pl-4">
+                        <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">Portfolio</span>
+                        <span className="text-sm font-display font-semibold">
                           ${portfolioUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                         </span>
                       </div>
@@ -274,15 +278,15 @@ export function DemoApp() {
 
                     {/* Balances (desktop only) */}
                     {isWalletConnected && connectionType === 'xswd' && (
-                      <div className="hidden lg:flex items-center gap-1.5">
+                      <div className="hidden lg:flex items-center gap-3 border-l border-border pl-4">
                         {[
                           { sym: 'XEL' as const, amount: xelBalance },
                           { sym: 'xUSD' as const, amount: xusdBalance },
                           { sym: 'VLT' as const, amount: vltBalance },
                         ].map((b) => (
-                          <div key={b.sym} className="flex items-center gap-1.5 rounded-full border border-border bg-card/40 px-2.5 py-1.5">
+                          <div key={b.sym} className="flex items-center gap-1.5">
                             <TokenIcon symbol={b.sym} size="xs" />
-                            <span className="text-xs font-mono">
+                            <span className="text-xs font-mono text-foreground/80">
                               {b.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                             </span>
                           </div>
@@ -293,31 +297,30 @@ export function DemoApp() {
                     {/* Address / Connect Wallet button */}
                     <button
                       onClick={() => setShowConnectModal(true)}
-                      className={`flex items-center gap-2 rounded-full border px-3 py-1.5 transition-all hover:scale-[1.02] ${
+                      className={`flex items-center gap-2 border px-3 py-1.5 transition-colors ${
                         isWalletConnected
-                          ? 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20'
-                          : 'bg-vault/10 border-vault/30 hover:bg-vault/20'
+                          ? 'border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10'
+                          : 'border-vault/40 text-vault hover:bg-vault/10'
                       }`}
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                      <span className={`w-1.5 h-1.5 rounded-full animate-pulse${
                         isWalletConnected ? 'bg-emerald-400' : 'bg-amber-400'
                       }`} />
                       <span className="text-xs font-mono">
                         {displayAddress ? `${displayAddress.slice(0, 8)}...${displayAddress.slice(-4)}` : 'Connect'}
                       </span>
                       {isWalletConnected && connectionType === 'xswd' && (
-                        <span className="text-[9px] font-mono uppercase tracking-wider text-emerald-400 hidden sm:inline">LIVE</span>
+                        <span className="text-[9px] font-mono uppercase tracking-wider text-emerald-400 hidden sm:inline">live</span>
                       )}
-                      <Wallet className="w-3 h-3 opacity-60" />
                     </button>
 
                     {isWalletConnected && (
                       <button
                         onClick={disconnect}
                         title="Disconnect"
-                        className="hidden sm:flex w-8 h-8 rounded-full border border-border bg-card/40 hover:bg-card/80 hover:border-red-500/30 items-center justify-center transition-all"
+                        className="hidden sm:flex items-center px-2 text-[10px] font-mono uppercase tracking-[0.14em] border border-border text-muted-foreground hover:border-destructive/40 hover:text-red-300 hover:bg-destructive/5 transition-colors"
                       >
-                        <span className="text-[10px] font-mono text-muted-foreground">exit</span>
+                        exit
                       </button>
                     )}
 
@@ -325,22 +328,22 @@ export function DemoApp() {
                     <button
                       onClick={closeApp}
                       aria-label="Close app"
-                      className="w-9 h-9 rounded-full border border-border bg-card/40 hover:bg-card/80 hover:border-red-500/30 flex items-center justify-center transition-all"
+                      className="w-9 h-9 border border-border hover:border-vault/40 hover:text-vault flex items-center justify-center transition-colors"
                     >
                       <X className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
-                {/* Mobile nav (horizontal scroll with arrows + fade + counter) */}
+                {/* Mobile nav (horizontal scroll with arrows) */}
                 <div className="md:hidden relative">
                   <div className="flex items-center px-3 pb-2.5">
                     <button
                       onClick={() => scrollNav('left')}
                       disabled={!canScrollLeft}
                       aria-label="Scroll left"
-                      className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all ${
-                        canScrollLeft ? 'bg-card/60 border border-border text-vault' : 'opacity-20 cursor-default'
+                      className={`shrink-0 w-7 h-7 flex items-center justify-center transition-opacity ${
+                        canScrollLeft ? 'text-vault opacity-100' : 'opacity-20 cursor-default'
                       }`}
                     >
                       <ChevronLeft className="w-4 h-4" />
@@ -349,22 +352,25 @@ export function DemoApp() {
                     <div
                       ref={navScrollRef}
                       onScroll={updateScrollIndicators}
-                      className="hide-scrollbar flex-1 flex items-center gap-1.5 overflow-x-auto scroll-smooth px-2"
+                      className="hide-scrollbar flex-1 flex items-end gap-5 overflow-x-auto scroll-smooth px-2"
                     >
                       {NAV.map((n) => {
                         const isActive = activeModule === n.id
+                        const globalIdx = NAV.indexOf(n)
                         return (
                           <button
                             key={n.id}
                             ref={(el) => { tabRefs.current[n.id] = el }}
                             onClick={() => setModule(n.id)}
-                            className={`shrink-0 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium transition-all min-w-[80px] ${
+                            className={`shrink-0 inline-flex items-baseline gap-1.5 pb-1.5 pt-2 text-xs font-medium transition-colors border-b-2 ${
                               isActive
-                                ? 'bg-vault text-white shadow-[0_0_20px_-6px_var(--vault)]'
-                                : 'text-muted-foreground bg-card/40 border border-border'
+                                ? 'border-vault text-foreground'
+                                : 'border-transparent text-muted-foreground'
                             }`}
                           >
-                            <n.icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-vault'}`} />
+                            <span className={`font-mono text-[9px] tracking-wider ${isActive ? 'text-vault' : 'text-muted-foreground/50'}`}>
+                              {pad2(globalIdx)}
+                            </span>
                             {n.label}
                           </button>
                         )
@@ -375,8 +381,8 @@ export function DemoApp() {
                       onClick={() => scrollNav('right')}
                       disabled={!canScrollRight}
                       aria-label="Scroll right"
-                      className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all ${
-                        canScrollRight ? 'bg-card/60 border border-border text-vault' : 'opacity-20 cursor-default'
+                      className={`shrink-0 w-7 h-7 flex items-center justify-center transition-opacity ${
+                        canScrollRight ? 'text-vault opacity-100' : 'opacity-20 cursor-default'
                       }`}
                     >
                       <ChevronRight className="w-4 h-4" />
@@ -385,11 +391,11 @@ export function DemoApp() {
 
                   <div className="flex items-center justify-between px-4 pb-2">
                     <div className="text-[10px] font-mono text-muted-foreground">
-                      <span className="text-vault font-bold">{activeIndex + 1}</span>
+                      <span className="text-vault font-semibold">{activeIndex + 1}</span>
                       <span className="opacity-50"> / {NAV.length}</span>
                     </div>
                     {canScrollRight && (
-                      <div className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground animate-pulse">
+                      <div className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
                         <span>swipe for more</span>
                         <ChevronRight className="w-2.5 h-2.5" />
                       </div>

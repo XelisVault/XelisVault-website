@@ -305,7 +305,7 @@ export function Contracts() {
                 placeholder="Search contracts..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full h-11 rounded-full border border-border bg-card/40 pl-11 pr-4 text-sm placeholder:text-muted-foreground focus:outline-none focus:border-vault/40 focus:bg-card/60 transition-all"
+                className="w-full h-11 rounded-none border border-border bg-card/40 pl-11 pr-4 text-sm placeholder:text-muted-foreground focus:outline-none focus:border-vault/40 focus:bg-card/60 transition-all"
               />
             </div>
             <div className="mt-2 text-xs font-mono text-muted-foreground">
@@ -335,7 +335,7 @@ export function Contracts() {
                       className="w-full flex items-baseline justify-between py-5 hover:bg-card/20 transition-colors text-left"
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${c.dot}`} />
+                        <div className={`w-2 h-2 rounded-full${c.dot}`} />
                         <span className="font-display font-semibold text-lg">{cat.name}</span>
                         <span className="text-xs font-mono text-muted-foreground">
                           {cat.contracts.length} contracts
@@ -414,7 +414,7 @@ export function Contracts() {
               href="https://github.com/XelisVault/xelis-vault"
               target="_blank"
               rel="noreferrer"
-              className="group inline-flex items-center h-10 rounded-full border border-border hover:border-vault/40 px-5 text-sm font-medium transition-all"
+              className="group inline-flex items-center h-10 rounded-none border border-border hover:border-vault/40 px-5 text-sm font-medium transition-all"
             >
               <span className="border-b border-transparent group-hover:border-vault group-hover:text-vault transition-colors pb-0.5">
                 View full repository on GitHub

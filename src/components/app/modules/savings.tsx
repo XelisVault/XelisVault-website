@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { PiggyBank, Sparkles, TrendingUp } from 'lucide-react'
 import { useWallet, canSign } from '@/lib/wallet-store'
 import { getSavingsInfo } from '@/lib/xelis/reads'
 import { invoke, depositXusd, GAS } from '@/lib/xelis/invoke'
@@ -58,9 +57,9 @@ export function Savings() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="APY" value={`${apy}%`} accent="xusd" icon={<TrendingUp className="w-4 h-4" />} loading={!info} />
-        <StatCard label="Total deposits" value={`${formatAmount(info?.totalDeposits)} xUSD`} accent="xusd" icon={<PiggyBank className="w-4 h-4" />} />
-        <StatCard label="Contract reserve" value={`${formatAmount(info?.xusdReserve)} xUSD`} accent="xusd" icon={<TokenIcon symbol="xUSD" size="xs" />} />
+        <StatCard label="APY" value={`${apy}%`} accent="xusd" loading={!info} />
+        <StatCard label="Total deposits" value={`${formatAmount(info?.totalDeposits)} xUSD`} accent="xusd" />
+        <StatCard label="Contract reserve" value={`${formatAmount(info?.xusdReserve)} xUSD`} accent="xusd" />
         <StatCard label="Your xUSD" value={formatAmount(toAtomic(xusdBalance))} accent="xusd" sub="wallet balance" />
       </div>
 
@@ -78,7 +77,7 @@ export function Savings() {
                 <button
                   key={t}
                   onClick={() => { setTab(t); setTx({ state: 'idle' }) }}
-                  className={`rounded-lg px-4 py-2 text-xs font-medium transition-all ${
+                  className={`rounded-none px-4 py-2 text-xs font-medium transition-all${
                     tab === t ? 'bg-xusd/15 text-xusd border border-xusd/30' : 'text-muted-foreground border border-transparent hover:bg-card/60'
                   }`}
                 >
@@ -90,7 +89,7 @@ export function Savings() {
             <AmountInput value={amount} onChange={setAmount} symbol="xUSD" max={tab === 'deposit' ? xusdBalance : undefined} />
 
             {amountNum > 0 && (
-              <div className="mt-3 rounded-xl border border-border bg-background/40 p-3.5 space-y-1.5">
+              <div className="mt-3 rounded-none border border-border bg-background/40 p-3.5 space-y-1.5">
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Projected interest</span>
                   <span className="font-mono text-xusd">+{yearlyInterest.toFixed(4)} xUSD / year</span>
@@ -104,7 +103,6 @@ export function Savings() {
 
             <div className="mt-4 flex items-center gap-3">
               <ActionButton onClick={submit} variant="xusd" disabled={!canTx || amountNum <= 0} loading={busy}>
-                <Sparkles className="w-4 h-4" />
                 {tab === 'deposit' ? 'Deposit xUSD' : 'Withdraw xUSD'}
               </ActionButton>
               {!canTx && <span className="text-[11px] text-muted-foreground">Requires XSWD</span>}

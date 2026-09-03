@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowRight, Droplets, Layers, Repeat } from 'lucide-react'
 import { useWallet, canSign } from '@/lib/wallet-store'
 import { getPools, getSwapConfig, quoteAmountOut, type AmmPool } from '@/lib/xelis/reads'
 import { invoke, GAS } from '@/lib/xelis/invoke'
@@ -86,9 +85,9 @@ export function VaultSwap() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Pools" value={config?.poolsCount ?? '–'} icon={<Layers className="w-4 h-4" />} loading={!pools} />
+        <StatCard label="Pools" value={config?.poolsCount ?? '–'} loading={!pools} />
         <StatCard label="Swap fee" value={`${fee * 100}%`} sub="+ 0.05% treasury" accent="amber" />
-        <StatCard label="Circuit breaker" value="20% vol" sub="vs TWAP, 10 min" icon={<Droplets className="w-4 h-4" />} />
+        <StatCard label="Circuit breaker" value="20% vol" sub="vs TWAP, 10 min" />
         <StatCard label="Max swap size" value="5%" sub="of pool reserves" />
       </div>
 
@@ -106,7 +105,7 @@ export function VaultSwap() {
                 <button
                   key={p.key}
                   onClick={() => setSelectedPool(p)}
-                  className={`w-full flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
+                  className={`w-full flex items-center justify-between gap-3 rounded-none border px-4 py-3 text-left transition-all${
                     active ? 'border-vault/40 bg-vault/10' : 'border-border bg-background/40 hover:bg-card/60'
                   }`}
                 >
@@ -140,18 +139,18 @@ export function VaultSwap() {
           <>
             {/* Direction selector */}
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 ${direction === 'ab' ? 'border-vault/40 bg-vault/10' : 'border-border bg-card/40'}`}>
+              <div className={`flex items-center gap-1.5 rounded-none border px-3.5 py-2${direction === 'ab' ? 'border-vault/40 bg-vault/10' : 'border-border bg-card/40'}`}>
                 <TokenIcon symbol={tickerFor(inAsset) as any} size="xs" />
                 <span className="text-sm font-semibold">{tickerFor(inAsset)}</span>
               </div>
               <button
                 onClick={() => setDirection(direction === 'ab' ? 'ba' : 'ab')}
-                className="w-9 h-9 rounded-full border border-border bg-card/60 flex items-center justify-center hover:border-vault/40 hover:text-vault transition-all"
+                className="w-9 h-9 rounded-none border border-border bg-card/60 flex items-center justify-center hover:border-vault/40 hover:text-vault transition-all"
                 aria-label="Flip direction"
               >
-                <Repeat className="w-4 h-4" />
+                <span className="font-mono text-base leading-none">⇄</span>
               </button>
-              <div className="flex items-center gap-1.5 rounded-xl border border-border bg-card/40 px-3.5 py-2">
+              <div className="flex items-center gap-1.5 rounded-none border border-border bg-card/40 px-3.5 py-2">
                 <TokenIcon symbol={tickerFor(outAsset) as any} size="xs" />
                 <span className="text-sm font-semibold">{tickerFor(outAsset)}</span>
               </div>
@@ -160,7 +159,7 @@ export function VaultSwap() {
             <AmountInput value={amount} onChange={setAmount} symbol={tickerFor(inAsset)} max={balanceFor(inAsset)} />
 
             {Number(amount) > 0 && (
-              <div className="mt-3 rounded-xl border border-border bg-background/40 p-3.5 space-y-1.5">
+              <div className="mt-3 rounded-none border border-border bg-background/40 p-3.5 space-y-1.5">
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Quote (after {(fee * 100).toFixed(2)}% fee)</span>
                   <span className="font-mono">{fromAtomic(quoteAfterFee).toFixed(6)} {tickerFor(outAsset)}</span>
@@ -178,7 +177,6 @@ export function VaultSwap() {
 
             <div className="mt-4 flex items-center gap-3">
               <ActionButton onClick={submit} disabled={!canTx || Number(amount) <= 0} loading={busy}>
-                <ArrowRight className="w-4 h-4" />
                 Swap {tickerFor(inAsset)} for {tickerFor(outAsset)}
               </ActionButton>
               {!canTx && <span className="text-[11px] text-muted-foreground">Requires XSWD</span>}

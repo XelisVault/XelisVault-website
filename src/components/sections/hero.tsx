@@ -40,8 +40,8 @@ function Figure({ value, suffix = '', label, sub, delay = 0 }: {
         {display}
         {suffix}
       </div>
-      <div className="mt-2 text-[13px] font-medium text-foreground/85">{label}</div>
-      <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground mt-1">{sub}</div>
+      <div className="mt-3 text-sm font-semibold tracking-[-0.01em]">{label}</div>
+      <div className="text-[11px] font-mono uppercase tracking-[0.14em] text-muted-foreground mt-1">{sub}</div>
     </div>
   )
 }
@@ -83,7 +83,7 @@ export function Hero() {
               <motion.span
                 animate={{ opacity: [0.4, 1, 0.4] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
-                className={`w-1.5 h-1.5 rounded-full ${isLaunched ? 'bg-emerald-500' : 'bg-vault'}`}
+                className={`w-1.5 h-1.5 rounded-full${isLaunched ? 'bg-emerald-500' : 'bg-vault'}`}
               />
               {isLaunched
                 ? 'Testnet live · Connect your wallet'

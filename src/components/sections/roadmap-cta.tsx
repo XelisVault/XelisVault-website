@@ -114,7 +114,7 @@ export function Roadmap() {
                       <div className="flex items-baseline gap-3 md:block">
                         <span className="text-sm font-mono text-foreground/80 tabular-nums">{m.date}</span>
                         <div className={`mt-1.5 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.18em] ${s.text}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full${s.dot}`} />
                           {m.phase}
                         </div>
                       </div>
@@ -165,7 +165,7 @@ export function CTA() {
 
       <div className="relative max-w-5xl mx-auto text-center">
         <Reveal>
-          <div className="inline-flex items-center gap-2 rounded-full border border-ink-foreground/15 bg-ink-foreground/5 px-4 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] text-vault-soft mb-8">
+          <div className="inline-flex items-center gap-2 rounded-none border border-ink-foreground/15 bg-ink-foreground/5 px-4 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] text-vault-soft mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             {isLaunched ? 'Testnet is live' : 'Testnet launching August 30, 2026 · 14:00 UTC'}
           </div>
@@ -192,7 +192,7 @@ export function CTA() {
             {isLaunched ? (
               <button
                 onClick={() => openApp()}
-                className="group inline-flex h-13 items-center rounded-full bg-vault px-8 py-3.5 text-base font-semibold text-primary-foreground hover:bg-vault/90 transition-all hover:shadow-[0_12px_40px_-10px_var(--vault)]"
+                className="group inline-flex h-13 items-center rounded-none bg-vault px-8 py-3.5 text-base font-semibold text-primary-foreground hover:bg-vault/90 transition-all hover:shadow-[0_12px_40px_-10px_var(--vault)]"
               >
                 Launch App
               </button>
@@ -203,7 +203,7 @@ export function CTA() {
               href="https://github.com/XelisVault/xelis-vault"
               target="_blank"
               rel="noreferrer"
-              className="group inline-flex h-13 items-center rounded-full border border-ink-foreground/20 hover:border-vault/40 px-8 py-3.5 text-base font-semibold text-ink-foreground transition-all"
+              className="group inline-flex h-13 items-center rounded-none border border-ink-foreground/20 hover:border-vault/40 px-8 py-3.5 text-base font-semibold text-ink-foreground transition-all"
             >
               <span className="border-b border-ink-foreground/20 group-hover:border-vault-soft pb-0.5">Clone the Repo</span>
             </a>
@@ -211,7 +211,7 @@ export function CTA() {
               href="https://discord.gg/UHpYAWbG"
               target="_blank"
               rel="noreferrer"
-              className="group inline-flex h-13 items-center rounded-full border border-ink-foreground/20 hover:border-vault/40 px-8 py-3.5 text-base font-semibold text-ink-foreground transition-all"
+              className="group inline-flex h-13 items-center rounded-none border border-ink-foreground/20 hover:border-vault/40 px-8 py-3.5 text-base font-semibold text-ink-foreground transition-all"
             >
               <span className="border-b border-ink-foreground/20 group-hover:border-vault-soft pb-0.5">Join Discord</span>
             </a>
@@ -332,7 +332,7 @@ export function Footer() {
                   target="_blank"
                   rel="noreferrer"
                   aria-label={s.label}
-                  className="w-9 h-9 rounded-md border border-ink-foreground/15 hover:bg-vault hover:border-vault flex items-center justify-center text-ink-foreground/80 hover:text-primary-foreground transition-all"
+                  className="w-9 h-9 rounded-[3px] border border-ink-foreground/15 hover:bg-vault hover:border-vault flex items-center justify-center text-ink-foreground/80 hover:text-primary-foreground transition-all"
                 >
                   <s.icon className="w-4 h-4" />
                 </a>

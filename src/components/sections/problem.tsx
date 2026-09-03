@@ -20,7 +20,7 @@ export function Problem() {
     >
       {/* Section bg */}
       <div className="absolute inset-0 bg-dots opacity-25" />
-      <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-destructive/4 blur-[120px]" />
+      <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-vault/5 blur-[120px]" />
       <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-vault/7 blur-[120px]" />
 
       <div className="relative max-w-7xl mx-auto">
@@ -34,7 +34,7 @@ export function Problem() {
               <br />
               <span className="text-muted-foreground">operates on a</span>
               <br />
-              <span className="text-destructive">fully transparent ledger.</span>
+              <span className="italic font-light">fully transparent ledger.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.2}>
@@ -52,10 +52,10 @@ export function Problem() {
           <Reveal delay={0.1}>
             <div className="relative border-t border-foreground/12 pt-6 md:pt-8">
               <div className="flex items-baseline justify-between">
-                <span className="font-mono text-xs uppercase tracking-[0.2em] text-destructive">
+                <span className="font-mono text-xs uppercase tracking-[0.2em] text-foreground/70">
                   The open ledger
                 </span>
-                <span className="text-xs text-destructive/60 font-mono">Anyone can see</span>
+                <span className="text-xs text-muted-foreground font-mono">exposed</span>
               </div>
 
               <div className="mt-6">
@@ -74,10 +74,10 @@ export function Problem() {
                     className="flex items-baseline justify-between py-4 border-b border-foreground/10"
                   >
                     <div>
-                      <div className="text-[10px] text-destructive/70 font-mono uppercase tracking-wider">{row.label}</div>
+                      <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">{row.label}</div>
                       <div className="text-sm font-medium mt-1 tabular-nums">{row.value}</div>
                     </div>
-                    <div className="text-xs text-destructive/60 font-mono tabular-nums">{row.sub}</div>
+                    <div className="text-xs text-muted-foreground font-mono tabular-nums">{row.sub}</div>
                   </motion.div>
                 ))}
               </div>

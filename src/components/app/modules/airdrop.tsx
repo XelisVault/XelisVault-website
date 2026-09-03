@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Award, CheckCircle2, Coins, Target, Trophy, Users } from 'lucide-react'
+import { Award, Target } from 'lucide-react'
 import { useWallet } from '@/lib/wallet-store'
 import { getAirdropGlobal, getUserPoints, type AirdropUserPoints } from '@/lib/xelis/reads'
 import { StatCard, Panel, Badge, LoadingRows, ConnectPrompt, CliFallback, DataRow } from '../shared'
@@ -44,10 +44,10 @@ export function Airdrop() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Participants" value={global?.users ?? '–'} icon={<Users className="w-4 h-4" />} loading={loading && !global} />
-        <StatCard label="Total points" value={(global?.totalPoints ?? 0).toLocaleString()} accent="emerald" icon={<Coins className="w-4 h-4" />} />
-        <StatCard label="Qualified" value={global?.qualified ?? 0} sub="≥ 1,000 pts + 7 days" icon={<CheckCircle2 className="w-4 h-4" />} />
-        <StatCard label="Airdrop pool" value="500,000 VLT" accent="vlt" sub="testnet contributors" icon={<Trophy className="w-4 h-4" />} />
+        <StatCard label="Participants" value={global?.users ?? '–'} loading={loading && !global} />
+        <StatCard label="Total points" value={(global?.totalPoints ?? 0).toLocaleString()} accent="emerald" />
+        <StatCard label="Qualified" value={global?.qualified ?? 0} sub="≥ 1,000 pts + 7 days" />
+        <StatCard label="Airdrop pool" value="500,000 VLT" accent="vlt" sub="testnet contributors" />
       </div>
 
       {/* Your points */}
@@ -61,7 +61,7 @@ export function Airdrop() {
         ) : mine === undefined ? (
           <LoadingRows rows={2} />
         ) : mine === null ? (
-          <div className="rounded-xl border border-dashed border-border p-6 text-center">
+          <div className="rounded-none border border-border p-6 text-center">
             <Target className="w-6 h-6 text-vault/50 mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">No points recorded yet for this address.</p>
             <p className="text-[11px] text-muted-foreground/70 mt-1">Start with mining or liquidity, points flow in automatically.</p>
@@ -76,14 +76,14 @@ export function Airdrop() {
             </div>
 
             {/* Progress to qualification */}
-            <div className="rounded-xl border border-border bg-background/40 p-4 mb-4">
+            <div className="rounded-none border border-border bg-background/40 p-4 mb-4">
               <div className="flex justify-between text-[11px] font-mono mb-2">
                 <span className="text-muted-foreground">Points progress to 1,000</span>
                 <span className={mine.totalRaw >= 1000 ? 'text-emerald-400' : 'text-amber-400'}>{Math.min(100, (mine.totalRaw / 1000) * 100).toFixed(0)}%</span>
               </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all ${mine.totalRaw >= 1000 ? 'bg-emerald-400' : 'bg-vault'}`}
+                  className={`h-full rounded-full transition-all${mine.totalRaw >= 1000 ? 'bg-emerald-400' : 'bg-vault'}`}
                   style={{ width: `${Math.min(100, (mine.totalRaw / 1000) * 100)}%` }}
                 />
               </div>
@@ -123,9 +123,8 @@ export function Airdrop() {
       {/* Rules */}
       <Panel title="How the airdrop works" desc="700,000 VLT total: 500k for testnet contributors + 200k launch airdrop.">
         <div className="space-y-3">
-          <div className="rounded-xl border border-border bg-background/40 p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Award className="w-4 h-4 text-vlt" />
+          <div className="rounded-none border border-border bg-background/40 p-4">
+            <div className="mb-2">
               <span className="text-sm font-semibold">Qualification requirements</span>
             </div>
             <div className="space-y-0.5">

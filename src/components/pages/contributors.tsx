@@ -153,9 +153,9 @@ const TIER_STYLES: Record<string, { icon: any; text: string; bg: string; border:
 
 const COLOR_MAP: Record<string, { text: string; bg: string; border: string; dot: string; glow: string }> = {
   red: { text: 'text-destructive', bg: 'bg-destructive/5', border: 'border-destructive/30', dot: 'bg-destructive', glow: 'shadow-[0_0_40px_-12px_oklch(0.65_0.24_25)]' },
-  vault: { text: 'text-vault', bg: 'bg-vault/5', border: 'border-vault/30', dot: 'bg-vault', glow: 'shadow-[0_0_40px_-12px_var(--vault)]' },
-  vlt: { text: 'text-vlt', bg: 'bg-vlt/5', border: 'border-vlt/30', dot: 'bg-vlt', glow: 'shadow-[0_0_40px_-12px_var(--vlt)]' },
-  xusd: { text: 'text-xusd', bg: 'bg-xusd/5', border: 'border-xusd/30', dot: 'bg-xusd', glow: 'shadow-[0_0_40px_-12px_var(--xusd)]' },
+  vault: { text: 'text-vault', bg: 'bg-vault/5', border: 'border-vault/30', dot: 'bg-vault', glow: ' ' },
+  vlt: { text: 'text-vlt', bg: 'bg-vlt/5', border: 'border-vlt/30', dot: 'bg-vlt', glow: ' ' },
+  xusd: { text: 'text-xusd', bg: 'bg-xusd/5', border: 'border-xusd/30', dot: 'bg-xusd', glow: ' ' },
 }
 
 export function ContributorsPage() {
@@ -186,7 +186,7 @@ export function ContributorsPage() {
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: 'spring', stiffness: 100, delay: 0.2 }}
-              className="w-20 h-20 md:w-24 md:h-24 mx-auto rounded-2xl bg-vault/15 border border-vault/40 flex items-center justify-center mb-8 shadow-[0_0_60px_-10px_var(--vault)]"
+              className="w-20 h-20 md:w-24 md:h-24 mx-auto rounded-none bg-vault/15 border border-vault/40 flex items-center justify-center mb-8"
             >
               <Trophy className="w-10 h-10 md:w-12 md:h-12 text-vault" />
             </motion.div>
@@ -212,7 +212,7 @@ export function ContributorsPage() {
 
           {/* Stats summary */}
           <Reveal delay={0.3}>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-px rounded-2xl glass-panel overflow-hidden mb-16">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-px rounded-none glass-panel overflow-hidden mb-16">
               {[
                 { label: 'Categories', value: '4', icon: Star },
                 { label: 'Security bugs found', value: '~50', icon: Shield },
@@ -240,9 +240,9 @@ export function ContributorsPage() {
               <section key={cat.id} className={catIdx > 0 ? 'mt-20' : ''}>
                 {/* Category header */}
                 <Reveal>
-                  <div className={`rounded-2xl ${c.bg} border ${c.border} p-6 md:p-8 mb-8`}>
+                  <div className={`rounded-none${c.bg} border ${c.border} p-6 md:p-8 mb-8`}>
                     <div className="flex items-start gap-4">
-                      <div className={`w-12 h-12 md:w-14 md:h-14 rounded-xl ${c.bg} border ${c.border} flex items-center justify-center shrink-0`}>
+                      <div className={`w-12 h-12 md:w-14 md:h-14 rounded-none${c.bg} border ${c.border} flex items-center justify-center shrink-0`}>
                         <Icon className={`w-6 h-6 ${c.text}`} />
                       </div>
                       <div className="flex-1">
@@ -275,18 +275,18 @@ export function ContributorsPage() {
                           <CardTag {...cardProps}>
                             <motion.div
                               whileHover={{ y: -4 }}
-                              className={`relative rounded-2xl glass-panel p-5 h-full ${tier ? tier.border : 'border-border'} ${tier ? tier.bg : ''} ${contributor.profileUrl ? 'cursor-pointer' : ''}`}
+                              className={`relative rounded-none glass-panel p-5 h-full${tier ? tier.border : 'border-border'} ${tier ? tier.bg : ''} ${contributor.profileUrl ? 'cursor-pointer' : ''}`}
                             >
                               {/* Tier badge */}
                               {tier && TierIcon && (
-                                <div className={`absolute top-3 right-3 w-7 h-7 rounded-full ${tier.bg} border ${tier.border} flex items-center justify-center`}>
+                                <div className={`absolute top-3 right-3 w-7 h-7 rounded-full${tier.bg} border ${tier.border} flex items-center justify-center`}>
                                   <TierIcon className={`w-3.5 h-3.5 ${tier.text}`} />
                                 </div>
                               )}
 
                               {/* Avatar (image or first letter) */}
                               {contributor.avatar ? (
-                                <div className={`w-12 h-12 rounded-full overflow-hidden border ${c.border} mb-3 ring-1 ring-white/5`}>
+                                <div className={`w-12 h-12 rounded-none overflow-hidden border${c.border} mb-3 ring-1 ring-white/5`}>
                                   <img
                                     src={contributor.avatar}
                                     alt={contributor.name}
@@ -294,7 +294,7 @@ export function ContributorsPage() {
                                   />
                                 </div>
                               ) : (
-                                <div className={`w-12 h-12 rounded-full ${c.bg} border ${c.border} flex items-center justify-center ${c.text} font-display font-bold text-lg mb-3`}>
+                                <div className={`w-12 h-12 rounded-none${c.bg} border ${c.border} flex items-center justify-center ${c.text} font-display font-bold text-lg mb-3`}>
                                   {contributor.name.charAt(0).toUpperCase()}
                                 </div>
                               )}
@@ -334,7 +334,7 @@ export function ContributorsPage() {
                   </RevealStagger>
                 ) : (
                   <Reveal>
-                    <div className="rounded-2xl border border-dashed border-border p-8 text-center">
+                    <div className="rounded-none border border-dashed border-border p-8 text-center">
                       <Sparkles className="w-6 h-6 text-muted-foreground/40 mx-auto mb-3" />
                       <p className="text-sm text-muted-foreground">
                         Contributors will be listed here soon.
@@ -351,11 +351,11 @@ export function ContributorsPage() {
 
           {/* Closing message */}
           <Reveal>
-            <div className="mt-20 rounded-2xl border border-vault/30 bg-vault/5 p-8 md:p-12 text-center">
+            <div className="mt-20 rounded-none border border-vault/30 bg-vault/5 p-8 md:p-12 text-center">
               <motion.div
                 animate={{ scale: [1, 1.1, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
-                className="w-12 h-12 rounded-full bg-vault/15 border border-vault/40 flex items-center justify-center mx-auto mb-4"
+                className="w-12 h-12 rounded-none bg-vault/15 border border-vault/40 flex items-center justify-center mx-auto mb-4"
               >
                 <Heart className="w-6 h-6 text-vault" />
               </motion.div>

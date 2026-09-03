@@ -98,7 +98,7 @@ export function VaultSimulator() {
 
           <div className="grid lg:grid-cols-[1fr_1.2fr] gap-8">
             <Reveal delay={0.3}>
-              <div className="rounded-2xl glass-panel p-6 md:p-8 space-y-8">
+              <div className="rounded-none glass-panel p-6 md:p-8 space-y-8">
                 <div className="flex items-center gap-2 text-sm font-mono uppercase tracking-wider text-vault">
                   <Calculator className="w-4 h-4" />
                   Inputs
@@ -118,7 +118,7 @@ export function VaultSimulator() {
                       onChange={(e) => setCollateral(Math.max(0, Number(e.target.value)))}
                       min={0}
                       step={1}
-                      className="flex-1 h-11 rounded-lg border border-border bg-card/40 px-3 text-sm font-mono focus:outline-none focus:border-vault/40 focus:bg-card/60 transition-all"
+                      className="flex-1 h-11 rounded-none border border-border bg-card/40 px-3 text-sm font-mono focus:outline-none focus:border-vault/40 focus:bg-card/60 transition-all"
                     />
                     <span className="text-sm font-mono text-muted-foreground">XEL</span>
                   </div>
@@ -151,7 +151,7 @@ export function VaultSimulator() {
                       onChange={(e) => setBorrow(Math.max(0, Number(e.target.value)))}
                       min={0}
                       step={10}
-                      className="flex-1 h-11 rounded-lg border border-border bg-card/40 px-3 text-sm font-mono focus:outline-none focus:border-vault/40 focus:bg-card/60 transition-all"
+                      className="flex-1 h-11 rounded-none border border-border bg-card/40 px-3 text-sm font-mono focus:outline-none focus:border-vault/40 focus:bg-card/60 transition-all"
                     />
                     <span className="text-sm font-mono text-muted-foreground">xUSD</span>
                   </div>
@@ -183,7 +183,7 @@ export function VaultSimulator() {
                       onChange={(e) => setXelPrice(Math.max(0, Number(e.target.value)))}
                       min={0}
                       step={0.01}
-                      className="flex-1 h-11 rounded-lg border border-border bg-card/40 px-3 text-sm font-mono focus:outline-none focus:border-vault/40 focus:bg-card/60 transition-all"
+                      className="flex-1 h-11 rounded-none border border-border bg-card/40 px-3 text-sm font-mono focus:outline-none focus:border-vault/40 focus:bg-card/60 transition-all"
                     />
                   </div>
                   <input
@@ -217,11 +217,11 @@ export function VaultSimulator() {
 
             <Reveal delay={0.4}>
               <div className="space-y-6">
-                <div className={`rounded-2xl border ${h.border} ${h.bg} p-6`}>
+                <div className={`rounded-none border${h.border} ${h.bg} p-6`}>
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className={`flex items-center gap-2 text-xs font-mono uppercase tracking-wider ${h.text}`}>
-                        <span className={`w-2 h-2 rounded-full ${h.dot} ${calc.state !== 'safe' ? 'animate-pulse' : ''}`} />
+                        <span className={`w-2 h-2 rounded-full${h.dot} ${calc.state !== 'safe' ? 'animate-pulse' : ''}`} />
                         Health Factor
                       </div>
                       <div className={`mt-2 font-display text-5xl font-semibold ${h.text} tabular-nums`}>
@@ -283,7 +283,7 @@ export function VaultSimulator() {
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 flex items-start gap-3"
+                    className="rounded-none border border-destructive/30 bg-destructive/5 p-4 flex items-start gap-3"
                   >
                     <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                     <div className="text-sm text-muted-foreground leading-relaxed">
@@ -296,7 +296,7 @@ export function VaultSimulator() {
                   </motion.div>
                 )}
 
-                <div className="rounded-2xl glass-panel p-6">
+                <div className="rounded-none glass-panel p-6">
                   <div className="flex items-center justify-between gap-4 flex-wrap">
                     <div>
                       <div className="text-sm font-mono uppercase tracking-wider text-muted-foreground">
@@ -313,14 +313,14 @@ export function VaultSimulator() {
                     <button
                       onClick={() => isLaunched && openApp()}
                       disabled={!isLaunched || !calc.canOpenVault}
-                      className="inline-flex h-11 items-center gap-2 rounded-full bg-vault px-6 text-sm font-semibold text-white hover:bg-vault/85 transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-[0_0_24px_-4px_var(--vault)]"
+                      className="inline-flex h-11 items-center gap-2 rounded-none bg-vault px-6 text-sm font-semibold text-white hover:bg-vault/85 transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:"
                     >
                       {isLaunched ? 'Open this vault' : 'Launches Aug 30'}
                     </button>
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-border bg-card/30 p-4 flex items-start gap-3">
+                <div className="rounded-none border border-border bg-card/30 p-4 flex items-start gap-3">
                   <Info className="w-4 h-4 text-vault shrink-0 mt-0.5" />
                   <div className="text-xs text-muted-foreground leading-relaxed">
                     <strong className="text-foreground">Why these numbers?</strong> XELIS Vault
@@ -337,7 +337,7 @@ export function VaultSimulator() {
             </Reveal>
           </div>
 
-          <div className="mt-20 rounded-2xl glass-panel p-8 md:p-12 text-center">
+          <div className="mt-20 rounded-none glass-panel p-8 md:p-12 text-center">
             <Reveal>
               <div className="text-xs font-mono uppercase tracking-[0.3em] text-vault mb-6">
                 Real testnet launches in
@@ -373,7 +373,7 @@ function StatCard({
 }) {
   return (
     <div
-      className={`rounded-xl border p-4 ${
+      className={`rounded-none border p-4${
         danger ? 'border-destructive/30 bg-destructive/5' : 'border-border bg-card/30'
       }`}
     >

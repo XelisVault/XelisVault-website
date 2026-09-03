@@ -261,7 +261,7 @@ export function VaultChatCinematic() {
         {PHASE_SEQUENCE.map((p, i) => (
           <div
             key={p.phase}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono uppercase tracking-wider transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-none text-[10px] font-mono uppercase tracking-wider transition-all${
               i === phaseIndex
                 ? 'bg-vault/15 text-vault border border-vault/40'
                 : i < phaseIndex
@@ -283,7 +283,7 @@ export function VaultChatCinematic() {
       </div>
 
       {/* Main animation canvas */}
-      <div className="relative rounded-2xl glass-panel p-6 md:p-8 overflow-hidden">
+      <div className="relative rounded-none glass-panel p-6 md:p-8 overflow-hidden">
         <div className="absolute inset-0 bg-grid opacity-20 pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[200px] rounded-full bg-vault/8 blur-[80px] pointer-events-none" />
 
@@ -318,7 +318,7 @@ export function VaultChatCinematic() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="rounded-xl border border-xusd/30 bg-xusd/5 p-2.5"
+                className="rounded-none border border-xusd/30 bg-xusd/5 p-2.5"
               >
                 <div className="text-[9px] font-mono text-xusd mb-1 uppercase tracking-wider">Alice · typing</div>
                 <div className="font-mono text-[11px] text-foreground min-h-[28px]">
@@ -371,7 +371,7 @@ export function VaultChatCinematic() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-xl border border-vault/30 bg-vault/5 p-2.5"
+                className="rounded-none border border-vault/30 bg-vault/5 p-2.5"
               >
                 <div className="text-[9px] font-mono text-vault mb-1 uppercase tracking-wider">
                   {currentPhase === 'anchoring' ? 'Merkle root' : 'Storing off-chain'}
@@ -389,7 +389,7 @@ export function VaultChatCinematic() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-xl border border-vlt/30 bg-vlt/5 p-2.5"
+                className="rounded-none border border-vlt/30 bg-vlt/5 p-2.5"
               >
                 <div className="text-[9px] font-mono text-vlt mb-1 uppercase tracking-wider">Bob · received</div>
                 <div className="font-mono text-[11px] text-foreground min-h-[28px]">
@@ -460,15 +460,15 @@ export function VaultChatCinematic() {
 
       {/* Stats below */}
       <div className="mt-4 grid grid-cols-3 gap-3">
-        <div className="rounded-xl glass-panel p-3 text-center">
+        <div className="rounded-none glass-panel p-3 text-center">
           <div className="font-display text-lg font-semibold text-gradient-vault">0</div>
           <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">gas per message</div>
         </div>
-        <div className="rounded-xl glass-panel p-3 text-center">
+        <div className="rounded-none glass-panel p-3 text-center">
           <div className="font-display text-lg font-semibold text-gradient-vault">1 tx/h</div>
           <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">on-chain anchor</div>
         </div>
-        <div className="rounded-xl glass-panel p-3 text-center">
+        <div className="rounded-none glass-panel p-3 text-center">
           <div className="font-display text-lg font-semibold text-gradient-vault">E2E</div>
           <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">encrypted always</div>
         </div>

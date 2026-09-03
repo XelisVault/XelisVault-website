@@ -17,7 +17,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { EyeOff, Wind, ArrowDownToLine, ArrowUpFromLine, Search, KeyRound, Copy, Check, AlertTriangle, Shuffle } from 'lucide-react'
+import { Copy, Check } from 'lucide-react'
 import { blake3 } from '@noble/hashes/blake3.js'
 import { bytesToHex } from '@noble/hashes/utils.js'
 import { useWallet, canSign } from '@/lib/wallet-store'
@@ -52,7 +52,6 @@ function SecretField({ value, onChange, label }: { value: string; onChange: (v: 
   return (
     <div>
       <div className="flex items-center gap-2 mb-1.5">
-        <KeyRound className="w-3.5 h-3.5 text-vault" />
         <label className="text-xs font-medium">{label ?? 'Note secret (64 hex chars)'}</label>
         {value.length > 0 && (
           <span className={`ml-auto text-[10px] font-mono ${valid ? 'text-emerald-400' : 'text-amber-400'}`}>
@@ -67,7 +66,7 @@ function SecretField({ value, onChange, label }: { value: string; onChange: (v: 
         placeholder="a1b2c3…"
         spellCheck={false}
         autoComplete="off"
-        className="w-full rounded-xl border border-border bg-background/60 px-3.5 py-2.5 font-mono text-xs outline-none focus:border-vault/50 transition-colors"
+        className="w-full rounded-none border border-border bg-background/60 px-3.5 py-2.5 font-mono text-xs outline-none focus:border-vault/50 transition-colors"
       />
     </div>
   )
@@ -181,19 +180,19 @@ export function Mixer() {
   }
 
   const tabs = [
-    { id: 'deposit' as const, label: 'Deposit', icon: ArrowDownToLine },
-    { id: 'withdraw' as const, label: 'Withdraw', icon: ArrowUpFromLine },
-    { id: 'check' as const, label: 'Check note', icon: Search },
+    { id: 'deposit' as const, label: 'Deposit' },
+    { id: 'withdraw' as const, label: 'Withdraw' },
+    { id: 'check' as const, label: 'Check note' },
   ]
 
   return (
     <div className="space-y-6 max-w-3xl">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="XEL pool" value={formatAmount(info?.poolXel)} sub="live shared pool" icon={<TokenIcon symbol="XEL" size="xs" />} loading={loading && !info} />
-        <StatCard label="Total mixed" value={formatAmount(info?.totalMixedXel)} sub="XEL since v12R-7" accent="emerald" icon={<Shuffle className="w-4 h-4" />} />
+        <StatCard label="XEL pool" value={formatAmount(info?.poolXel)} sub="live shared pool" loading={loading && !info} />
+        <StatCard label="Total mixed" value={formatAmount(info?.totalMixedXel)} sub="XEL since v12R-7" accent="emerald" />
         <StatCard label="Mixes" value={info?.totalMixes ?? '–'} sub="withdrawals executed" accent="vlt" />
-        <StatCard label="Notes created" value={info?.noteCount ?? '–'} sub={info?.paused ? '⚠ paused' : 'active pool'} accent={info?.paused ? 'amber' : 'xusd'} icon={<EyeOff className="w-4 h-4" />} />
+        <StatCard label="Notes created" value={info?.noteCount ?? '–'} sub={info?.paused ? '⚠ paused' : 'active pool'} accent={info?.paused ? 'amber' : 'xusd'} />
       </div>
 
       <Panel
@@ -206,14 +205,13 @@ export function Mixer() {
         ) : (
           <>
             {/* Tabs */}
-            <div className="flex gap-1.5 mb-5 p-1 rounded-xl border border-border bg-background/50 w-fit">
+            <div className="flex gap-1.5 mb-5 p-1 rounded-none border border-border bg-background/50 w-fit">
               {tabs.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => { setTab(t.id); setTx({ state: 'idle' }); setNoteChecked(false) }}
-                  className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${tab === t.id ? 'bg-vault text-white' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`flex items-center gap-1.5 rounded-none px-3.5 py-1.5 text-xs font-semibold transition-all${tab === t.id ? 'bg-vault text-background' : 'text-muted-foreground hover:text-foreground'}`}
                 >
-                  <t.icon className="w-3.5 h-3.5" />
                   {t.label}
                 </button>
               ))}
@@ -225,7 +223,7 @@ export function Mixer() {
                 <button
                   key={a}
                   onClick={() => setAsset(a)}
-                  className={`flex items-center gap-1.5 rounded-xl border px-4 py-2 text-sm font-medium transition-all ${
+                  className={`flex items-center gap-1.5 rounded-none border px-4 py-2 text-sm font-medium transition-all${
                     asset === a ? 'border-vault/40 bg-vault/10' : 'border-border bg-card/40 hover:bg-card/60'
                   }`}
                 >
@@ -244,7 +242,6 @@ export function Mixer() {
                 </p>
                 <div className="flex items-center gap-3">
                   <ActionButton onClick={deposit} disabled={!canTx || Number(amount) <= 0} loading={busy}>
-                    <Wind className="w-4 h-4" />
                     Generate secret & deposit
                   </ActionButton>
                   {!canTx && <span className="text-[11px] text-muted-foreground">Requires XSWD</span>}
@@ -255,17 +252,16 @@ export function Mixer() {
                   <motion.div
                     initial={{ opacity: 0, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4"
+                    className="rounded-none border border-amber-500/40 bg-amber-500/10 p-4"
                   >
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-400" />
-                      <span className="text-xs font-semibold text-amber-200">SAVE THIS SECRET, shown only once</span>
+                    <div className="mb-2">
+                      <span className="text-[11px] font-mono uppercase tracking-[0.16em] text-amber-300 font-semibold">Save this secret · shown only once</span>
                     </div>
-                    <div className="flex items-center gap-2 rounded-lg bg-background/80 border border-amber-500/30 px-3 py-2.5 mb-2.5">
+                    <div className="flex items-center gap-2 rounded-none bg-background/80 border border-amber-500/30 px-3 py-2.5 mb-2.5">
                       <code className="flex-1 font-mono text-[11px] break-all leading-relaxed text-amber-100">{createdSecret}</code>
                       <button
                         onClick={async () => { if (await copyText(createdSecret)) { setCopied(true); setTimeout(() => setCopied(false), 1800) } }}
-                        className="shrink-0 p-1.5 rounded-lg hover:bg-amber-500/20 text-amber-300 transition-colors"
+                        className="shrink-0 p-1.5 rounded-none hover:bg-amber-500/20 text-amber-300 transition-colors"
                         aria-label="Copy secret"
                       >
                         {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
@@ -291,7 +287,7 @@ export function Mixer() {
                     onChange={(e) => setRecipient(e.target.value)}
                     placeholder="xet:…"
                     spellCheck={false}
-                    className="w-full rounded-xl border border-border bg-background/60 px-3.5 py-2.5 font-mono text-xs outline-none focus:border-vault/50 transition-colors"
+                    className="w-full rounded-none border border-border bg-background/60 px-3.5 py-2.5 font-mono text-xs outline-none focus:border-vault/50 transition-colors"
                   />
                   <p className="mt-1.5 text-[11px] text-muted-foreground">The recipient can be any address, including one that never deposited. Funds come from the shared pool.</p>
                 </div>
@@ -304,7 +300,6 @@ export function Mixer() {
                     loading={busy}
                     variant="xusd"
                   >
-                    <ArrowUpFromLine className="w-4 h-4" />
                     Withdraw privately
                   </ActionButton>
                   {!canTx && <span className="text-[11px] text-muted-foreground">Requires XSWD</span>}
@@ -321,12 +316,11 @@ export function Mixer() {
                 <SecretField value={secret} onChange={setSecret} label={`Note secret (${asset} note)`} />
                 <div className="flex items-center gap-3">
                   <ActionButton onClick={checkNote} disabled={!secretValid} loading={busy} variant="ghost">
-                    <Search className="w-4 h-4" />
                     Check balance
                   </ActionButton>
                 </div>
                 {noteChecked && (
-                  <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-border bg-background/60 p-4">
+                  <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="rounded-none border border-border bg-background/60 p-4">
                     {noteBalance != null && noteBalance > 0n ? (
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-xs text-muted-foreground">Note balance</span>
@@ -383,7 +377,7 @@ export function Mixer() {
               body: 'Present the secret to withdraw any portion, to ANY address. The note is destroyed (nullifier) and the pool pays out, no on-chain field links your deposit to the withdrawal.',
             },
           ].map((s) => (
-            <div key={s.step} className="rounded-xl border border-vault/25 bg-vault/5 p-4">
+            <div key={s.step} className="rounded-none border border-vault/25 bg-vault/5 p-4">
               <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-vault mb-1.5">{s.step}</div>
               <div className="text-xs font-semibold mb-2">{s.title}</div>
               <p className="text-[11px] text-muted-foreground leading-relaxed">{s.body}</p>

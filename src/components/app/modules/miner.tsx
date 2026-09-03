@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Award, Gauge, Pickaxe, Sparkles, TrendingDown, Users, Zap } from 'lucide-react'
 import { useWallet } from '@/lib/wallet-store'
 import { getMinerStats, getMinerRecord, getDelegationStats, type MinerStats, type MinerRecord } from '@/lib/xelis/reads'
 import { formatAmount } from '@/lib/xelis/types'
@@ -57,14 +56,14 @@ export function Miner() {
     <div className="space-y-6 max-w-4xl">
       {/* Network stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Registered miners" value={stats?.count ?? '–'} sub={`${stats?.activeOracle ?? 0} oracle · ${stats?.activeChat ?? 0} chat`} icon={<Users className="w-4 h-4" />} loading={loading && !stats} />
-        <StatCard label="Total staked" value={`${formatAmount(stats?.totalStaked)} VLT`} accent="vlt" icon={<TokenIcon symbol="VLT" size="xs" />} />
-        <StatCard label="Emission" value={`${(stats?.emissionPerBlock ?? 0).toFixed(4)} VLT`} sub="per block · yearly halving" icon={<Gauge className="w-4 h-4" />} />
+        <StatCard label="Registered miners" value={stats?.count ?? '–'} sub={`${stats?.activeOracle ?? 0} oracle · ${stats?.activeChat ?? 0} chat`} loading={loading && !stats} />
+        <StatCard label="Total staked" value={`${formatAmount(stats?.totalStaked)} VLT`} accent="vlt" />
+        <StatCard label="Emission" value={`${(stats?.emissionPerBlock ?? 0).toFixed(4)} VLT`} sub="per block · yearly halving" />
         <StatCard label="Rewards distributed" value={`${formatAmount(stats?.distributed)} VLT`} accent="emerald" sub={`of ${formatAmount(stats ? stats.budget - stats.distributed : null)} remaining`} />
         <StatCard label="Delegated VLT" value={`${formatAmount(delegation?.totalDelegated)} VLT`} accent="vlt" sub={`${delegation?.miners ?? 0} profiles accept delegation`} />
         <StatCard label="Min stake" value={`${formatAmount(stats?.minStake)} VLT`} accent="amber" />
         <StatCard label="Stake cap / miner" value="500,000 VLT" sub="own + delegated" />
-        <StatCard label="New miner boost" value="+50%" sub="while network < 10 miners, 30 days" icon={<Sparkles className="w-4 h-4" />} />
+        <StatCard label="New miner boost" value="+50%" sub="while network < 10 miners, 30 days" />
       </div>
 
       {/* Your miner */}
@@ -76,8 +75,7 @@ export function Miner() {
         {!address ? (
           <p className="text-xs text-muted-foreground text-center py-4">Connect your wallet to check your miner registration.</p>
         ) : record === null && !loading ? (
-          <div className="rounded-xl border border-dashed border-border p-6 text-center">
-            <Pickaxe className="w-6 h-6 text-vault/50 mx-auto mb-2" />
+          <div className="border border-border p-6 text-center">
             <p className="text-sm text-muted-foreground mb-1">This address is not a registered miner.</p>
             <p className="text-[11px] text-muted-foreground/70">Run the miner CLI below to register, it handles stake, heartbeats and price submissions end-to-end.</p>
           </div>
@@ -127,14 +125,16 @@ export function Miner() {
         </div>
         <div className="mt-4 grid sm:grid-cols-3 gap-3">
           {[
-            { icon: Zap, t: 'Stake 1,000 VLT', d: 'Locked while mining. Withdraw anytime by deregistering.' },
-            { icon: Award, t: 'Earn per block', d: 'Stake-weighted share of the 0.43593 VLT/block emission.' },
-            { icon: TrendingDown, t: 'Build reputation', d: 'Start Warning (0.7×), reach Good 1.0× at 5,000 rep in ~15 days.' },
-          ].map((x) => (
-            <div key={x.t} className="rounded-xl border border-border bg-background/40 p-3.5">
-              <x.icon className="w-4 h-4 text-vault mb-2" />
-              <div className="text-xs font-semibold">{x.t}</div>
-              <div className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{x.d}</div>
+            { t: 'Stake 1,000 VLT', d: 'Locked while mining. Withdraw anytime by deregistering.' },
+            { t: 'Earn per block', d: 'Stake-weighted share of the 0.43593 VLT/block emission.' },
+            { t: 'Build reputation', d: 'Start Warning (0.7×), reach Good 1.0× at 5,000 rep in ~15 days.' },
+          ].map((x, i) => (
+            <div key={x.t} className="border-t border-border pt-3">
+              <div className="flex items-baseline gap-2.5">
+                <span className="font-mono text-[10px] text-muted-foreground/50">{String(i + 1).padStart(2, '0')}</span>
+                <div className="text-xs font-semibold">{x.t}</div>
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed pl-6">{x.d}</div>
             </div>
           ))}
         </div>

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Activity, Boxes, Coins, Database, Gauge, Globe2, Lock, Pickaxe, Radio, Sparkles, TrendingUp, Users } from 'lucide-react'
 import { useWallet } from '@/lib/wallet-store'
 import { getNetworkInfo, type NetworkInfo } from '@/lib/xelis/rpc'
 import {
@@ -94,10 +93,10 @@ export function Dashboard() {
       {address && (
         <Panel title="Your portfolio" desc="Balances from your connected wallet, priced by the StakedOracle aggregate.">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <StatCard label="Total value" value={`$${portfolioUsd.toLocaleString('en-US', { maximumFractionDigits: 2 })}`} accent="emerald" icon={<TrendingUp className="w-4 h-4" />} />
-            <StatCard label="XEL" value={xelBalance.toLocaleString('en-US', { maximumFractionDigits: 4 })} sub={`$${(xelBalance * xelPrice).toFixed(2)} @ $${(oracle?.priceUsd ?? 0).toFixed(4)}`} icon={<TokenIcon symbol="XEL" size="xs" />} />
-            <StatCard label="xUSD" value={xusdBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })} accent="xusd" icon={<TokenIcon symbol="xUSD" size="xs" />} />
-            <StatCard label="VLT" value={vltBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })} accent="vlt" icon={<TokenIcon symbol="VLT" size="xs" />} />
+            <StatCard label="Total value" value={`$${portfolioUsd.toLocaleString('en-US', { maximumFractionDigits: 2 })}`} accent="emerald" />
+            <StatCard label="XEL" value={xelBalance.toLocaleString('en-US', { maximumFractionDigits: 4 })} sub={`$${(xelBalance * xelPrice).toFixed(2)} @ $${(oracle?.priceUsd ?? 0).toFixed(4)}`} />
+            <StatCard label="xUSD" value={xusdBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })} accent="xusd" />
+            <StatCard label="VLT" value={vltBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })} accent="vlt" />
           </div>
         </Panel>
       )}
@@ -106,19 +105,19 @@ export function Dashboard() {
       <div className="grid md:grid-cols-2 gap-6">
         <Panel title="StakedOracle" desc="XEL/USD aggregate, median of staked miner submissions." actions={<Badge tone="emerald"><LiveDot /> live</Badge>}>
           <div className="grid grid-cols-2 gap-3">
-            <StatCard label="XEL / USD" value={`$${(oracle?.priceUsd ?? 0).toFixed(4)}`} accent="xusd" loading={loading && !oracle} icon={<Activity className="w-4 h-4" />} />
-            <StatCard label="Sources" value={oracle?.sources ?? '–'} sub={`cycle #${oracle?.cycle ?? '–'}`} icon={<Users className="w-4 h-4" />} />
+            <StatCard label="XEL / USD" value={`$${(oracle?.priceUsd ?? 0).toFixed(4)}`} accent="xusd" loading={loading && !oracle} />
+            <StatCard label="Sources" value={oracle?.sources ?? '–'} sub={`cycle #${oracle?.cycle ?? '–'}`} />
             <StatCard label="Deviation" value={`${((oracle?.deviationBps ?? 0) / 100).toFixed(2)}%`} accent="amber" />
-            <StatCard label="Updated at" value={`#${oracle?.topo ?? 0}`} sub="topoheight" icon={<Radio className="w-4 h-4" />} />
+            <StatCard label="Updated at" value={`#${oracle?.topo ?? 0}`} sub="topoheight" />
           </div>
         </Panel>
 
         <Panel title="Protocol TVL" desc="Assets held by the core contracts (public contract balances).">
           <div className="grid grid-cols-2 gap-3">
-            <StatCard label="PSM XEL" value={formatAmount(tvl?.psmXel)} icon={<Coins className="w-4 h-4" />} loading={loading && !tvl} />
-            <StatCard label="PSM xUSD" value={formatAmount(tvl?.psmXusd)} accent="xusd" icon={<TokenIcon symbol="xUSD" size="xs" />} />
-            <StatCard label="Vault collateral" value={formatAmount(tvl?.vaultEngineXel)} sub={`${vaults?.vaultCount ?? 0} vaults`} icon={<Lock className="w-4 h-4" />} />
-            <StatCard label="Savings xUSD" value={formatAmount(tvl?.savingsXusd)} accent="xusd" icon={<Sparkles className="w-4 h-4" />} />
+            <StatCard label="PSM XEL" value={formatAmount(tvl?.psmXel)} loading={loading && !tvl} />
+            <StatCard label="PSM xUSD" value={formatAmount(tvl?.psmXusd)} accent="xusd" />
+            <StatCard label="Vault collateral" value={formatAmount(tvl?.vaultEngineXel)} sub={`${vaults?.vaultCount ?? 0} vaults`} />
+            <StatCard label="Savings xUSD" value={formatAmount(tvl?.savingsXusd)} accent="xusd" />
             <StatCard label="AMM XEL" value={formatAmount(tvl?.swapXel)} />
             <StatCard label="AMM xUSD" value={formatAmount(tvl?.swapXusd)} accent="xusd" />
           </div>
@@ -127,12 +126,12 @@ export function Dashboard() {
 
       {/* Mining + airdrop */}
       <div className="grid md:grid-cols-2 gap-6">
-        <Panel title="Mining network" desc="XelisVaultMiner: unified oracle + chat relayer layer." actions={<Badge tone="vault"><Pickaxe className="w-3 h-3" /> {miner?.activeOracle ?? 0} active</Badge>}>
+        <Panel title="Mining network" desc="XelisVaultMiner: unified oracle + chat relayer layer." actions={<Badge tone="vault">{miner?.activeOracle ?? 0} active</Badge>}>
           <div className="grid grid-cols-2 gap-3">
-            <StatCard label="Miners" value={miner?.count ?? '–'} sub={`${miner?.activeOracle ?? 0} oracle · ${miner?.activeChat ?? 0} chat`} loading={loading && !miner} icon={<Pickaxe className="w-4 h-4" />} />
-            <StatCard label="Total staked" value={`${formatAmount(miner?.totalStaked)} VLT`} accent="vlt" icon={<TokenIcon symbol="VLT" size="xs" />} />
+            <StatCard label="Miners" value={miner?.count ?? '–'} sub={`${miner?.activeOracle ?? 0} oracle · ${miner?.activeChat ?? 0} chat`} loading={loading && !miner} />
+            <StatCard label="Total staked" value={`${formatAmount(miner?.totalStaked)} VLT`} accent="vlt" />
             <StatCard label="Budget remaining" value={`${formatAmount(miner ? miner.budget - miner.distributed : null)} VLT`} accent="vlt" sub={`${formatAmount(miner?.distributed)} distributed`} />
-            <StatCard label="Emission" value={`${(miner?.emissionPerBlock ?? 0).toFixed(3)} VLT`} sub="per block · halving yearly" icon={<Gauge className="w-4 h-4" />} />
+            <StatCard label="Emission" value={`${(miner?.emissionPerBlock ?? 0).toFixed(3)} VLT`} sub="per block · halving yearly" />
             <StatCard label="Delegated" value={`${formatAmount(delegation?.totalDelegated)} VLT`} accent="vlt" sub={`${delegation?.miners ?? 0} delegation profiles`} />
             <StatCard label="Min stake" value={`${formatAmount(miner?.minStake)} VLT`} accent="amber" />
           </div>
@@ -140,10 +139,10 @@ export function Dashboard() {
 
         <Panel title="Testnet airdrop" desc="Contribution points recorded on-chain by 7 categories of activity.">
           <div className="grid grid-cols-2 gap-3">
-            <StatCard label="Participants" value={airdrop?.users ?? '–'} loading={loading && !airdrop} icon={<Users className="w-4 h-4" />} />
-            <StatCard label="Total points" value={(airdrop?.totalPoints ?? 0).toLocaleString()} accent="emerald" icon={<Database className="w-4 h-4" />} />
+            <StatCard label="Participants" value={airdrop?.users ?? '–'} loading={loading && !airdrop} />
+            <StatCard label="Total points" value={(airdrop?.totalPoints ?? 0).toLocaleString()} accent="emerald" />
           </div>
-          <div className="mt-3 rounded-xl border border-border bg-background/40 p-3.5">
+          <div className="mt-3 rounded-none border border-border bg-background/40 p-3.5">
             <p className="text-xs text-muted-foreground leading-relaxed">
               Earn points by mining, relaying chat, voting, providing liquidity or reporting bugs.
               <span className="text-foreground font-medium"> 1,000 points + 7 distinct days</span> qualifies you for the
@@ -157,15 +156,17 @@ export function Dashboard() {
       <Panel title="Explore" desc="Where to go next in the app.">
         <div className="grid sm:grid-cols-3 gap-3">
           {[
-            { title: 'Open a vault', desc: 'Deposit XEL, borrow xUSD at 200% collateral ratio', icon: Lock },
-            { title: 'Run a miner', desc: 'Stake 1,000 VLT and earn emission rewards', icon: Pickaxe },
-            { title: 'Swap & PSM', desc: 'Trade at oracle price or via the confidential AMM', icon: Boxes },
-          ].map((c) => (
-            <motion.div key={c.title} whileHover={{ y: -2 }} className="rounded-xl border border-border bg-background/40 p-4">
-              <c.icon className="w-4 h-4 text-vault mb-2" />
-              <div className="text-sm font-semibold">{c.title}</div>
-              <div className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{c.desc}</div>
-            </motion.div>
+            { title: 'Open a vault', desc: 'Deposit XEL, borrow xUSD at 200% collateral ratio' },
+            { title: 'Run a miner', desc: 'Stake 1,000 VLT and earn emission rewards' },
+            { title: 'Swap & PSM', desc: 'Trade at oracle price or via the confidential AMM' },
+          ].map((c, i) => (
+            <div key={c.title} className="border-t border-border pt-3">
+              <div className="flex items-baseline gap-2.5">
+                <span className="font-mono text-[10px] text-muted-foreground/50">{String(i + 1).padStart(2, '0')}</span>
+                <div className="text-sm font-semibold">{c.title}</div>
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed pl-6">{c.desc}</div>
+            </div>
           ))}
         </div>
       </Panel>
@@ -174,8 +175,7 @@ export function Dashboard() {
         <div className="max-w-md mx-auto"><LoadingRows /></div>
       )}
 
-      <div className="flex items-center justify-center gap-2 text-[10px] font-mono text-muted-foreground/50 pb-2">
-        <Globe2 className="w-3 h-3" />
+      <div className="text-center text-[10px] font-mono text-muted-foreground/50 pb-2">
         Live data from the public XELIS testnet node · auto-refresh every 12s
       </div>
     </div>
