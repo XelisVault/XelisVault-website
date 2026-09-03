@@ -89,7 +89,7 @@ export function Xusd() {
               <div className="relative aspect-[4/5] overflow-hidden rounded-[4px] ring-1 ring-foreground/15 shadow-maison">
                 <img
                   src="/images/privacy/encrypted-transfer.jpg"
-                  alt="Two anonymous silhouettes exchanging a sealed golden sphere through a stream of cipher glyphs: one encrypted dollar in, one out"
+                  alt="A golden padlock holding its key on a dark reflective surface: value that moves only when encrypted"
                   className="w-full h-full object-cover animate-kenburns"
                 />
                 <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-oklch(0.16 0.008 80 / 0.85) via-oklch(0.16 0.008 80 / 0.45) to-transparent" />

@@ -108,7 +108,7 @@ export function MiningDelegation() {
             <div className="relative aspect-[4/3] overflow-hidden rounded-[4px] ring-1 ring-foreground/15 shadow-maison">
               <img
                 src="/images/privacy/steady-emission.jpg"
-                alt="A calm river of golden particles flowing through encrypted darkness: steady, private emission"
+                alt="Soft golden light suspended in darkness: rewards that flow steadily, privately"
                 className="w-full h-full object-cover animate-kenburns"
               />
               <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-oklch(0.16 0.008 80 / 0.8) to-transparent" />

@@ -173,7 +173,7 @@ export function Hero() {
               <div className="relative aspect-[4/5] max-w-[340px] sm:max-w-[420px] md:max-w-[520px] mx-auto overflow-hidden rounded-[4px] ring-1 ring-foreground/15 shadow-maison">
                 <img
                   src="/images/privacy/hero-privacy.jpg"
-                  alt="A sealed circular vault with a golden combination dial, wrapped in a glowing cipher lattice: privacy engineered at the core"
+                  alt="Gold bullion stacked in the darkness of a private vault: wealth held in confidentiality"
                   className="w-full h-full object-cover animate-kenburns"
                 />
                 {/* Soft ink gradient at the bottom for the caption */}

@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { LaunchExperience } from "@/components/site/launch-experience";
+import { VaultDoorTransition } from "@/components/site/vault-door-transition";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -74,6 +75,7 @@ export default function RootLayout({
         {children}
         <Toaster />
         <LaunchExperience />
+        <VaultDoorTransition />
       </body>
     </html>
   );

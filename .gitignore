@@ -64,3 +64,12 @@ server.log
 dev.log
 worklog.md
 /agent-ctx
+# Local QA / generation scratch — never commit
+/scripts/gen-img-tmp/
+/scripts/qa-shots/
+/scripts/vlm-*.json
+# root-level scratch screenshots (agent-browser saves there)
+/door-*.png
+/door-*.webm
+/qa-img-*.png
+/audit-*.png

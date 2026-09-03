@@ -78,7 +78,7 @@ export function Oracle() {
             <div className="relative aspect-[3/4] overflow-hidden rounded-[4px] ring-1 ring-foreground/15 shadow-maison">
               <img
                 src="/images/privacy/oracle-precision.jpg"
-                alt="Macro of a golden mechanism sealed with a brass padlock: a precision instrument tamper-proofed"
+                alt="Macro of a mechanical watch movement, gears and jewel bearings: price feeds machined to precision"
                 className="w-full h-full object-cover animate-kenburns"
               />
               <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-oklch(0.16 0.008 80 / 0.8) to-transparent" />
