@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!--
+    XELIS Vault — official mark.
+    Circle bisected by a vertical line that overhangs the ring at both ends,
+    silver-white on black with the soft glow of the original logo.
+    Geometry measured from public/images/xelisvault-logo.png (2046px master):
+      ring outer radius .330 · stroke .0078 · line width .0059 ·
+      line length .780 (overhang ≈ .063 each end)
+  -->
+  <defs>
+    <filter id="xvg" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="3.4" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" fill="#000000"/>
+  <g fill="none" stroke="#F1F1F1" filter="url(#xvg)">
+    <circle cx="256" cy="256" r="169" stroke-width="5"/>
+    <line x1="256" y1="57" x2="256" y2="455" stroke-width="3.6" stroke-linecap="round"/>
+  </g>
+</svg>
