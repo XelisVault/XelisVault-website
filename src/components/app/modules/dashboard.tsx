@@ -56,7 +56,7 @@ export function Dashboard() {
     getTopBlock().then(setTopBlock).catch(() => {})
   }, 5000)
 
-  const portfolioUsd = xelBalance * xelPrice + xusdBalance + vltBalance * (oracle ? 0.02 : 0) // VLT placeholder — pools are thin on testnet
+  const portfolioUsd = xelBalance * xelPrice + xusdBalance + vltBalance * (oracle ? 0.02 : 0) // VLT placeholder, pools are thin on testnet
 
   return (
     <div className="space-y-6 max-w-6xl">

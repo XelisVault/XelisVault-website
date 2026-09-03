@@ -28,7 +28,7 @@ export function NetworkSwitch({
               className={`relative z-10 inline-flex h-7 items-center gap-1.5 rounded-full px-3.5 text-[11px] font-mono uppercase tracking-wider transition-colors ${
                 active ? 'text-white' : 'text-muted-foreground hover:text-foreground'
               }`}
-              title={`${cfg.http} — click to ${active ? 'reload' : `switch to ${cfg.label}`}`}
+              title={`${cfg.http}, click to ${active ? 'reload' : `switch to ${cfg.label}`}`}
             >
               {active && (
                 <motion.span

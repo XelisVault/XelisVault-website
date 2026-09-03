@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { ComparePage } from '@/components/pages/compare'
 
 export const metadata: Metadata = {
-  title: 'Compare — XELIS Vault',
+  title: 'Compare · XELIS Vault',
   description:
     'How XELIS Vault compares to Aztec, Railgun, and Secret Network across privacy, smart contracts, oracle systems, MEV protection, and tokenomics.',
 }

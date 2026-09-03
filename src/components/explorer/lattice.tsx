@@ -400,7 +400,7 @@ export function Lattice({
                 className={`inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-[10px] font-mono uppercase tracking-wider transition-all ${
                   mode === m ? 'bg-vault/20 text-vault' : 'text-muted-foreground hover:text-foreground'
                 }`}
-                title={m === '3d' ? '3D constellation — drag to orbit, scroll to zoom' : '2D canvas view'}
+                title={m === '3d' ? '3D constellation, drag to orbit, scroll to zoom' : '2D canvas view'}
               >
                 {m === '3d' && <Box className="w-3 h-3" />}
                 {m}

@@ -83,7 +83,7 @@ export function PSM() {
 
       <Panel
         title="Peg Stability Module"
-        desc="Convert XEL and xUSD 1:1 with the oracle price, minus a small fee. Deeper than the AMM for stable conversions — no slippage curve, only the fee."
+        desc="Convert XEL and xUSD 1:1 with the oracle price, minus a small fee. Deeper than the AMM for stable conversions, no slippage curve, only the fee."
         actions={<Badge tone="vault">oracle-priced</Badge>}
       >
         {/* Mode switch */}
@@ -169,7 +169,7 @@ export function PSM() {
       <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
         How it works: the PSM holds an XEL reserve backing outstanding xUSD. Minting deposits XEL and mints
         new xUSD at the StakedOracle median; redemption burns xUSD and releases XEL. Daily caps protect the
-        reserve from drain during price dislocations, and the whole flow is confidential — amounts are hidden
+        reserve from drain during price dislocations, and the whole flow is confidential, amounts are hidden
         from everyone except you.
       </p>
     </div>

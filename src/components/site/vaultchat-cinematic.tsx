@@ -447,11 +447,11 @@ export function VaultChatCinematic() {
             {PHASE_SEQUENCE[phaseIndex].label}
           </div>
           <div className="text-sm text-muted-foreground">
-            {currentPhase === 'typing' && 'Alice writes her message. The message is signed locally — 0 gas, 0 on-chain footprint.'}
+            {currentPhase === 'typing' && 'Alice writes her message. The message is signed locally, 0 gas, 0 on-chain footprint.'}
             {currentPhase === 'encrypting' && 'ChaCha20-Poly1305 encrypts the payload with a key derived via X25519 Diffie-Hellman. Only Alice and Bob can read it.'}
             {currentPhase === 'relaying' && 'A relayer verifies Alice\'s signature, stores the encrypted message off-chain, and forwards it toward Bob.'}
             {currentPhase === 'anchoring' && 'Every hour, a relayer anchors a Merkle root of all stored messages on-chain. 1 transaction per hour for the entire protocol.'}
-            {currentPhase === 'delivered' && 'The relayer routes the encrypted message to Bob. The relayer cannot read it — they only see ciphertext.'}
+            {currentPhase === 'delivered' && 'The relayer routes the encrypted message to Bob. The relayer cannot read it, they only see ciphertext.'}
             {currentPhase === 'decrypting' && 'Bob uses his X25519 private key to decrypt the message. The decryption happens locally in his wallet.'}
             {currentPhase === 'reading' && 'Bob reads the plaintext. The message is now in his off-chain inbox, verifiable against the Merkle root on-chain.'}
           </div>

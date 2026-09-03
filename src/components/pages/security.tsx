@@ -25,7 +25,7 @@ const SECURITY_FEATURES = [
     icon: Lock,
     title: '2-Step Emergency Withdraw',
     description:
-      'Every fund-holding contract implements a 2-step emergency withdraw with a 17,280 block delay (~24h at 5s blocks). This means even if an admin key were compromised, an attacker cannot drain funds instantly — the community has a full day to react, pause the contract via the guardian multisig, and migrate funds safely.',
+      'Every fund-holding contract implements a 2-step emergency withdraw with a 17,280 block delay (~24h at 5s blocks). This means even if an admin key were compromised, an attacker cannot drain funds instantly, the community has a full day to react, pause the contract via the guardian multisig, and migrate funds safely.',
   },
   {
     icon: ShieldCheck,
@@ -43,7 +43,7 @@ const SECURITY_FEATURES = [
     icon: Zap,
     title: 'Circuit Breakers',
     description:
-      'The StakedOracle automatically pauses price submissions if the new price deviates more than 5% from the previous one — a single bad data point cannot cascade. The VaultEngine pauses new borrows if the protocol-wide health factor drops below 1.1, preventing a death spiral during market crashes.',
+      'The StakedOracle automatically pauses price submissions if the new price deviates more than 5% from the previous one, a single bad data point cannot cascade. The VaultEngine pauses new borrows if the protocol-wide health factor drops below 1.1, preventing a death spiral during market crashes.',
   },
 ]
 
@@ -92,7 +92,7 @@ const AUDIT_HISTORY = [
       { severity: 'High', count: 0, color: 'orange' },
     ],
     allFixed: true,
-    note: '13 new Phase 5+ contracts reviewed for Silex API compliance, anti-abuse mechanisms, and privacy preservation. No critical or high findings — contracts gated behind governance vote before deployment.',
+    note: '13 new Phase 5+ contracts reviewed for Silex API compliance, anti-abuse mechanisms, and privacy preservation. No critical or high findings, contracts gated behind governance vote before deployment.',
   },
   {
     version: 'External Audit',
@@ -331,7 +331,7 @@ export function SecurityPage() {
               <p className="mt-8 text-sm text-muted-foreground leading-relaxed">
                 Up to 50,000 VLT for critical findings. Total allocation: 100,000 VLT (1% of fixed supply),
                 split 50% critical / 30% high / 15% medium / 5% low, distributed over 2 years on Immunefi.
-                Responsible disclosure only — public disclosure of an unpatched vulnerability voids the bounty.
+                Responsible disclosure only, public disclosure of an unpatched vulnerability voids the bounty.
               </p>
             </Reveal>
 

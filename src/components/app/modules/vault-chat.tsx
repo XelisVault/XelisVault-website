@@ -8,7 +8,7 @@ import { StatCard, Panel, Badge, CliFallback, CliRow, LiveDot } from '../shared'
 import { CLI_COMMANDS } from '@/lib/xelis/cli'
 
 const CRYPTO_STACK = [
-  { layer: 'Key derivation', detail: 'HKDF-SHA256 from your wallet keys — no separate seed to back up' },
+  { layer: 'Key derivation', detail: 'HKDF-SHA256 from your wallet keys, no separate seed to back up' },
   { layer: 'Key exchange', detail: 'X25519 Diffie-Hellman between participants' },
   { layer: 'Encryption', detail: 'ChaCha20-Poly1305 AEAD with timestamp AAD' },
   { layer: 'Signatures', detail: 'Ed25519 on every message blob' },
@@ -40,7 +40,7 @@ export function VaultChat() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="Groups on-chain" value={stats?.groupsCount ?? '–'} icon={<Users className="w-4 h-4" />} loading={!stats} />
         <StatCard label="Your session" value={hasSession == null ? '—' : hasSession ? 'Registered' : 'None'} accent={hasSession ? 'emerald' : 'amber'} icon={<KeyRound className="w-4 h-4" />} />
-        <StatCard label="Storage model" value="Ring buffer" sub="50 msgs/user — zero chain growth" />
+        <StatCard label="Storage model" value="Ring buffer" sub="50 msgs/user, zero chain growth" />
         <StatCard label="End-to-end" value="ChaCha20" sub="Poly1305 authenticated" accent="emerald" icon={<MessageSquareLock className="w-4 h-4" />} />
       </div>
 
@@ -55,7 +55,7 @@ export function VaultChat() {
             'Ephemeral messages with 2h / 6h / 12h / 24h TTLs',
             'On-chain payment requests and invoices between users',
             'Group giveaways with per-wallet claim limits',
-            'Premium direct storage — persistent, no relayer needed',
+            'Premium direct storage, persistent, no relayer needed',
             'Tombstone deletions that preserve Merkle integrity',
           ].map((f) => (
             <div key={f} className="flex gap-2.5 rounded-xl border border-border bg-background/40 p-3">
@@ -73,7 +73,7 @@ export function VaultChat() {
                 <span className="font-mono text-[10px] text-vault/70 shrink-0">{String(i + 1).padStart(2, '0')}</span>
                 <div>
                   <span className="text-xs font-medium">{c.layer}</span>
-                  <span className="text-xs text-muted-foreground"> — {c.detail}</span>
+                  <span className="text-xs text-muted-foreground">, {c.detail}</span>
                 </div>
               </div>
             ))}
@@ -83,7 +83,7 @@ export function VaultChat() {
 
       <Panel
         title="Run a chat relayer"
-        desc="Relayers are the messaging backbone — and earn from the 1,000,000 VLT relayer allocation (10% of supply over 10 years)."
+        desc="Relayers are the messaging backbone, and earn from the 1,000,000 VLT relayer allocation (10% of supply over 10 years)."
         actions={<Badge tone="vlt">earns VLT</Badge>}
       >
         <div className="mb-4 rounded-xl border border-vault/25 bg-vault/5 p-3.5">
@@ -109,7 +109,7 @@ export function VaultChat() {
           <StatCard label="Protocol cut" value="5%" sub="of relayer fees" />
         </div>
         <p className="mt-3 text-[11px] text-muted-foreground/70 leading-relaxed">
-          Anchors must contain at least 5 messages from 2 distinct senders to earn rewards — spam anchors earn
+          Anchors must contain at least 5 messages from 2 distinct senders to earn rewards, spam anchors earn
           nothing. Reputation multipliers (0.5× to 1.5×) scale relayer earnings, with diminishing returns above
           50 anchors/day to prevent single-player dominance.
         </p>
@@ -118,10 +118,10 @@ export function VaultChat() {
       <CliFallback
         title="Full chat experience"
         commands={[
-          { label: 'cli', cmd: 'xvault          # menu: Chat — sessions, groups, E2E messages' },
+          { label: 'cli', cmd: 'xvault          # menu: Chat, sessions, groups, E2E messages' },
           { label: 'tui', cmd: 'xvault-chat     # dedicated chat TUI (12 backend methods)' },
         ]}
-        note="End-to-end encryption requires key derivation from your wallet — available through the CLI while the web chat ships."
+        note="End-to-end encryption requires key derivation from your wallet, available through the CLI while the web chat ships."
       />
     </div>
   )

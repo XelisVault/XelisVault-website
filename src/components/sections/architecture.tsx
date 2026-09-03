@@ -2,7 +2,6 @@
 
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useRef, useState } from 'react'
-import { Database, Server, ShieldCheck, Layers, Workflow, Cpu } from 'lucide-react'
 import { Reveal, SectionLabel } from '@/components/site/reveal'
 
 const LAYERS = [
@@ -13,7 +12,6 @@ const LAYERS = [
     desc: 'VLT holders propose and vote on every protocol parameter. 48h timelock enforced on-chain, with a Guardian multisig for emergency pause. Liquid democracy lets you delegate your vote by topic.',
     contracts: ['OracleGovernance', 'GovernanceVault', 'Governor', 'Timelock', 'GuardianMultisig', 'GovernanceDelegation'],
     color: 'vlt',
-    icon: Vote,
   },
   {
     id: 'core',
@@ -22,7 +20,6 @@ const LAYERS = [
     desc: 'The user-facing contracts: lending, swapping, savings, auctions, RWA, treasury, insurance, payroll, mixer, chat, flash loans, compliance. All encrypted, all on XELIS.',
     contracts: ['VaultEngineV3', 'MultiCollateralVault', 'VaultSwapV2', 'PSM', 'SavingsRate', 'SealedBidAuction', 'AssetVault', 'TreasuryVault', 'RevenueShare', 'Payroll', 'PrivacyMixer', 'VaultChat', 'ComplianceModule', 'FlashLoan', 'FlashCallback', 'LendingMarket', 'PeerLoan', 'SyndicatePool', 'InsurancePool', 'PrivateInsurance'],
     color: 'vault',
-    icon: Layers,
   },
   {
     id: 'vault-advanced',
@@ -31,7 +28,6 @@ const LAYERS = [
     desc: 'Higher-order vault contracts written and security-reviewed, gated behind a governance vote. Yield optimizer, one-click templates, multi-collateral vaults, tokenized positions, social trading, credit scores.',
     contracts: ['YieldOptimizer', 'VaultTemplates', 'VaultNFT', 'SocialTrading', 'CreditScore', 'LiquidationMarket', 'VaultBounties', 'VaultInsurance', 'AnalyticsCollector', 'NotificationCenter', 'EmergencyShutdown'],
     color: 'vlt',
-    icon: Workflow,
   },
   {
     id: 'oracle',
@@ -40,16 +36,14 @@ const LAYERS = [
     desc: 'A decentralized price oracle secured by VLT staking. Anyone can be a provider, slashing deters manipulation, median aggregation every 5 blocks. MinerDelegation lets any VLT holder delegate to a miner.',
     contracts: ['StakedOracle', 'InterestRateModel', 'XelisVaultMiner', 'MinerPool', 'MinerDelegation'],
     color: 'xusd',
-    icon: Cpu,
   },
   {
     id: 'token',
     name: 'Token & Economics Layer',
     tag: 'Assets + fee distribution',
-    desc: 'VLT — 10M fixed supply, deflationary governance token. xUSD — USD-pegged stablecoin. FeeDistributor splits all protocol fees 50% burn / 40% treasury / 10% founder. FounderVesting transparent on-chain.',
+    desc: 'VLT, 10M fixed supply, deflationary governance token. xUSD, USD-pegged stablecoin. FeeDistributor splits all protocol fees 50% burn / 40% treasury / 10% founder. FounderVesting transparent on-chain.',
     contracts: ['VLTToken', 'xUSD', 'FeeDistributor', 'FounderVesting', 'RevenueShareDelegation', 'AirdropTracker', 'AirdropClaim'],
     color: 'vlt',
-    icon: Coins,
   },
   {
     id: 'infra',
@@ -58,48 +52,13 @@ const LAYERS = [
     desc: 'The base layer: XELIS native homomorphic encryption (Twisted ElGamal), 5-second block time, contract registry for versioned lookups, testnet faucet.',
     contracts: ['ContractRegistry', 'FaucetContract'],
     color: 'vault',
-    icon: Server,
   },
 ] as const
 
-const COLOR_MAP: Record<string, { text: string; bg: string; border: string; glow: string }> = {
-  vault: {
-    text: 'text-vault',
-    bg: 'bg-vault/10',
-    border: 'border-vault/30',
-    glow: 'shadow-[0_0_60px_-20px_var(--vault)]',
-  },
-  xusd: {
-    text: 'text-xusd',
-    bg: 'bg-xusd/10',
-    border: 'border-xusd/30',
-    glow: 'shadow-[0_0_60px_-20px_var(--xusd)]',
-  },
-  vlt: {
-    text: 'text-vlt',
-    bg: 'bg-vlt/10',
-    border: 'border-vlt/30',
-    glow: 'shadow-[0_0_60px_-20px_var(--vlt)]',
-  },
-}
-
-function Vote({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M9 12l2 2 4-4" />
-      <path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7z" />
-      <path d="M2 12h2M20 12h2" />
-    </svg>
-  )
-}
-
-function Coins({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="8" cy="8" r="6" />
-      <path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4M16.71 13.88l.7.71-2.82 2.82" />
-    </svg>
-  )
+const COLOR_MAP: Record<string, { text: string }> = {
+  vault: { text: 'text-vault' },
+  xusd: { text: 'text-xusd' },
+  vlt: { text: 'text-vlt' },
 }
 
 export function Architecture() {
@@ -136,17 +95,20 @@ export function Architecture() {
           <Reveal delay={0.2}>
             <p className="mt-8 text-lg text-muted-foreground leading-relaxed">
               51 smart contracts, organized in 6 layers. Each layer secures the one above,
-              and every byte of state is encrypted at the XELIS BlockDAG level — long before
+              and every byte of state is encrypted at the XELIS BlockDAG level, long before
               it ever reaches a contract.
             </p>
           </Reveal>
         </div>
 
-        {/* Interactive stack */}
+        {/* Interactive stack: an editorial index + the layered diagram */}
         <div className="mt-16 grid lg:grid-cols-[1fr_1.2fr] gap-10">
-          {/* Layer list */}
+          {/* Layer index */}
           <Reveal>
-            <div className="space-y-3">
+            <div>
+              <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/70 pb-3 border-b border-foreground/10">
+                The six layers
+              </div>
               {LAYERS.map((layer, i) => {
                 const isActive = active === i
                 const c = COLOR_MAP[layer.color]
@@ -155,33 +117,32 @@ export function Architecture() {
                     key={layer.id}
                     onClick={() => setActive(i)}
                     onMouseEnter={() => setActive(i)}
-                    className={`w-full text-left rounded-2xl border p-5 md:p-6 transition-all duration-300 ${
-                      isActive
-                        ? `${c.border} ${c.bg} ${c.glow}`
-                        : 'border-border bg-card/20 hover:bg-card/40'
+                    className={`w-full text-left py-5 border-b border-foreground/10 transition-colors ${
+                      isActive ? 'border-l-2 pl-4' : 'border-l-2 border-l-transparent pl-4'
                     }`}
+                    style={isActive ? { borderLeftColor: 'var(--vault)' } : undefined}
                   >
-                    <div className="flex items-start gap-4">
-                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all ${
-                        isActive ? `${c.bg} ${c.text} ${c.border} border` : 'bg-card/60 text-muted-foreground border border-border'
-                      }`}>
-                        <layer.icon className="w-5 h-5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-mono text-xs text-muted-foreground">L{LAYERS.length - i}</span>
-                          <h3 className={`font-display text-lg font-semibold ${isActive ? c.text : ''}`}>
-                            {layer.name}
-                          </h3>
-                        </div>
-                        <p className="mt-1 text-sm text-muted-foreground font-mono">
-                          {layer.tag}
-                        </p>
-                        <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-                          {layer.desc}
-                        </p>
-                      </div>
+                    <div className="flex items-baseline gap-3">
+                      <span className="font-mono text-xs text-muted-foreground/60">L{LAYERS.length - i}</span>
+                      <h3 className={`font-display text-lg font-semibold transition-colors ${isActive ? c.text : ''}`}>
+                        {layer.name}
+                      </h3>
+                      <span className="ml-auto text-xs font-mono text-muted-foreground shrink-0">
+                        {layer.contracts.length}
+                      </span>
                     </div>
+                    <p className="mt-1.5 text-sm text-muted-foreground font-mono">
+                      {layer.tag}
+                    </p>
+                    {isActive && (
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="mt-3 text-sm text-muted-foreground leading-relaxed"
+                      >
+                        {layer.desc}
+                      </motion.p>
+                    )}
                   </button>
                 )
               })}
@@ -191,11 +152,10 @@ export function Architecture() {
           {/* Visual stack */}
           <motion.div style={{ y: layerY }} className="relative">
             <Reveal>
-              <div className="relative rounded-2xl glass-panel p-6 md:p-8 overflow-hidden">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
-                    <Database className="w-3.5 h-3.5" />
-                    Stack Visualization
+              <div className="relative pt-7 border-t border-foreground/12">
+                <div className="flex items-baseline justify-between mb-6">
+                  <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/70">
+                    Stack visualization
                   </div>
                   <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -217,75 +177,56 @@ export function Architecture() {
                         }}
                         transition={{ duration: 0.3 }}
                         onClick={() => setActive(i)}
-                        className={`relative cursor-pointer rounded-xl border p-4 transition-all overflow-hidden ${
-                          isActive ? `${c.border} ${c.bg}` : 'border-border bg-card/30'
+                        className={`relative cursor-pointer border-b border-foreground/12 py-3.5 px-4 transition-colors ${
+                          isActive ? 'bg-card/40' : 'bg-transparent hover:bg-card/20'
                         }`}
                         style={{
                           marginLeft: `${i * 16}px`,
                           marginRight: `${(LAYERS.length - i - 1) * 8}px`,
                         }}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <span className={`font-mono text-[10px] uppercase tracking-wider ${c.text}`}>
+                        <div className="flex items-baseline justify-between">
+                          <div className="flex items-baseline gap-3">
+                            <span className={`font-mono text-[10px] uppercase tracking-wider ${isActive ? c.text : 'text-muted-foreground/60'}`}>
                               L{LAYERS.length - i}
                             </span>
                             <span className="text-sm font-medium">{layer.name}</span>
                           </div>
-                          <span className={`text-xs font-mono ${c.text}`}>
+                          <span className={`text-xs font-mono ${isActive ? c.text : 'text-muted-foreground'}`}>
                             {layer.contracts.length} contracts
                           </span>
-                        </div>
-
-                        {/* Encrypted pattern */}
-                        <div className="absolute inset-0 pointer-events-none opacity-30">
-                          <div className={`absolute right-3 top-1/2 -translate-y-1/2 ${c.text} font-mono text-[9px] tracking-wider opacity-60`}>
-                            enc::twisted_elgamal
-                          </div>
                         </div>
                       </motion.div>
                     )
                   })}
                 </div>
 
-                {/* Active layer contracts */}
+                {/* Active layer contracts: a mono listing */}
                 <motion.div
                   key={active}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mt-6 pt-6 border-t border-border"
+                  className="mt-8 pt-6 border-t border-foreground/10"
                 >
-                  <div className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground mb-3">
-                    {LAYERS[active].contracts.length} Contracts
+                  <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/70 mb-3">
+                    {LAYERS[active].contracts.length} contracts
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {LAYERS[active].contracts.map((contract) => {
-                      const c = COLOR_MAP[LAYERS[active].color]
-                      return (
-                        <span
-                          key={contract}
-                          className={`inline-flex items-center gap-1.5 rounded-md ${c.bg} ${c.border} border px-2.5 py-1 text-xs font-mono ${c.text}`}
-                        >
-                          <span className="w-1 h-1 rounded-full bg-current opacity-60" />
-                          {contract}.slx
-                        </span>
-                      )
-                    })}
+                  <div className="text-xs font-mono leading-loose text-foreground/80">
+                    {LAYERS[active].contracts.map((contract, j) => (
+                      <span key={contract}>
+                        <span className={COLOR_MAP[LAYERS[active].color].text}>{contract}</span>.slx
+                        {j < LAYERS[active].contracts.length - 1 && (
+                          <span className="text-muted-foreground/40 mx-1">·</span>
+                        )}
+                      </span>
+                    ))}
                   </div>
                 </motion.div>
 
                 {/* Bottom: data flow */}
-                <div className="mt-6 pt-6 border-t border-border">
-                  <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
-                    <span className="flex items-center gap-1.5">
-                      <Workflow className="w-3.5 h-3.5" />
-                      get_price(&quot;XEL/USD&quot;)
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                      ZK verified
-                    </span>
-                  </div>
+                <div className="mt-8 pt-6 border-t border-foreground/10 flex items-center justify-between text-xs font-mono text-muted-foreground">
+                  <span>get_price(&quot;XEL/USD&quot;)</span>
+                  <span className="text-emerald-700">ZK verified</span>
                 </div>
               </div>
             </Reveal>
@@ -295,8 +236,8 @@ export function Architecture() {
               <div className="mt-4 flex items-start gap-3 text-xs text-muted-foreground">
                 <div className="w-1 h-full bg-gradient-to-b from-vault to-vlt rounded-full" />
                 <p className="leading-relaxed">
-                  Click any layer to inspect its contracts. Every layer is built on the
-                  encrypted primitives below — nothing is added as an afterthought.
+                  Select any layer to inspect its contracts. Every layer is built on the
+                  encrypted primitives below; nothing is added as an afterthought.
                 </p>
               </div>
             </Reveal>

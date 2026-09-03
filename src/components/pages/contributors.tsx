@@ -73,7 +73,7 @@ const CATEGORIES: Category[] = [
       {
         name: 'Dr. Pixel',
         handle: '@pixelpatchit',
-        contribution: 'Organized and structured the XELIS Vault Discord server — created channels, set up roles, and moderated the community from day one.',
+        contribution: 'Organized and structured the XELIS Vault Discord server, created channels, set up roles, and moderated the community from day one.',
         tier: 'gold',
         avatar: '/images/contributors/dr-pixel.jpg',
         profileUrl: 'https://x.com/pixelpatchit',
@@ -88,7 +88,7 @@ const CATEGORIES: Category[] = [
       },
       {
         name: 'rom_strx445',
-        contribution: 'Active on Reddit — created posts explaining XELIS Vault and answering questions from newcomers.',
+        contribution: 'Active on Reddit, created posts explaining XELIS Vault and answering questions from newcomers.',
         tier: 'bronze',
       },
     ],
@@ -106,7 +106,7 @@ const CATEGORIES: Category[] = [
       {
         name: '309',
         handle: '@BRGBRGBRGBRG',
-        contribution: 'Sent 100 XEL to support development — the largest donation received',
+        contribution: 'Sent 100 XEL to support development, the largest donation received',
         tier: 'gold',
         avatar: '/images/contributors/supporter-brg.jpg',
         profileUrl: 'https://x.com/BRGBRGBRGBRG',
@@ -363,7 +363,7 @@ export function ContributorsPage() {
                 Every contribution matters.
               </h2>
               <p className="mt-4 text-sm text-muted-foreground leading-relaxed max-w-xl mx-auto">
-                Whether you found a critical bug, shared a post, sent 1 XEL, or wrote 10 lines of code —
+                Whether you found a critical bug, shared a post, sent 1 XEL, or wrote 10 lines of code
                 you are part of the XELIS Vault story. This page grows with every act of contribution.
                 Thank you for believing in privacy.
               </p>

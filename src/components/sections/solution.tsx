@@ -1,42 +1,34 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { Lock, Coins, ArrowLeftRight, Building2, Users, Vote } from 'lucide-react'
 import { Reveal, RevealStagger, RevealItem, SectionLabel } from '@/components/site/reveal'
 
 const PILLARS = [
   {
-    icon: Lock,
     title: 'Confidential Lending',
     desc: 'Deposit XEL as collateral and borrow xUSD without revealing your position, your LTV, or your strategy to anyone. Encrypted vaults powered by Twisted ElGamal.',
     tag: 'VaultEngineV3',
   },
   {
-    icon: Coins,
     title: 'Private Stablecoin',
     desc: 'xUSD is a USD-pegged stablecoin with encrypted transfers by default. Mint via PSM at $1 oracle price, redeem on demand, hold privately.',
     tag: 'xUSD',
   },
   {
-    icon: ArrowLeftRight,
     title: 'MEV-Resistant AMM',
-    desc: 'VaultSwap is a custom automated market maker with built-in peg stability module and front-running protection — your trades settle fairly on every block.',
+    desc: 'VaultSwap is a custom automated market maker with built-in peg stability module and front-running protection. Your trades settle fairly on every block.',
     tag: 'VaultSwapV2',
   },
   {
-    icon: Building2,
     title: 'Real-World Assets',
     desc: 'Tokenize and trade real-world assets with confidential balances. Multi-signature treasury vaults for DAOs, foundations, and institutions.',
     tag: 'AssetVault',
   },
   {
-    icon: Users,
     title: 'Peer-to-Peer Credit',
-    desc: 'Bilateral P2P loans with custom terms, syndicated credit pools, and a multi-pool multi-collateral lending marketplace — all confidential by design.',
+    desc: 'Bilateral P2P loans with custom terms, syndicated credit pools, and a multi-pool multi-collateral lending marketplace. All confidential by design.',
     tag: 'LendingMarket',
   },
   {
-    icon: Vote,
     title: 'On-Chain Governance',
     desc: 'VLT holders control every protocol parameter: fees, oracles, risk limits, upgrades. With 48h timelock and a Guardian multisig for emergency pause.',
     tag: 'Governor',
@@ -53,7 +45,7 @@ export function Solution() {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full bg-vault/7 blur-[140px]" />
 
       <div className="relative max-w-7xl mx-auto">
-        {/* Header — copy + institutional architecture */}
+        {/* Header: copy + institutional architecture */}
         <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-12 items-end">
           <div className="max-w-3xl">
             <Reveal>
@@ -68,21 +60,21 @@ export function Solution() {
             </Reveal>
             <Reveal delay={0.2}>
               <p className="mt-8 text-lg text-muted-foreground leading-relaxed">
-                Not privacy bolted on top. Privacy at the protocol level — every contract,
+                Not privacy bolted on top. Privacy at the protocol level: every contract,
                 every balance, every interaction is encrypted from day one. Built native on
                 the XELIS BlockDAG.
               </p>
             </Reveal>
           </div>
 
-          {/* Architecture — the institutional tower */}
+          {/* Architecture: the institutional tower */}
           <Reveal delay={0.25} className="hidden lg:block">
             <div className="relative max-w-[300px] ml-auto">
               <div className="absolute -inset-2.5 rounded-[6px] border border-vault/30 pointer-events-none" />
               <div className="relative aspect-[3/4] overflow-hidden rounded-[4px] ring-1 ring-foreground/15 shadow-maison">
                 <img
                   src="/images/bank/architecture.jpg"
-                  alt="Modern glass tower seen from below — layered institutional architecture"
+                  alt="Modern glass tower seen from below: layered institutional architecture"
                   className="w-full h-full object-cover animate-kenburns"
                 />
                 <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-oklch(0.2 0.01 80 / 0.5) to-transparent" />
@@ -97,53 +89,49 @@ export function Solution() {
           </Reveal>
         </div>
 
-        {/* Grid */}
-        <RevealStagger className="mt-16 grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-          {PILLARS.map((p, i) => (
-            <RevealItem key={`solution-pillar-${i}`}>
-              <motion.div
-                whileHover={{ y: -6 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                className="group relative h-full rounded-2xl glass-panel hover:glass-panel-hover p-6 md:p-7 overflow-hidden cursor-default"
-              >
-                {/* Index */}
-                <div className="absolute top-6 right-6 font-mono text-xs text-vault/50 group-hover:text-vault/80 transition-colors">
-                  0{i + 1}
+        {/* The six pillars: a numbered manifesto index, one column, generous air */}
+        <div className="mt-16 md:mt-20">
+          <Reveal>
+            <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/70 pb-3 border-b border-foreground/10">
+              The pillars, in order of consequence
+            </div>
+          </Reveal>
+          <RevealStagger>
+            {PILLARS.map((p, i) => (
+              <RevealItem key={`solution-pillar-${i}`}>
+                <div className="group grid md:grid-cols-[110px_1fr] gap-x-10 border-b border-foreground/10 py-9 md:py-10">
+                  <div className="font-display text-5xl md:text-6xl font-light text-vault/35 group-hover:text-vault/60 transition-colors md:text-left text-left tabular-nums">
+                    0{i + 1}
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
+                      <h3 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">
+                        {p.title}
+                      </h3>
+                      <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-vault/60 group-hover:text-vault transition-colors">
+                        {p.tag}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm md:text-[15px] text-muted-foreground leading-relaxed max-w-2xl">
+                      {p.desc}
+                    </p>
+                  </div>
                 </div>
+              </RevealItem>
+            ))}
+          </RevealStagger>
+        </div>
 
-                <div className="w-12 h-12 rounded-xl bg-vault/10 border border-vault/20 flex items-center justify-center text-vault group-hover:bg-vault/20 group-hover:border-vault/40 transition-all">
-                  <p.icon className="w-5 h-5" />
-                </div>
-
-                <h3 className="mt-5 font-display text-xl font-semibold tracking-tight">
-                  {p.title}
-                </h3>
-                <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-                  {p.desc}
-                </p>
-
-                <div className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-card/60 border border-border px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground group-hover:text-vault group-hover:border-vault/30 transition-all">
-                  <span className="w-1 h-1 rounded-full bg-vault/60" />
-                  {p.tag}
-                </div>
-
-                {/* Hover glow */}
-                <div className="absolute -bottom-20 -right-20 w-40 h-40 rounded-full bg-vault/10 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              </motion.div>
-            </RevealItem>
-          ))}
-        </RevealStagger>
-
-        {/* Stats strip */}
+        {/* Protocol figures: hairline editorial band */}
         <Reveal delay={0.2}>
-          <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-px rounded-2xl glass-panel overflow-hidden">
+          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 border-t border-b border-foreground/10">
             {[
               { value: '51', label: 'Smart Contracts', sub: '966 entry functions' },
               { value: '5s', label: 'Block Time', sub: 'XELIS BlockDAG' },
               { value: '10M', label: 'VLT Fixed Supply', sub: 'Deflationary · MIT' },
               { value: '$1', label: 'xUSD Peg', sub: 'PSM + overcollateral' },
             ].map((s, i) => (
-              <div key={`solution-stat-${i}`} className="p-6 md:p-8 bg-card/30">
+              <div key={`solution-stat-${i}`} className="py-6 md:py-8 px-5 md:px-6 md:border-l md:first:border-l-0 border-foreground/10">
                 <div className="font-display text-3xl md:text-4xl font-semibold text-gradient-vault">
                   {s.value}
                 </div>

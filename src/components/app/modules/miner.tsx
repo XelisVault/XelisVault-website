@@ -79,7 +79,7 @@ export function Miner() {
           <div className="rounded-xl border border-dashed border-border p-6 text-center">
             <Pickaxe className="w-6 h-6 text-vault/50 mx-auto mb-2" />
             <p className="text-sm text-muted-foreground mb-1">This address is not a registered miner.</p>
-            <p className="text-[11px] text-muted-foreground/70">Run the miner CLI below to register — it handles stake, heartbeats and price submissions end-to-end.</p>
+            <p className="text-[11px] text-muted-foreground/70">Run the miner CLI below to register, it handles stake, heartbeats and price submissions end-to-end.</p>
           </div>
         ) : record ? (
           <div className="grid md:grid-cols-2 gap-6">
@@ -114,15 +114,15 @@ export function Miner() {
         actions={<Badge tone="vault">CLI required</Badge>}
       >
         <div className="space-y-2">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground pb-1">1 — install (linux / macOS / windows)</div>
+          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground pb-1">1, install (linux / macOS / windows)</div>
           <CliRow cmd={CLI_INSTALL.linux} label="sh" />
           <CliRow cmd={CLI_INSTALL.windows} label="ps" />
-          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground pt-3 pb-1">2 — one-time setup (wallet, stake, registration)</div>
+          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground pt-3 pb-1">2, one-time setup (wallet, stake, registration)</div>
           <CliRow cmd={CLI_COMMANDS.startMiner.setup} label="setup" />
-          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground pt-3 pb-1">3 — start submitting prices</div>
+          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground pt-3 pb-1">3, start submitting prices</div>
           <CliRow cmd={CLI_COMMANDS.startMiner.start} label="oracle" />
           <CliRow cmd="xvault-miner --miner --services both" label="oracle+chat" />
-          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground pt-3 pb-1">4 — live dashboard (stake, reputation, rewards)</div>
+          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground pt-3 pb-1">4, live dashboard (stake, reputation, rewards)</div>
           <CliRow cmd={CLI_COMMANDS.startMiner.dashboard} label="tui" />
         </div>
         <div className="mt-4 grid sm:grid-cols-3 gap-3">
@@ -166,13 +166,13 @@ export function Miner() {
         </div>
         <p className="mt-3 text-[11px] text-muted-foreground/70 leading-relaxed">
           5,500,000 VLT (55% of supply) funds oracle rewards over 10+ years. New-miner boosts: +50% under 10 miners,
-          +30% under 50, +10% under 100 — applied for the first 30 days of a miner's life. The concentration
+          +30% under 50, +10% under 100, applied for the first 30 days of a miner's life. The concentration
           penalty curve (8%→20% of network stake) scales oracle weight down to 0.3× to prevent power grabs.
         </p>
       </Panel>
 
       <CliFallback
-        title="Delegation — earn without running a node"
+        title="Delegation, earn without running a node"
         commands={[
           { label: 'cli', cmd: 'xvault          # menu: Mining → delegate to a miner' },
         ]}

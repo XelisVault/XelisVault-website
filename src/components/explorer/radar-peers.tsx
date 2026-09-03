@@ -256,7 +256,7 @@ export function SealedByDesign() {
       </div>
 
       <p className="mt-3 text-[10px] font-mono text-muted-foreground/60 leading-relaxed">
-        XELIS encrypts amounts with homomorphic Twisted ElGamal. The Observatory shows you the machinery —
+        XELIS encrypts amounts with homomorphic Twisted ElGamal. The Observatory shows you the machinery
         never the money. That is the point.
       </p>
     </div>

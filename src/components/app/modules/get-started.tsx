@@ -40,7 +40,7 @@ export function GetStarted() {
         </h2>
         <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
           Everything here is real: 34 contracts deployed on the XELIS BlockDAG, a live oracle fed by
-          staked miners, and confidential balances by default. Follow these steps to get started —
+          staked miners, and confidential balances by default. Follow these steps to get started
           no real value is at risk on testnet.
         </p>
       </div>
@@ -115,7 +115,7 @@ function StepWallet() {
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground leading-relaxed">
         XELIS Vault connects to <span className="text-foreground font-medium">Genesix</span>, the official
-        XELIS desktop wallet, via XSWD (XELIS Secure WebSocket Daemon). Your keys never leave the wallet —
+        XELIS desktop wallet, via XSWD (XELIS Secure WebSocket Daemon). Your keys never leave the wallet
         the site only sees your address and the balances you approve, and every transaction requires an
         explicit approval popup.
       </p>
@@ -125,7 +125,7 @@ function StepWallet() {
         <ExternalLink className="w-3 h-3 opacity-60" />
       </a>
       <div className="text-[11px] text-muted-foreground">
-        Available for Windows, Linux and macOS. Create a new wallet for testnet — never reuse a mainnet seed.
+        Available for Windows, Linux and macOS. Create a new wallet for testnet, never reuse a mainnet seed.
       </div>
     </div>
   )
@@ -139,7 +139,7 @@ function StepFunds() {
       </p>
       <div className="grid sm:grid-cols-2 gap-3">
         <div className="rounded-xl border border-border bg-background/40 p-4">
-          <div className="text-sm font-semibold mb-1">XEL — gas & collateral</div>
+          <div className="text-sm font-semibold mb-1">XEL, gas & collateral</div>
           <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">
             Claim from the official XELIS faucet. Every transaction pays a tiny XEL fee (~0.001 XEL).
           </p>
@@ -148,9 +148,9 @@ function StepFunds() {
           </a>
         </div>
         <div className="rounded-xl border border-border bg-background/40 p-4">
-          <div className="text-sm font-semibold mb-1">VLT — staking & mining</div>
+          <div className="text-sm font-semibold mb-1">VLT, staking & mining</div>
           <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">
-            VLT is distributed to testnet participants. Ask in the Discord #faucet channel —
+            VLT is distributed to testnet participants. Ask in the Discord #faucet channel
             an operator sends a batch to your address on request.
           </p>
           <a href={DISCORD_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-mono text-vault hover:underline">
@@ -160,7 +160,7 @@ function StepFunds() {
       </div>
       <div className="text-[11px] text-muted-foreground leading-relaxed">
         Minimum to start mining: <span className="text-foreground font-medium">1,000 VLT</span>. To open a vault:
-        <span className="text-foreground font-medium"> some XEL for collateral</span> (any amount — the ratio is what matters).
+        <span className="text-foreground font-medium"> some XEL for collateral</span> (any amount, the ratio is what matters).
       </div>
     </div>
   )
@@ -171,7 +171,7 @@ function StepConnect({ connected, onConnect }: { connected: boolean; onConnect: 
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground leading-relaxed">
         With Genesix running, click Connect and approve the XELIS Vault application in the wallet popup.
-        The connection uses XSWD on <code className="font-mono text-[10px] bg-muted/50 px-1 rounded">ws://127.0.0.1:44325/xswd</code> —
+        The connection uses XSWD on <code className="font-mono text-[10px] bg-muted/50 px-1 rounded">ws://127.0.0.1:44325/xswd</code>
         Chrome, Edge and Firefox allow localhost WebSockets from HTTPS pages; on Safari use the CLI instead.
       </p>
       {connected ? (
@@ -183,7 +183,7 @@ function StepConnect({ connected, onConnect }: { connected: boolean; onConnect: 
         </button>
       )}
       <p className="text-[11px] text-muted-foreground">
-        No wallet handy? You can still browse all protocol data in this app — only signing requires a wallet.
+        No wallet handy? You can still browse all protocol data in this app, only signing requires a wallet.
       </p>
     </div>
   )

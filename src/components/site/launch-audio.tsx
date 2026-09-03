@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Volume2, VolumeX } from 'lucide-react'
+import { Volume2 } from 'lucide-react'
 import { LAUNCH_DATE, useCountdownState } from '@/lib/countdown'
 import { launchAudio } from '@/lib/launch-audio'
 
@@ -37,13 +37,13 @@ export function SoundToggle() {
       onClick={() => launchAudio.toggle()}
       aria-label={enabled ? 'Mute soundtrack' : 'Enable soundtrack'}
       title={enabled ? 'Soundtrack on' : 'Soundtrack off'}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-all ${
+      className={`hidden md:inline-flex h-9 items-center rounded-full border px-3.5 text-[11px] font-mono uppercase tracking-[0.14em] transition-all ${
         enabled
           ? 'border-vault/40 bg-vault/10 text-vault hover:bg-vault/20'
-          : 'border-border bg-card/40 text-muted-foreground hover:text-foreground hover:bg-card/80'
+          : 'border-border text-muted-foreground hover:text-foreground hover:bg-card/80'
       }`}
     >
-      {enabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+      Sound {enabled ? 'on' : 'off'}
     </button>
   )
 }
@@ -107,7 +107,7 @@ export function LaunchAudio({ ceremony, welcome }: { ceremony: boolean; welcome:
       launchAudio.sync(
         realOffset >= 9_000 && realOffset <= 55_000
           ? { track: 'main', wallMs: realAnchorWall, atMs: 0 }
-          : // replay / preview — ceremony starts 10s into the track
+          : // replay / preview, ceremony starts 10s into the track
             { track: 'main', wallMs: mountWall, atMs: MAIN_LEAD_MS }
       )
     } else if (key === 'welcome') {

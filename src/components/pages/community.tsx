@@ -92,11 +92,11 @@ export function CommunityPage() {
           <Reveal delay={0.2}>
             <p className="mt-6 text-lg text-muted-foreground leading-relaxed max-w-3xl">
               XELIS Vault is community-owned and community-built. No VC allocation, no insider
-              presale. Pick a channel below and join us — the team is most active on Discord.
+              presale. Pick a channel below and join us, the team is most active on Discord.
             </p>
           </Reveal>
 
-          {/* Channels — NO fake member counts */}
+          {/* Channels, NO fake member counts */}
           <section className="mt-16">
             <Reveal>
               <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">Join the community</h2>
@@ -126,7 +126,7 @@ export function CommunityPage() {
             </div>
           </section>
 
-          {/* Real resources — replaces fake grants + fake ecosystem projects */}
+          {/* Real resources, replaces fake grants + fake ecosystem projects */}
           <section className="mt-20">
             <Reveal>
               <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">Resources</h2>
@@ -154,7 +154,7 @@ export function CommunityPage() {
             </div>
           </section>
 
-          {/* Build with us — honest framing, no fake bounty amounts */}
+          {/* Build with us, honest framing, no fake bounty amounts */}
           <section className="mt-20">
             <Reveal>
               <div className="flex items-center gap-2">
@@ -163,7 +163,7 @@ export function CommunityPage() {
               </div>
               <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
                 The protocol is MIT-licensed and every contract is open source. If you are building
-                something on top — a frontend, an indexer, a mobile app, a bot — let us know on
+                something on top, a frontend, an indexer, a mobile app, a bot, let us know on
                 Discord. We feature community projects here as they ship.
               </p>
             </Reveal>
@@ -172,7 +172,7 @@ export function CommunityPage() {
               <div className="mt-6 rounded-2xl border border-dashed border-border p-8 text-center">
                 <Wrench className="w-6 h-6 text-muted-foreground mx-auto" />
                 <p className="mt-4 text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
-                  No community projects to showcase yet — the testnet has not launched. After August 30,
+                  No community projects to showcase yet, the testnet has not launched. After August 30,
                   this section will list real projects built by real community members, submitted via
                   Discord and verified before publication.
                 </p>

@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { CheckCircle2, Circle, Clock, Github, MessageCircle, Twitter, ArrowUpRight, Rocket, ShieldCheck, ArrowUp } from 'lucide-react'
+import { Github, Twitter, MessageCircle, ArrowUpRight, ArrowUp } from 'lucide-react'
 import { Reveal, RevealStagger, RevealItem, SectionLabel } from '@/components/site/reveal'
 import { useDemo } from '@/lib/demo-store'
 import { QuestLogoTrigger } from '@/components/quest/quest-logo-trigger'
@@ -42,7 +42,7 @@ const MILESTONES = [
       'Contracts redeployed with v5.1 patches (4 critical fixes)',
       'XSWD integration rewrite (cross-contract permissions)',
       'CLI tool + miner script released on GitHub',
-      'Wallet connection — Genesix + local RPC',
+      'Wallet connection via Genesix + local RPC',
     ],
     date: 'Aug 30, 2026 · 14:00 UTC',
   },
@@ -73,9 +73,9 @@ const MILESTONES = [
 ]
 
 const STATUS_STYLE = {
-  done: { dot: 'bg-emerald-600', text: 'text-emerald-700', border: 'border-emerald-700/25', bg: 'bg-emerald-50/70', icon: CheckCircle2 },
-  active: { dot: 'bg-vault', text: 'text-vault', border: 'border-vault/35', bg: 'bg-vault/6', icon: Clock },
-  pending: { dot: 'bg-muted-foreground/40', text: 'text-muted-foreground', border: 'border-border', bg: 'bg-card/60', icon: Circle },
+  done: { dot: 'bg-emerald-600', text: 'text-emerald-700' },
+  active: { dot: 'bg-vault', text: 'text-vault' },
+  pending: { dot: 'bg-muted-foreground/40', text: 'text-muted-foreground' },
 } as const
 
 export function Roadmap() {
@@ -101,58 +101,36 @@ export function Roadmap() {
           </Reveal>
         </div>
 
-        {/* Timeline */}
-        <div className="mt-16 relative">
-          {/* Vertical line */}
-          <div className="absolute left-[19px] md:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-vault/50 via-vault/25 to-transparent md:-translate-x-1/2" />
-
-          <RevealStagger className="space-y-10">
+        {/* Milestone ledger: editorial rows, hairlines only */}
+        <div className="mt-16">
+          <RevealStagger>
             {MILESTONES.map((m, i) => {
               const s = STATUS_STYLE[m.status as keyof typeof STATUS_STYLE]
-              const Icon = s.icon
-              const isRight = i % 2 === 1
               return (
                 <RevealItem key={`roadmap-milestone-${i}`}>
-                  <div className={`relative flex md:items-center ${isRight ? 'md:flex-row-reverse' : ''}`}>
-                    {/* Node */}
-                    <div className="absolute left-[11px] md:left-1/2 md:-translate-x-1/2 z-10">
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        whileInView={{ scale: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
-                        className={`w-4 h-4 rounded-full ${s.dot} ring-4 ring-background`}
-                      />
-                    </div>
-
-                    {/* Card */}
-                    <div className={`pl-12 md:pl-0 md:w-1/2 ${isRight ? 'md:pl-12' : 'md:pr-12'}`}>
-                      <motion.div
-                        whileHover={{ y: -4 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                        className={`rounded-xl border ${s.border} ${s.bg} shadow-maison p-6 md:p-7`}
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <div className={`flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider ${s.text}`}>
-                            <Icon className="w-3.5 h-3.5" />
-                            {m.phase}
-                          </div>
-                          <span className="text-xs font-mono text-muted-foreground">{m.date}</span>
+                  <div className="relative border-t border-foreground/12 py-8 md:py-10">
+                    <div className="grid md:grid-cols-[180px_1fr] gap-x-12">
+                      {/* Date column */}
+                      <div className="flex items-baseline gap-3 md:block">
+                        <span className="text-sm font-mono text-foreground/80 tabular-nums">{m.date}</span>
+                        <div className={`mt-1.5 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.18em] ${s.text}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                          {m.phase}
                         </div>
-                        <h3 className="font-display text-xl font-semibold tracking-tight">{m.title}</h3>
-                        <ul className="mt-4 space-y-2">
+                      </div>
+                      {/* Content column */}
+                      <div>
+                        <h3 className="font-display text-xl md:text-2xl font-semibold tracking-tight">{m.title}</h3>
+                        <ul className="mt-4 md:columns-2 gap-x-10">
                           {m.items.map((item, j) => (
-                            <li key={j} className="flex items-start gap-2 text-sm text-muted-foreground">
-                              <span className={`mt-1.5 w-1 h-1 rounded-full ${s.dot} shrink-0`} />
+                            <li key={j} className="flex items-baseline gap-3 text-sm text-muted-foreground py-1.5 break-inside-avoid">
+                              <span className="font-mono text-[10px] text-muted-foreground/40 shrink-0">{String(j + 1).padStart(2, '0')}</span>
                               {item}
                             </li>
                           ))}
                         </ul>
-                      </motion.div>
+                      </div>
                     </div>
-
-                    {/* Spacer on the other side for md+ */}
-                    <div className="hidden md:block md:w-1/2" />
                   </div>
                 </RevealItem>
               )
@@ -205,7 +183,7 @@ export function CTA() {
           <p className="mt-8 max-w-2xl mx-auto text-lg md:text-xl text-ink-foreground/70 leading-relaxed">
             Join the first confidential financial platform on XELIS BlockDAG.
             Become a price provider, build on the SDK, or just hold xUSD privately.
-            The encrypted future is open-source — and waiting for you.
+            The encrypted future is open-source, and it is waiting for you.
           </p>
         </Reveal>
 
@@ -214,9 +192,8 @@ export function CTA() {
             {isLaunched ? (
               <button
                 onClick={() => openApp()}
-                className="group inline-flex h-13 items-center gap-2 rounded-full bg-vault px-8 py-3.5 text-base font-semibold text-primary-foreground hover:bg-vault/90 transition-all hover:shadow-[0_12px_40px_-10px_var(--vault)]"
+                className="group inline-flex h-13 items-center rounded-full bg-vault px-8 py-3.5 text-base font-semibold text-primary-foreground hover:bg-vault/90 transition-all hover:shadow-[0_12px_40px_-10px_var(--vault)]"
               >
-                <Rocket className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                 Launch App
               </button>
             ) : (
@@ -226,35 +203,32 @@ export function CTA() {
               href="https://github.com/XelisVault/xelis-vault"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-13 items-center gap-2 rounded-full border border-ink-foreground/20 bg-ink-foreground/5 hover:bg-ink-foreground/10 hover:border-vault/40 px-8 py-3.5 text-base font-semibold text-ink-foreground transition-all"
+              className="group inline-flex h-13 items-center rounded-full border border-ink-foreground/20 hover:border-vault/40 px-8 py-3.5 text-base font-semibold text-ink-foreground transition-all"
             >
-              <Github className="w-5 h-5" />
-              Clone the Repo
+              <span className="border-b border-ink-foreground/20 group-hover:border-vault-soft pb-0.5">Clone the Repo</span>
             </a>
             <a
               href="https://discord.gg/UHpYAWbG"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-13 items-center gap-2 rounded-full border border-ink-foreground/20 bg-ink-foreground/5 hover:bg-ink-foreground/10 hover:border-vault/40 px-8 py-3.5 text-base font-semibold text-ink-foreground transition-all"
+              className="group inline-flex h-13 items-center rounded-full border border-ink-foreground/20 hover:border-vault/40 px-8 py-3.5 text-base font-semibold text-ink-foreground transition-all"
             >
-              <MessageCircle className="w-5 h-5" />
-              Join Discord
+              <span className="border-b border-ink-foreground/20 group-hover:border-vault-soft pb-0.5">Join Discord</span>
             </a>
           </div>
         </Reveal>
 
         {/* Trust line */}
         <Reveal delay={0.4}>
-          <div className="mt-8 inline-flex items-center gap-2 text-xs font-mono text-ink-foreground/50">
-            <ShieldCheck className="w-3.5 h-3.5 text-vault-soft" />
+          <div className="mt-8 text-xs font-mono text-ink-foreground/50">
             {isLaunched
               ? 'Testnet live · Connect your Xelis wallet to interact with real contracts'
               : 'Final integration testing in progress · Testnet launches August 30, 2026 · 14:00 UTC'}
           </div>
         </Reveal>
 
-        {/* Quick stats */}
-        <RevealStagger className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-px rounded-xl overflow-hidden border border-ink-foreground/12 max-w-4xl mx-auto bg-ink-foreground/10">
+        {/* Quick stats: hairline band on ink */}
+        <RevealStagger className="mt-16 grid grid-cols-2 md:grid-cols-4 border-t border-b border-ink-foreground/15 max-w-4xl mx-auto">
           {[
             { value: '51', label: 'Smart Contracts' },
             { value: '14', label: 'Categories' },
@@ -262,7 +236,7 @@ export function CTA() {
             { value: '5s', label: 'Block Time' },
           ].map((s, i) => (
             <RevealItem key={`cta-stat-${i}`}>
-              <div className="p-6 bg-ink/60 backdrop-blur-sm">
+              <div className="py-6 px-5 md:border-l md:first:border-l-0 border-ink-foreground/12">
                 <div className="font-display text-3xl md:text-4xl font-semibold text-gradient-gold tabular-nums">
                   {s.value}
                 </div>
@@ -294,7 +268,7 @@ export function Footer() {
     {
       title: 'Resources',
       links: [
-        { label: 'The Observatory — Live Explorer', href: '/explorer' },
+        { label: 'The Observatory · Live Explorer', href: '/explorer' },
         { label: 'Documentation', href: '/docs' },
         { label: 'Security', href: '/security' },
         { label: 'Learn', href: '/learn' },
@@ -358,15 +332,14 @@ export function Footer() {
                   target="_blank"
                   rel="noreferrer"
                   aria-label={s.label}
-                  className="w-9 h-9 rounded-md border border-ink-foreground/15 bg-ink-foreground/5 hover:bg-vault hover:border-vault flex items-center justify-center text-ink-foreground/80 hover:text-primary-foreground transition-all"
+                  className="w-9 h-9 rounded-md border border-ink-foreground/15 hover:bg-vault hover:border-vault flex items-center justify-center text-ink-foreground/80 hover:text-primary-foreground transition-all"
                 >
                   <s.icon className="w-4 h-4" />
                 </a>
               ))}
-            </div>
-            <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-vault/30 bg-vault/10 px-3 py-1.5 text-[11px] font-mono text-vault-soft">
-              <span className="w-1.5 h-1.5 rounded-full bg-vault-soft animate-pulse" />
-              Built on XELIS BlockDAG
+              <span className="ml-3 text-[11px] font-mono uppercase tracking-[0.18em] text-vault-soft/80">
+                Built on XELIS BlockDAG
+              </span>
             </div>
           </div>
 

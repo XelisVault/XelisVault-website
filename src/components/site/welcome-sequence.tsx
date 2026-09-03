@@ -416,7 +416,7 @@ export function WelcomeSequence({
         </div>
       )}
 
-      {/* ── PHASE 3 · REPLAY — the opening, speedrun ── */}
+      {/* ── PHASE 3 · REPLAY, the opening, speedrun ── */}
       {pi === 2 && (
         <div className="absolute inset-0 flex items-center justify-center">
           <MiniWheelReplay active />
@@ -493,7 +493,7 @@ export function WelcomeSequence({
             </motion.div>
           </motion.div>
 
-          {/* the chain — dives INTO the camera when the tour starts */}
+          {/* the chain, dives INTO the camera when the tour starts */}
           <motion.div
             key={pi >= 5 ? 'chain-welcome' : 'chain-main'}
             initial={{ opacity: 0, scale: 0.72 }}
@@ -550,7 +550,7 @@ export function WelcomeSequence({
             transition={{ delay: 1.2, duration: 0.6 }}
             className="text-xs md:text-sm font-mono text-muted-foreground"
           >
-            The vault opened {agoRef.current} — the future is still young
+            The vault opened {agoRef.current}, the future is still young
           </motion.div>
 
           {/* live stats */}

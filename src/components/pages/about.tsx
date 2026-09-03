@@ -17,13 +17,13 @@ const PRINCIPLES = [
     icon: Vote,
     title: 'All decisions are made on-chain',
     description:
-      'Parameter changes, new oracle feeds, treasury allocations, and guardian elections all pass through the Governor contract with a 48-hour Timelock. If it is not on-chain, it is not a decision — it is a suggestion.',
+      'Parameter changes, new oracle feeds, treasury allocations, and guardian elections all pass through the Governor contract with a 48-hour Timelock. If it is not on-chain, it is not a decision, it is a suggestion.',
   },
   {
     icon: Eye,
     title: 'All development is public',
     description:
-      'Every commit, every issue, every internal audit finding is on GitHub. The four critical vulnerabilities that delayed the testnet are public. We do not hide mistakes — we publish them so the next team does not repeat them.',
+      'Every commit, every issue, every internal audit finding is on GitHub. The four critical vulnerabilities that delayed the testnet are public. We do not hide mistakes, we publish them so the next team does not repeat them.',
   },
   {
     icon: Ban,
@@ -33,7 +33,7 @@ const PRINCIPLES = [
   },
 ]
 
-const TEAM_STATS: never[] = []  // removed — team is anonymous, no fabricated stats
+const TEAM_STATS: never[] = []  // removed, team is anonymous, no fabricated stats
 
 const CONTACTS = [
   { icon: Mail, label: 'All enquiries', email: 'xelisvault@protonmail.org' },
@@ -67,13 +67,13 @@ export function AboutPage() {
           </Reveal>
           <Reveal delay={0.2}>
             <p className="mt-6 text-lg text-muted-foreground leading-relaxed">
-              XELIS Vault exists because every transparent ledger — Ethereum, Solana, BNB Chain — has
+              XELIS Vault exists because every transparent ledger, Ethereum, Solana, BNB Chain, has
               turned into a surveillance machine. Your salary, your trades, your loans, your
               donations: all visible to anyone with a block explorer and a few hours to spare.
               Front-running bots read your intent before your transaction confirms. Chain analytics
               firms sell your wallet history to employers, insurers, and governments. This is not the
               future we want. XELIS Vault is a confidential financial platform where balances,
-              transactions, and positions are encrypted by default — not as an add-on, but as a
+              transactions, and positions are encrypted by default, not as an add-on, but as a
               property of the chain itself.
             </p>
           </Reveal>
@@ -90,7 +90,7 @@ export function AboutPage() {
             <Reveal delay={0.1}>
               <div className="mt-6 rounded-2xl glass-panel p-6">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  The XELIS Vault team is anonymous by design — the same privacy principles that
+                  The XELIS Vault team is anonymous by design, the same privacy principles that
                   drive the protocol apply to the people building it. Identity is verified through
                   GitHub commit history and on-chain PGP signatures, not through doxxing. Every
                   contributor is a XELIS community member first. The founding team holds{' '}

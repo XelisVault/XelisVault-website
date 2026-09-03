@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { Menu, X, Github, ExternalLink, Rocket, ChevronDown, BookOpen, FlaskConical, ShieldCheck, GraduationCap, Code2, Scale, Users, Landmark, ArrowUpRight } from 'lucide-react'
+import { Menu, X, Github, ChevronDown, ArrowUpRight } from 'lucide-react'
 import { useDemo } from '@/lib/demo-store'
 import { useCountdownState } from '@/lib/countdown'
 import { useLaunchStatus } from '@/components/app/launch-gate'
@@ -23,40 +23,40 @@ const LINKS = [
 ]
 
 /* Desktop navigation is grouped into 3 institutional mega-groups + 2 links,
-   in the Julius Baer / Pictet tradition — complexity lives in the dropdowns. */
+   in the Julius Baer / Pictet tradition, complexity lives in the dropdowns. */
 const NAV_GROUPS = [
   {
     label: 'Protocol',
     items: [
-      { label: 'Vision — the problem', href: '/#vision' },
-      { label: 'The six pillars', href: '/#protocol' },
-      { label: 'Architecture — 6 layers', href: '/#architecture' },
-      { label: 'Contracts — 51 on-chain', href: '/#contracts' },
-      { label: 'Roadmap to mainnet', href: '/#roadmap' },
+      { label: 'The Problem', href: '/#vision' },
+      { label: 'The Six Pillars', href: '/#protocol' },
+      { label: 'Architecture', href: '/#architecture' },
+      { label: 'Smart Contracts', href: '/#contracts' },
+      { label: 'Roadmap', href: '/#roadmap' },
     ],
   },
   {
     label: 'Products',
     items: [
-      { label: 'xUSD — confidential stablecoin', href: '/#xusd' },
-      { label: 'VLT — governance token', href: '/#vlt' },
-      { label: 'StakedOracle — price feeds', href: '/#oracle' },
+      { label: 'xUSD · Stablecoin', href: '/#xusd' },
+      { label: 'VLT · Governance', href: '/#vlt' },
+      { label: 'StakedOracle', href: '/#oracle' },
       { label: 'Mining & Delegation', href: '/#mining' },
-      { label: 'VaultChat — encrypted messaging', href: '/#vaultchat' },
+      { label: 'VaultChat', href: '/#vaultchat' },
     ],
   },
 ]
 
 // Resources shown in a dropdown on desktop and inline on mobile
 const RESOURCES = [
-  { label: 'Documentation', href: '/docs', desc: 'Guides, specs, contract reference', icon: BookOpen },
-  { label: 'Vault Simulator', href: '/vault-simulator', desc: 'Practice before testnet launches', icon: FlaskConical },
-  { label: 'Security', href: '/security', desc: 'Audits, bug bounty, security model', icon: ShieldCheck },
-  { label: 'Learn', href: '/learn', desc: 'Cryptography and DeFi concepts', icon: GraduationCap },
-  { label: 'Developers', href: '/developers', desc: 'SDKs, code examples, bounties', icon: Code2 },
-  { label: 'Compare', href: '/compare', desc: 'vs Aztec, Railgun, Secret Network', icon: Scale },
-  { label: 'Community', href: '/community', desc: 'Discord, grants, ecosystem', icon: Users },
-  { label: 'About', href: '/about', desc: 'Mission, team, principles', icon: Landmark },
+  { label: 'Documentation', href: '/docs', desc: 'Guides, specs, contract reference' },
+  { label: 'Vault Simulator', href: '/vault-simulator', desc: 'Practice before testnet launches' },
+  { label: 'Security', href: '/security', desc: 'Audits, bug bounty, security model' },
+  { label: 'Learn', href: '/learn', desc: 'Cryptography and DeFi concepts' },
+  { label: 'Developers', href: '/developers', desc: 'SDKs, code examples, bounties' },
+  { label: 'Compare', href: '/compare', desc: 'vs Aztec, Railgun, Secret Network' },
+  { label: 'Community', href: '/community', desc: 'Discord, grants, ecosystem' },
+  { label: 'About', href: '/about', desc: 'Mission, team, principles' },
 ]
 
 const UTILITY_LINKS = [
@@ -91,7 +91,7 @@ export function Nav() {
         transition={{ duration: 0.8, delay: 0.2, ease: [0.21, 0.47, 0.32, 0.98] }}
         className="fixed top-0 left-0 right-0 z-50"
       >
-        {/* ── Utility bar (ink) — the private-bank top strip ── */}
+        {/* ── Utility bar (ink), the private-bank top strip ── */}
         <div className="dark-band text-[11px] tracking-wide">
           <div className="mx-auto max-w-7xl px-5 md:px-8 h-8 flex items-center justify-between">
             <div className="flex items-center gap-2 font-mono uppercase tracking-[0.14em] text-ink-foreground/75">
@@ -149,7 +149,7 @@ export function Nav() {
             </a>
 
             <nav className="hidden lg:flex items-center gap-1" aria-label="Main">
-              {/* Live Explorer — direct link */}
+              {/* Live Explorer, direct link */}
               <a
                 href="/explorer"
                 className="relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium text-vault hover:bg-vault/8 transition-colors"
@@ -206,7 +206,7 @@ export function Nav() {
                 </div>
               ))}
 
-              {/* Resources dropdown — solid white editorial panel */}
+              {/* Resources dropdown, solid white editorial panel */}
               <div
                 className="relative"
                 onMouseEnter={() => { setResourcesOpen(true); setOpenGroup(null) }}
@@ -238,15 +238,10 @@ export function Nav() {
                             <a
                               key={r.href}
                               href={r.href}
-                              className="group flex items-start gap-3 rounded-lg px-3 py-2.5 hover:bg-vault/8 hover:ring-1 hover:ring-vault/20 transition-all"
+                              className="group block rounded-lg px-3.5 py-2.5 hover:bg-vault/8 transition-colors"
                             >
-                              <div className="mt-0.5 w-8 h-8 rounded-md bg-vault/10 border border-vault/15 flex items-center justify-center text-vault shrink-0 group-hover:bg-vault/15 transition-colors">
-                                <r.icon className="w-4 h-4" />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="text-[13px] font-semibold leading-tight">{r.label}</div>
-                                <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{r.desc}</div>
-                              </div>
+                              <div className="text-[13px] font-semibold leading-tight group-hover:text-vault transition-colors">{r.label}</div>
+                              <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{r.desc}</div>
                             </a>
                           ))}
                         </div>
@@ -279,12 +274,11 @@ export function Nav() {
               >
                 <Github className="w-4 h-4" />
                 GitHub
-                <ExternalLink className="w-3 h-3 opacity-60" />
               </a>
               <button
                 onClick={() => openApp()}
                 disabled={!isLaunched}
-                className={`hidden md:inline-flex h-9 items-center gap-2 rounded-full px-5 text-[13px] font-semibold transition-all hover:shadow-[0_8px_24px_-8px_oklch(0.42_0.08_70/0.5)] disabled:cursor-not-allowed ${
+                className={`hidden md:inline-flex h-9 items-center rounded-full px-5 text-[13px] font-semibold transition-all hover:shadow-[0_8px_24px_-8px_oklch(0.42_0.08_70/0.5)] disabled:cursor-not-allowed ${
                   isLaunched
                     ? 'bg-ink text-ink-foreground hover:bg-vault hover:text-primary-foreground'
                     : isFinalCountdown
@@ -292,7 +286,6 @@ export function Nav() {
                       : 'bg-ink/80 text-ink-foreground'
                 }`}
               >
-                <Rocket className="w-3.5 h-3.5" />
                 {isLaunched ? (
                   'Launch App'
                 ) : (
@@ -359,13 +352,10 @@ export function Nav() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.03 * (i + LINKS.length) }}
-                  className="py-3 border-b border-border/60 flex items-start gap-3"
+                  className="py-3 border-b border-border/60 flex items-baseline justify-between gap-4"
                 >
-                  <r.icon className="w-4 h-4 text-vault mt-1 shrink-0" />
-                  <div>
-                    <div className="text-lg font-display font-medium leading-tight">{r.label}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{r.desc}</div>
-                  </div>
+                  <div className="text-lg font-display font-medium leading-tight">{r.label}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5 text-right">{r.desc}</div>
                 </motion.a>
               ))}
 
@@ -381,13 +371,12 @@ export function Nav() {
                 <button
                   onClick={() => { if (isLaunched) { openApp(); setOpen(false) } }}
                   disabled={!isLaunched}
-                  className={`flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-full font-semibold disabled:cursor-not-allowed ${
+                  className={`flex-1 inline-flex h-12 items-center justify-center rounded-full font-semibold disabled:cursor-not-allowed ${
                     isLaunched
                       ? 'bg-ink text-ink-foreground'
                       : 'bg-ink/70 text-ink-foreground/80'
                   }`}
                 >
-                  <Rocket className="w-4 h-4" />
                   {isLaunched ? (
                     'Launch App'
                   ) : (

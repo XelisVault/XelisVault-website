@@ -27,9 +27,9 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "XELIS Vault — Confidential Finance, Institutional Grade",
+  title: "XELIS Vault · Confidential Finance, Institutional Grade",
   description:
-    "The first confidential financial platform on XELIS BlockDAG. Deposit XEL, borrow xUSD, trade on VaultSwap, tokenize real-world assets, lend peer-to-peer, and govern privately — secured by native Twisted ElGamal homomorphic encryption. Built to a private-banking standard, open-source under MIT.",
+    "The first confidential financial platform on XELIS BlockDAG. Deposit XEL, borrow xUSD, trade on VaultSwap, tokenize real-world assets, lend peer-to-peer, and govern privately, secured by native Twisted ElGamal homomorphic encryption. Built to a private-banking standard, open-source under MIT.",
   keywords: [
     "XELIS Vault",
     "Confidential DeFi",
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Xelis Vault" }],
   openGraph: {
-    title: "XELIS Vault — Confidential Finance, Institutional Grade",
+    title: "XELIS Vault · Confidential Finance, Institutional Grade",
     description:
       "The first confidential financial platform on XELIS BlockDAG. Encrypted by default, governed by community, built to an institutional standard.",
     url: "https://github.com/XelisVault/xelis-vault",
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "XELIS Vault — Confidential Finance, Institutional Grade",
+    title: "XELIS Vault · Confidential Finance, Institutional Grade",
     description:
       "The first confidential financial platform on XELIS BlockDAG. Encrypted by default, governed by community.",
   },

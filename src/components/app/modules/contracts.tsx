@@ -114,7 +114,7 @@ export function Contracts() {
 
       <p className="text-[11px] text-muted-foreground/70 leading-relaxed flex items-start gap-2">
         <ShieldCheck className="w-4 h-4 text-vault shrink-0 mt-0.5" />
-        Addresses are resolved live from the on-chain ContractRegistry (key <code className="font-mono">cur_Name</code>) —
+        Addresses are resolved live from the on-chain ContractRegistry (key <code className="font-mono">cur_Name</code>)
         when governance upgrades a contract, this page reflects the new address automatically. The registry itself
         keeps the previous hash under <code className="font-mono">prev_Name</code> for rollback.
       </p>

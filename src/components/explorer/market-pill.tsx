@@ -54,7 +54,7 @@ export function MarketPulse() {
     return (
       <span
         className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/40 px-3 py-1 text-[10px] font-mono text-muted-foreground/70"
-        title="CoinGecko feed unavailable — blockchain data below is unaffected (direct node access)"
+        title="CoinGecko feed unavailable, blockchain data below is unaffected (direct node access)"
       >
         <LineChart className="w-3 h-3" />
         market feed offline · chain data unaffected

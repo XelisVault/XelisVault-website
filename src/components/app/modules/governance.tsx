@@ -134,7 +134,7 @@ export function Governance() {
         <ol className="space-y-2.5">
           {[
             'Anyone staking ≥ 25,000 VLT can submit a proposal (target contract, entry, arguments)',
-            '7-day voting window — 1 VLT staked = 1 vote, boosted by lock duration',
+            '7-day voting window, 1 VLT staked = 1 vote, boosted by lock duration',
             '10% quorum and simple majority to pass',
             '2-day queue in the Timelock gives everyone time to react',
             'Execution is permissionless once the delay elapses',

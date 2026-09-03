@@ -26,7 +26,7 @@ const GUIDES = [
     desc: 'From zero to your first testnet transaction: install Genesix, fund your wallet, connect to the app.',
     time: '10 min',
     steps: [
-      { t: 'Install Genesix', d: 'Download the official XELIS wallet for Windows, Linux or macOS. Create a fresh testnet wallet — never reuse a mainnet seed.' },
+      { t: 'Install Genesix', d: 'Download the official XELIS wallet for Windows, Linux or macOS. Create a fresh testnet wallet, never reuse a mainnet seed.' },
       { t: 'Get testnet funds', d: 'Claim XEL from the official faucet (faucet.xelis.io) for gas and collateral. VLT is distributed to contributors via Discord.' },
       { t: 'Connect to the app', d: 'Open the app, click Connect, approve XELIS Vault in Genesix. Balances load from your wallet, every transaction needs your approval.' },
       { t: 'Try the protocol', d: 'Open a vault (deposit XEL, borrow xUSD), swap on the PSM, and watch the oracle aggregate update live.' },
@@ -40,7 +40,7 @@ const GUIDES = [
     time: '15 min',
     steps: [
       { t: 'Install', d: `One line: ${CLI_INSTALL.linux} (or the PowerShell one-liner on Windows). Installs xvault, xvault-miner and xvault-relayer to ~/.xelis-vault.` },
-      { t: 'First run', d: 'xvault --setup walks you through wallet detection, network config and contract loading. No addresses to paste — everything resolves from the on-chain registry.' },
+      { t: 'First run', d: 'xvault --setup walks you through wallet detection, network config and contract loading. No addresses to paste, everything resolves from the on-chain registry.' },
       { t: 'Daily use', d: 'xvault opens the interactive menu: Dashboard, Vault, Swap, Governance, Mixer, Chat, Airdrop, Stats. Quick flags: --balance, --swap, --vault, --governance.' },
       { t: 'Admin & Guardian', d: 'Admin and Guardian panels auto-appear for authorized keys: pause contracts, batch faucet distributions, oracle parameters, multisig actions.' },
     ],
@@ -84,7 +84,7 @@ const SPECS = [
   {
     icon: Gauge,
     title: 'Tokenomics',
-    desc: 'VLT fixed supply of 10,000,000. No presale, no seed, no VC — 55% funds oracle rewards.',
+    desc: 'VLT fixed supply of 10,000,000. No presale, no seed, no VC, 55% funds oracle rewards.',
     file: 'TOKENOMICS_v10.3.md',
     facts: ['55% oracle rewards (halving)', '10% chat relayers', '5% founder 4y + 5% 10y', '1% bug bounty (Immunefi)'],
   },
@@ -132,8 +132,8 @@ const CHANGELOG = [
     tone: 'vault' as const,
     title: 'PrivacyMixer v2 + relayer officiel',
     points: [
-      'PrivacyMixer v2 (v12R-7): note + nullifier + shared pool — the v1 sender/recipient link is gone',
-      'The mixer now mixes XEL (native), in addition to xUSD and VLT — any amount',
+      'PrivacyMixer v2 (v12R-7): note + nullifier + shared pool, the v1 sender/recipient link is gone',
+      'The mixer now mixes XEL (native), in addition to xUSD and VLT, any amount',
       'Official VaultChat relayer configured on-chain (v12R-8): relay.xelisvault.io, free tier 100 msgs/day',
       'CLI v12R-9: rich dashboard, Relayer & Airdrop screens, balance guards on every spend flow',
     ],
@@ -147,7 +147,7 @@ const CHANGELOG = [
       'Discovered critical VM behavior: mutating entries must return 0',
       'VLT asset recreated with hard 10M cap (Mintable mode)',
       'PSM reserve seeded, VaultSwap XEL/xUSD pool created, faucet refilled',
-      'Registry 19161543… — all contract upgrades resolve through it',
+      'Registry 19161543…, all contract upgrades resolve through it',
     ],
   },
   {
@@ -167,7 +167,7 @@ const CHANGELOG = [
     tone: 'muted' as const,
     title: 'Miner economy hardening',
     points: [
-      'REP_START 3,000 — new miners start Warning, prove themselves',
+      'REP_START 3,000, new miners start Warning, prove themselves',
       'Warning multiplier 0.5× → 0.7×, Critical 0.25× → 0.4×',
       'New miner boost: +50% / +30% / +10% by network size, 30 days',
     ],
@@ -407,7 +407,7 @@ export function DocsPage() {
             <div className="mt-10 rounded-2xl border border-vault/25 bg-gradient-to-br from-vault/10 via-card/30 to-transparent p-6 md:p-8">
               <h3 className="font-display text-xl font-semibold mb-2">Ready to dive in?</h3>
               <p className="text-sm text-muted-foreground leading-relaxed mb-5 max-w-xl">
-                Install the full CLI toolkit — wallet, miner, relayer and community CLI — in one line.
+                Install the full CLI toolkit, wallet, miner, relayer and community CLI, in one line.
                 Uninstall anytime with <code className="font-mono text-xs bg-muted/50 px-1.5 py-0.5 rounded">{CLI_UNINSTALL.linux.slice(-14)}</code>.
               </p>
               <div className="space-y-2 max-w-2xl">

@@ -37,10 +37,10 @@ export function Oracle() {
   const staleness = agg ? topo - agg.topo : 0
   const health = (() => {
     const providers = minerStats?.activeOracle ?? 0
-    if (providers === 0) return { label: 'Emergency', tone: 'red' as const, desc: 'No active providers — last price held, marked stale' }
-    if (providers < (config?.bootstrapMinProviders ?? 3)) return { label: 'Degraded', tone: 'amber' as const, desc: 'Only 1-2 providers — prices held but slashing disabled' }
-    if (providers < (config?.minProviders ?? 10)) return { label: 'Bootstrap', tone: 'amber' as const, desc: `Bootstrap mode (${providers}/${config?.minProviders ?? 10} providers) — no slashing yet` }
-    return { label: 'Full', tone: 'emerald' as const, desc: `${providers} providers — median aggregation with slashing active` }
+    if (providers === 0) return { label: 'Emergency', tone: 'red' as const, desc: 'No active providers, last price held, marked stale' }
+    if (providers < (config?.bootstrapMinProviders ?? 3)) return { label: 'Degraded', tone: 'amber' as const, desc: 'Only 1-2 providers, prices held but slashing disabled' }
+    if (providers < (config?.minProviders ?? 10)) return { label: 'Bootstrap', tone: 'amber' as const, desc: `Bootstrap mode (${providers}/${config?.minProviders ?? 10} providers), no slashing yet` }
+    return { label: 'Full', tone: 'emerald' as const, desc: `${providers} providers, median aggregation with slashing active` }
   })()
 
   return (

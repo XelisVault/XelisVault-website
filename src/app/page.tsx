@@ -3,7 +3,6 @@
 import { useEffect } from 'react'
 import { Nav } from '@/components/site/nav'
 import { ScrollProgress } from '@/components/site/scroll-progress'
-import { SectionNavigator } from '@/components/site/section-navigator'
 import { Hero } from '@/components/sections/hero'
 import { Problem } from '@/components/sections/problem'
 import { Solution } from '@/components/sections/solution'
@@ -55,7 +54,6 @@ export default function Home() {
   return (
     <div className="relative min-h-screen flex flex-col bg-background">
       <ScrollProgress />
-      <SectionNavigator />
       <Nav />
 
       <main className="flex-1 relative">
@@ -90,7 +88,7 @@ export default function Home() {
         data-quest-hint="The vault keeps its secrets. The worthy seek #quest or click the footer logo 7 times."
       />
 
-      {/* Hidden text for puzzle #4 — invisible (same color as background) */}
+      {/* Hidden text for puzzle #4, invisible (same color as background) */}
       <span
         style={{ color: 'oklch(0.04 0.02 280)', backgroundColor: 'oklch(0.04 0.02 280)' }}
         aria-hidden="true"
@@ -99,14 +97,14 @@ export default function Home() {
         rhizome
       </span>
 
-      {/* Hidden data attribute for puzzle #2 — does NOT contain the answer, just a cryptic clue */}
+      {/* Hidden data attribute for puzzle #2, does NOT contain the answer, just a cryptic clue */}
       <span
         data-xelis-secret="a stone that sparks fire, four letters, french for flint"
         aria-hidden="true"
         className="sr-only"
       />
 
-      {/* Hidden text for puzzle #3 — invisible (same color as background) */}
+      {/* Hidden text for puzzle #3, invisible (same color as background) */}
       <span
         style={{ color: 'oklch(0.04 0.02 280)', backgroundColor: 'oklch(0.04 0.02 280)' }}
         aria-hidden="true"
@@ -115,7 +113,7 @@ export default function Home() {
         rhizome
       </span>
 
-      {/* Hidden data attribute for puzzle #19 — base64-encoded, NOT the answer directly */}
+      {/* Hidden data attribute for puzzle #19, base64-encoded, NOT the answer directly */}
       <span
         data-quest-final="aW1wb3NzaWJsZQ=="
         aria-hidden="true"

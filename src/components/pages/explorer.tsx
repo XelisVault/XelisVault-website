@@ -181,13 +181,13 @@ export function ExplorerPage() {
               {network === 'mainnet' ? (
                 <>
                   A live window into the XELIS <span className="text-foreground/90">mainnet</span> BlockDAG. Real blocks,
-                  real miners, real burns — streaming over websocket — while every amount stays sealed under
+                  real miners, real burns, streaming over websocket, while every amount stays sealed under
                   homomorphic Twisted ElGamal. This is what privacy looks like from the outside.
                 </>
               ) : (
                 <>
                   The proving ground: the XELIS <span className="text-foreground/90">testnet</span> BlockDAG, live.
-                  Blocks, forks, miners, fees and burns stream in real time over websocket — while every amount
+                  Blocks, forks, miners, fees and burns stream in real time over websocket, while every amount
                   stays sealed. Where the Vault&apos;s contracts rehearse before mainnet.
                 </>
               )}

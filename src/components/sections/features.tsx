@@ -1,8 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { MessageSquareLock, Wind, ShieldCheck, Zap, FileLock2, Network } from 'lucide-react'
-import { Reveal, SectionLabel } from '@/components/site/reveal'
+import { Reveal, RevealStagger, RevealItem, SectionLabel } from '@/components/site/reveal'
 
 export function Features() {
   return (
@@ -24,33 +23,34 @@ export function Features() {
           </Reveal>
         </div>
 
-        {/* Bento grid */}
-        <div className="grid md:grid-cols-3 gap-4 md:gap-5">
-          {/* VaultChat - big card */}
-          <Reveal className="md:col-span-2 md:row-span-2">
-            <div className="relative h-full min-h-[400px] rounded-2xl glass-panel p-7 md:p-9 overflow-hidden group">
-              <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-vlt/10 blur-3xl opacity-50 group-hover:opacity-80 transition-opacity" />
+        {/* VaultChat: editorial feature spread with the live chat vignette */}
+        <Reveal>
+          <div className="border-t border-foreground/12 pt-10 md:pt-14 pb-4 grid lg:grid-cols-[1.1fr_0.9fr] gap-12 lg:gap-20 items-start">
+            <div>
+              <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-vlt">
+                New in v11.5
+              </div>
+              <h3 className="mt-4 font-display text-3xl md:text-4xl font-semibold tracking-tight">
+                VaultChat
+              </h3>
+              <p className="mt-4 text-base md:text-lg text-muted-foreground leading-relaxed max-w-xl">
+                End-to-end encrypted messaging with Diffie-Hellman key exchange, off-chain
+                relayers, and hourly on-chain Merkle anchoring.{' '}
+                <strong className="text-foreground">One transaction per hour, zero gas per message.</strong>
+              </p>
+              <div className="mt-5 text-xs font-mono text-muted-foreground">
+                E2E encrypted · Merkle-anchored hourly
+              </div>
+            </div>
 
-              <div className="relative">
-                <div className="w-12 h-12 rounded-xl bg-vlt/10 border border-vlt/20 flex items-center justify-center text-vlt">
-                  <MessageSquareLock className="w-5 h-5" />
+            {/* Chat vignette: the product speaks for itself */}
+            <div className="relative max-w-md w-full mx-auto lg:mr-0">
+              <div className="absolute -inset-2.5 rounded-[6px] border border-vlt/25 pointer-events-none" />
+              <div className="relative rounded-[4px] ring-1 ring-foreground/15 bg-card/40 p-6 shadow-maison">
+                <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-muted-foreground/70 border-b border-foreground/10 pb-3">
+                  Conversation · encrypted
                 </div>
-
-                <div className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-vlt/10 border border-vlt/20 px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-vlt">
-                  <span className="w-1 h-1 rounded-full bg-vlt" />
-                  New in v11.5
-                </div>
-
-                <h3 className="mt-4 font-display text-2xl md:text-3xl font-semibold tracking-tight">
-                  VaultChat
-                </h3>
-                <p className="mt-3 text-base text-muted-foreground leading-relaxed max-w-lg">
-                  End-to-end encrypted messaging with Diffie-Hellman key exchange, off-chain
-                  relayers, and hourly on-chain Merkle anchoring. <strong className="text-foreground">1 transaction per hour, 0 gas per message.</strong>
-                </p>
-
-                {/* Chat mock */}
-                <div className="mt-8 space-y-2 max-w-md">
+                <div className="mt-5 space-y-2.5">
                   {[
                     { from: 'them', text: '0x4f9a…c2b1', time: '14:01' },
                     { from: 'me', text: '••••••••••••', time: '14:01' },
@@ -75,90 +75,52 @@ export function Features() {
                     </motion.div>
                   ))}
                 </div>
-
-                <div className="mt-6 flex items-center gap-2 text-xs font-mono text-muted-foreground">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  E2E encrypted · merkle-anchored hourly
-                </div>
               </div>
             </div>
-          </Reveal>
+          </div>
+        </Reveal>
 
-          {/* PrivacyMixer */}
-          <Reveal delay={0.1}>
-            <div className="relative h-full min-h-[200px] rounded-2xl glass-panel hover:glass-panel-hover p-6 transition-all overflow-hidden group">
-              <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-vault/10 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="w-10 h-10 rounded-lg bg-vault/10 border border-vault/20 flex items-center justify-center text-vault">
-                <Wind className="w-4 h-4" />
-              </div>
-              <h3 className="mt-4 font-display text-lg font-semibold">PrivacyMixer</h3>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                Tornado-style note mixing for XEL, xUSD and VLT. Deposit with a secret, withdraw from the shared pool to any address — the contract stores no sender, no recipient.
-              </p>
-              <div className="mt-4 flex gap-1.5">
-                {['XEL', 'xUSD', 'VLT'].map((d) => (
-                  <span key={d} className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-vault/10 border border-vault/20 text-vault">
-                    {d}
+        {/* The four modules: an editorial ledger, hairlines only */}
+        <RevealStagger className="grid md:grid-cols-2 gap-x-16">
+          {[
+            {
+              title: 'PrivacyMixer',
+              tag: 'XEL · xUSD · VLT',
+              desc: 'Tornado-style note mixing for XEL, xUSD and VLT. Deposit with a secret, withdraw from the shared pool to any address; the contract stores no sender, no recipient.',
+            },
+            {
+              title: 'ComplianceModule',
+              tag: 'ZK · MiCA · MiFID',
+              desc: 'ZK-based KYC/AML verification. Prove regulatory eligibility without revealing your identity to the counterparty or the network.',
+            },
+            {
+              title: 'Flash Loans',
+              tag: 'Atomic · 0 collateral',
+              desc: 'Uncollateralized atomic borrows with reentrancy guard. Arbitrage, liquidations, refinancing, all settled within a single block.',
+            },
+            {
+              title: 'Sealed-Bid Auctions',
+              tag: 'Commit → reveal',
+              desc: 'Confidential commit-reveal liquidations. No front-running, no sniping, no bid stalking. Just fair price discovery.',
+            },
+          ].map((f, i) => (
+            <RevealItem key={`feature-${i}`}>
+              <div className="group border-t border-foreground/12 py-8 md:py-10">
+                <div className="flex items-baseline justify-between gap-6">
+                  <h3 className="font-display text-xl md:text-2xl font-semibold tracking-tight">
+                    {f.title}
+                  </h3>
+                  <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground/70 group-hover:text-vault transition-colors shrink-0">
+                    {f.tag}
                   </span>
-                ))}
+                </div>
+                <p className="mt-3 text-sm md:text-[15px] text-muted-foreground leading-relaxed max-w-xl">
+                  {f.desc}
+                </p>
               </div>
-            </div>
-          </Reveal>
-
-          {/* ComplianceModule */}
-          <Reveal delay={0.15}>
-            <div className="relative h-full min-h-[200px] rounded-2xl glass-panel hover:glass-panel-hover p-6 transition-all overflow-hidden group">
-              <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-xusd/10 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="w-10 h-10 rounded-lg bg-xusd/10 border border-xusd/20 flex items-center justify-center text-xusd">
-                <FileLock2 className="w-4 h-4" />
-              </div>
-              <h3 className="mt-4 font-display text-lg font-semibold">ComplianceModule</h3>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                ZK-based KYC/AML verification. Prove regulatory eligibility without revealing your identity. MiCA/MiFID compatible.
-              </p>
-              <div className="mt-4 inline-flex items-center gap-1.5 text-[10px] font-mono px-2 py-0.5 rounded-full bg-xusd/10 border border-xusd/20 text-xusd">
-                <span className="w-1 h-1 rounded-full bg-xusd" />
-                ZK · MiCA · MiFID
-              </div>
-            </div>
-          </Reveal>
-
-          {/* FlashLoan */}
-          <Reveal delay={0.2}>
-            <div className="relative h-full min-h-[200px] rounded-2xl glass-panel hover:glass-panel-hover p-6 transition-all overflow-hidden group">
-              <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-vault/10 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="w-10 h-10 rounded-lg bg-vault/10 border border-vault/20 flex items-center justify-center text-vault">
-                <Zap className="w-4 h-4" />
-              </div>
-              <h3 className="mt-4 font-display text-lg font-semibold">Flash Loans</h3>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                Uncollateralized atomic borrows with reentrancy guard. Arbitrage, liquidations, refinancing — all in one block.
-              </p>
-              <div className="mt-4 flex items-center gap-1.5 text-[10px] font-mono text-vault">
-                <span className="w-1.5 h-1.5 rounded-full bg-vault animate-pulse" />
-                Atomic · 1-block · 0 collateral
-              </div>
-            </div>
-          </Reveal>
-
-          {/* SealedBidAuction */}
-          <Reveal delay={0.25}>
-            <div className="relative h-full min-h-[200px] rounded-2xl glass-panel hover:glass-panel-hover p-6 transition-all overflow-hidden group">
-              <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-vlt/10 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="w-10 h-10 rounded-lg bg-vlt/10 border border-vlt/20 flex items-center justify-center text-vlt">
-                <Network className="w-4 h-4" />
-              </div>
-              <h3 className="mt-4 font-display text-lg font-semibold">Sealed-Bid Auctions</h3>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                Confidential commit-reveal liquidations. No front-running. No sniping. No bid stalking. Just fair price discovery.
-              </p>
-              <div className="mt-4 flex items-center gap-1.5 text-[10px] font-mono text-vlt">
-                <ShieldCheck className="w-3 h-3" />
-                commit → reveal · MEV-proof
-              </div>
-            </div>
-          </Reveal>
-        </div>
+            </RevealItem>
+          ))}
+        </RevealStagger>
       </div>
     </section>
   )

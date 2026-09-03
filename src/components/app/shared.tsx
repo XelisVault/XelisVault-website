@@ -273,7 +273,7 @@ export function ActionCliFallback({ action }: { action: keyof typeof CLI_COMMAND
   }
   return (
     <CliFallback
-      title={`CLI alternative — ${group.title ?? action}`}
+      title={`CLI alternative, ${group.title ?? action}`}
       commands={rows}
       note={group.hint}
     />

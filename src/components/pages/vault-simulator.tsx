@@ -231,7 +231,7 @@ export function VaultSimulator() {
                         {h.label}
                         {calc.state === 'safe' && ' · comfortably above liquidation'}
                         {calc.state === 'warning' && ' · approaching liquidation threshold'}
-                        {calc.state === 'danger' && ' · liquidation risk — add collateral or repay'}
+                        {calc.state === 'danger' && ' · liquidation risk, add collateral or repay'}
                       </div>
                     </div>
                     <ShieldCheck className={`w-8 h-8 ${h.text} shrink-0`} />
@@ -306,7 +306,7 @@ export function VaultSimulator() {
                         {calc.canOpenVault
                           ? 'When testnet launches Aug 30, this configuration will be a valid vault.'
                           : !calc.isUnderLTV
-                          ? `LTV exceeds ${MAX_LTV}% — reduce borrow or add collateral.`
+                          ? `LTV exceeds ${MAX_LTV}%, reduce borrow or add collateral.`
                           : 'Health factor must be ≥ 1.50.'}
                       </div>
                     </div>
@@ -326,7 +326,7 @@ export function VaultSimulator() {
                     <strong className="text-foreground">Why these numbers?</strong> XELIS Vault
                     uses encrypted balances via Twisted ElGamal, so your position is private on-chain.
                     The health factor is computed by the VaultEngine contract using the StakedOracle
-                    price feed. Liquidations are processed by a sealed-bid auction — no front-running,
+                    price feed. Liquidations are processed by a sealed-bid auction, no front-running,
                     no MEV extraction. Read more in the{' '}
                     <a href="https://github.com/XelisVault/xelis-vault" target="_blank" rel="noreferrer" className="text-vault hover:underline">
                       whitepaper ↗
@@ -345,7 +345,7 @@ export function VaultSimulator() {
               <CountdownTimer />
               <p className="mt-8 text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed">
                 Connect your Xelis wallet on August 30 at 14:00 UTC to open a real vault with real
-                testnet XEL. Every transaction is encrypted — your balance, your debt, and your
+                testnet XEL. Every transaction is encrypted, your balance, your debt, and your
                 liquidation price stay private.
               </p>
             </Reveal>

@@ -165,7 +165,7 @@ export function QuestOverlay({ open, onClose }: { open: boolean; onClose: () => 
             <div className="absolute inset-0 bg-grid opacity-20" />
           </div>
 
-          {/* STICKY BTC REWARD BANNER — always visible */}
+          {/* STICKY BTC REWARD BANNER, always visible */}
           <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-xl border-b border-amber-500/20">
             <div className="max-w-4xl mx-auto px-4 md:px-6 py-2.5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 min-w-0">
@@ -247,7 +247,7 @@ export function QuestOverlay({ open, onClose }: { open: boolean; onClose: () => 
                     </span>
                   </div>
 
-                  {/* Puzzle navigation — STRICT, only solved + current accessible */}
+                  {/* Puzzle navigation, STRICT, only solved + current accessible */}
                   <div className="flex items-center justify-center gap-1.5 flex-wrap">
                     {CLIENT_PUZZLES.map((p, i) => {
                       const isSolved = solved.has(i)
@@ -265,7 +265,7 @@ export function QuestOverlay({ open, onClose }: { open: boolean; onClose: () => 
                               ? `bg-vault text-white`
                               : 'bg-card/40 border border-border text-muted-foreground/30 cursor-not-allowed'
                           }`}
-                          title={isAccessible ? `Puzzle ${p.id}: ${p.title}` : 'Locked — solve previous puzzles first'}
+                          title={isAccessible ? `Puzzle ${p.id}: ${p.title}` : 'Locked, solve previous puzzles first'}
                         >
                           {isSolved ? <CheckCircle2 className="w-3 md:w-3.5 h-3 md:h-3.5" /> : isAccessible ? p.id : <Lock className="w-2.5 h-2.5" />}
                         </button>
@@ -339,7 +339,7 @@ export function QuestOverlay({ open, onClose }: { open: boolean; onClose: () => 
                         </div>
                       )}
 
-                      {/* NO HINTS — this is an ARG, not a quiz */}
+                      {/* NO HINTS, this is an ARG, not a quiz */}
 
                       {/* Input */}
                       <div className="space-y-3">
@@ -521,7 +521,7 @@ function CompletionScreen({ onRestart }: { onRestart: () => void }) {
       </button>
 
       <div className="mt-8 text-[10px] font-mono text-muted-foreground/40">
-        XELIS Vault — Privacy, proven. Mathematics, vindicated.
+        XELIS Vault, Privacy, proven. Mathematics, vindicated.
       </div>
     </motion.div>
   )

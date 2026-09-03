@@ -442,7 +442,7 @@ export function LaunchCelebration({
           />
         )}
 
-        {/* ── PHASE 1 · HOLD — the frozen zero ── */}
+        {/* ── PHASE 1 · HOLD, the frozen zero ── */}
         {pi === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
             <motion.div
@@ -546,7 +546,7 @@ export function LaunchCelebration({
               <circle r={150} fill="none" stroke="oklch(0.62 0.22 295 / 0.18)" strokeWidth={1} strokeDasharray="3 6" />
               <circle r={118} fill="none" stroke="oklch(0.62 0.22 295 / 0.14)" strokeWidth={1} />
 
-              {/* bolts — retract rapid-fire during BOLTS */}
+              {/* bolts, retract rapid-fire during BOLTS */}
               {BOLTS.map((b, i) => (
                 <g key={b.id}>
                   {/* housing */}
@@ -696,7 +696,7 @@ export function LaunchCelebration({
               animate={{ scale: 7.5, opacity: 0 }}
               transition={{ duration: 1.7, ease: [0.1, 0.8, 0.25, 1], delay: 0.12 }}
             />
-            {/* shockwave III — slow amber echo */}
+            {/* shockwave III, slow amber echo */}
             <motion.div
               className="absolute left-1/2 top-1/2 rounded-full border pointer-events-none"
               style={{
@@ -753,7 +753,7 @@ export function LaunchCelebration({
         {/* ── PHASES 5-8 · GENESIS → THE CHAIN → THE TOUR → LIVE ── */}
         {pi >= 4 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 md:gap-9">
-            {/* DAG constellation backdrop — implodes into the chain */}
+            {/* DAG constellation backdrop, implodes into the chain */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <motion.svg
                 width="620"
@@ -859,7 +859,7 @@ export function LaunchCelebration({
               </motion.div>
             </motion.div>
 
-            {/* ── PHASE 6 · THE CHAIN — dives INTO the camera when the tour starts ── */}
+            {/* ── PHASE 6 · THE CHAIN, dives INTO the camera when the tour starts ── */}
             {pi >= 5 && (
               <motion.div
                 key={pi >= 7 ? 'chain-live' : 'chain-main'}
@@ -893,7 +893,7 @@ export function LaunchCelebration({
           </div>
         )}
 
-        {/* ── PHASE 7 · THE PROTOCOL TOUR — walking inside the chain ── */}
+        {/* ── PHASE 7 · THE PROTOCOL TOUR, walking inside the chain ── */}
         {pi === 6 && <FeatureTour />}
 
         {/* genesis caption */}
@@ -1135,7 +1135,7 @@ export function ChainVisual({ compact, fading }: { compact: boolean; fading: boo
           )
         })}
 
-        {/* the traveling pulse — energy flowing through the chain */}
+        {/* the traveling pulse, energy flowing through the chain */}
         <motion.circle
           r={5}
           cy={0}

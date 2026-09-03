@@ -135,7 +135,7 @@ export function VaultEngine() {
     const newValue = (selectedVault.collateralHuman + 0) * price
     const newDebt = selectedVault.borrowHuman + amountNum
     const newCr = newDebt > 0 ? (newValue / newDebt) * 100 : Infinity
-    preview = `New ratio: ${newCr === Infinity ? '∞' : newCr.toFixed(0)}% ${newCr < minCrPct ? '— below minimum!' : '(min ' + minCrPct + '%)'}`
+    preview = `New ratio: ${newCr === Infinity ? '∞' : newCr.toFixed(0)}% ${newCr < minCrPct ? 'below minimum!' : '(min ' + minCrPct + '%)'}`
   } else if (tab === 'repay' && selectedVault) {
     const remaining = Math.max(0, selectedVault.borrowHuman - amountNum)
     preview = `Remaining debt: ${remaining.toFixed(2)} xUSD`
@@ -143,7 +143,7 @@ export function VaultEngine() {
     const remainingColl = Math.max(0, selectedVault.collateralHuman - amountNum)
     const debt = selectedVault.borrowHuman
     const cr = debt > 0 ? (remainingColl * price / debt) * 100 : Infinity
-    preview = `Ratio after withdraw: ${cr === Infinity ? '∞' : cr.toFixed(0)}% ${debt > 0 && cr < minCrPct ? '— would be liquidatable!' : ''}`
+    preview = `Ratio after withdraw: ${cr === Infinity ? '∞' : cr.toFixed(0)}% ${debt > 0 && cr < minCrPct ? 'would be liquidatable!' : ''}`
   }
 
   return (
@@ -216,7 +216,7 @@ export function VaultEngine() {
       </Panel>
 
       {/* Actions */}
-      <Panel title="Manage vault" desc="Each action is a real transaction — approve it in your wallet.">
+      <Panel title="Manage vault" desc="Each action is a real transaction, approve it in your wallet.">
         {/* Tabs */}
         <div className="flex gap-1.5 mb-4 flex-wrap">
           {([
@@ -294,7 +294,7 @@ export function VaultEngine() {
         {loading ? (
           <LoadingRows rows={3} />
         ) : recent.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">No vaults yet — be the first.</p>
+          <p className="text-xs text-muted-foreground text-center py-4">No vaults yet, be the first.</p>
         ) : (
           <div className="space-y-2">
             {recent.map((v) => (

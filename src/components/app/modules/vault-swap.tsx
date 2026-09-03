@@ -196,7 +196,7 @@ export function VaultSwap() {
       <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
         VaultSwap V2 routes large stable conversions through its embedded PSM automatically, keeps a 30-entry
         TWAP window per pool, and pauses a pair for 10 minutes when instantaneous volatility exceeds 20% of the
-        TWAP — the circuit breaker that makes price manipulation unprofitable.
+        TWAP, the circuit breaker that makes price manipulation unprofitable.
       </p>
     </div>
   )

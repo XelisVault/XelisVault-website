@@ -141,7 +141,7 @@ export function DevelopersPage() {
             <p className="mt-6 text-lg text-muted-foreground leading-relaxed max-w-3xl">
               XELIS Vault is MIT-licensed, fully open source, and built to be extended. The wallet
               protocol (XSWD) is a simple JSON-RPC WebSocket. The contract language (Silex) is
-              Turing-complete. Below is everything you need to ship a confidential DeFi app —
+              Turing-complete. Below is everything you need to ship a confidential DeFi app
               repositories, examples, and bounties for the work that still needs doing.
             </p>
           </Reveal>
@@ -231,7 +231,7 @@ export function DevelopersPage() {
             </div>
           </section>
 
-          {/* Hackathons & events — honest: nothing scheduled yet */}
+          {/* Hackathons & events, honest: nothing scheduled yet */}
           <section className="mt-20">
             <Reveal>
               <div className="flex items-center gap-2">
@@ -263,7 +263,7 @@ export function DevelopersPage() {
             </Reveal>
           </section>
 
-          {/* Security bug bounty — real, points to /security */}
+          {/* Security bug bounty, real, points to /security */}
           <section className="mt-20">
             <Reveal>
               <div className="flex items-center gap-2">

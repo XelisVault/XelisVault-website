@@ -124,7 +124,7 @@ export function Mixer() {
       })
       if (res.ok) {
         setCreatedSecret(fresh)
-        setTx({ state: 'success', message: `Private note created for ${amount} ${asset}. Save the secret below — it is the ONLY way to withdraw.`, hash: res.hash })
+        setTx({ state: 'success', message: `Private note created for ${amount} ${asset}. Save the secret below, it is the ONLY way to withdraw.`, hash: res.hash })
       } else {
         setTx({ state: 'error', message: res.error ?? 'Deposit failed' })
       }
@@ -152,7 +152,7 @@ export function Mixer() {
         maxGas: GAS.VERY_HEAVY,
       })
       setTx(res.ok
-        ? { state: 'success', message: `Withdrew ${amount} ${asset} from the shared pool to ${recipient.trim().slice(0, 16)}… — no sender link on-chain.`, hash: res.hash }
+        ? { state: 'success', message: `Withdrew ${amount} ${asset} from the shared pool to ${recipient.trim().slice(0, 16)}…, no sender link on-chain.`, hash: res.hash }
         : { state: 'error', message: res.error ?? 'Withdraw failed' })
     } catch (e: any) {
       setTx({ state: 'error', message: String(e?.message ?? 'Withdraw failed') })
@@ -198,7 +198,7 @@ export function Mixer() {
 
       <Panel
         title="Privacy Mixer v2"
-        desc="Deposit with a random secret — the contract stores only blake3(secret) and credits a shared pool. Withdraw by presenting the secret, to any address. No sender, no recipient, no amount-per-identity ever touches contract storage."
+        desc="Deposit with a random secret, the contract stores only blake3(secret) and credits a shared pool. Withdraw by presenting the secret, to any address. No sender, no recipient, no amount-per-identity ever touches contract storage."
         actions={<span className="font-mono text-xs text-vault">v2 · v12R-7</span>}
       >
         {!address ? (
@@ -239,7 +239,7 @@ export function Mixer() {
               <div className="space-y-4">
                 <AmountInput value={amount} onChange={setAmount} symbol={asset} max={assetBalance} placeholder={asset === 'XEL' ? '0.1' : '10'} />
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Any amount — XELIS encrypts the attached transfer. A {(info?.adminFeeBps ?? 1) / 100}% admin fee is taken on deposit, the rest joins the shared {asset} pool.
+                  Any amount, XELIS encrypts the attached transfer. A {(info?.adminFeeBps ?? 1) / 100}% admin fee is taken on deposit, the rest joins the shared {asset} pool.
                   Your balance stays private: the contract never records who deposited.
                 </p>
                 <div className="flex items-center gap-3">
@@ -250,7 +250,7 @@ export function Mixer() {
                   {!canTx && <span className="text-[11px] text-muted-foreground">Requires XSWD</span>}
                 </div>
 
-                {/* The freshly created note secret — shown ONCE after deposit */}
+                {/* The freshly created note secret, shown ONCE after deposit */}
                 {createdSecret && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.98 }}
@@ -259,7 +259,7 @@ export function Mixer() {
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <AlertTriangle className="w-4 h-4 text-amber-400" />
-                      <span className="text-xs font-semibold text-amber-200">SAVE THIS SECRET — shown only once</span>
+                      <span className="text-xs font-semibold text-amber-200">SAVE THIS SECRET, shown only once</span>
                     </div>
                     <div className="flex items-center gap-2 rounded-lg bg-background/80 border border-amber-500/30 px-3 py-2.5 mb-2.5">
                       <code className="flex-1 font-mono text-[11px] break-all leading-relaxed text-amber-100">{createdSecret}</code>
@@ -272,7 +272,7 @@ export function Mixer() {
                       </button>
                     </div>
                     <ul className="space-y-1 text-[11px] text-amber-200/70 leading-relaxed">
-                      <li>· It is the ONLY way to withdraw your funds later — no reset, no recovery.</li>
+                      <li>· It is the ONLY way to withdraw your funds later, no reset, no recovery.</li>
                       <li>· It never touches the blockchain: only blake3(secret) is stored.</li>
                       <li>· Hand it to anyone off-chain to let them withdraw on your behalf.</li>
                     </ul>
@@ -293,7 +293,7 @@ export function Mixer() {
                     spellCheck={false}
                     className="w-full rounded-xl border border-border bg-background/60 px-3.5 py-2.5 font-mono text-xs outline-none focus:border-vault/50 transition-colors"
                   />
-                  <p className="mt-1.5 text-[11px] text-muted-foreground">The recipient can be any address — including one that never deposited. Funds come from the shared pool.</p>
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">The recipient can be any address, including one that never deposited. Funds come from the shared pool.</p>
                 </div>
                 <AmountInput value={amount} onChange={setAmount} symbol={asset} placeholder={asset === 'XEL' ? '0.1' : '10'} />
                 <SecretField value={secret} onChange={setSecret} />
@@ -315,7 +315,7 @@ export function Mixer() {
             {tab === 'check' && (
               <div className="space-y-4">
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Enter a note secret to read its remaining balance. The secret is hashed <em>locally</em> (blake3) — only the commitment
+                  Enter a note secret to read its remaining balance. The secret is hashed <em>locally</em> (blake3), only the commitment
                   is used in the on-chain read, so presenting your secret here never exposes it.
                 </p>
                 <SecretField value={secret} onChange={setSecret} label={`Note secret (${asset} note)`} />
@@ -338,7 +338,7 @@ export function Mixer() {
                       <p className="text-xs text-muted-foreground">
                         {noteBalance === 0n
                           ? 'This note is fully spent (nullifier consumed).'
-                          : 'No note found for this secret — check the asset tab or the secret spelling.'}
+                          : 'No note found for this secret, check the asset tab or the secret spelling.'}
                       </p>
                     )}
                   </motion.div>
@@ -352,7 +352,7 @@ export function Mixer() {
 
         <div className="mt-4">
           <CliFallback
-            title="CLI alternative — mixer"
+            title="CLI alternative, mixer"
             commands={[
               { label: 'mix', cmd: 'xvault              # menu: Privacy Mixer' },
               { label: 'dep', cmd: 'xvault              # Mixer → Deposit + create note (XEL)' },
@@ -364,23 +364,23 @@ export function Mixer() {
       </Panel>
 
       {/* Model explainer */}
-      <Panel title="How the v2 mixer works" desc="Note + nullifier + shared pool — rewritten after the v1 privacy audit (v12R-7).">
+      <Panel title="How the v2 mixer works" desc="Note + nullifier + shared pool, rewritten after the v1 privacy audit (v12R-7).">
         <div className="grid sm:grid-cols-3 gap-3">
           {[
             {
               step: '1 · Deposit',
               title: 'Create a note',
-              body: 'Deposit any amount of XEL, xUSD or VLT with a random secret. The contract stores only blake3(secret) and credits the shared pool — never your address, never the recipient.',
+              body: 'Deposit any amount of XEL, xUSD or VLT with a random secret. The contract stores only blake3(secret) and credits the shared pool, never your address, never the recipient.',
             },
             {
               step: '2 · Hold',
               title: 'Pool anonymity',
-              body: 'Funds sit in one fungible pool per asset. XELIS encrypted transfers plus the shared pool make the anonymity set every depositor of that asset — timing analysis is the only remaining vector.',
+              body: 'Funds sit in one fungible pool per asset. XELIS encrypted transfers plus the shared pool make the anonymity set every depositor of that asset, timing analysis is the only remaining vector.',
             },
             {
               step: '3 · Withdraw',
               title: 'Nullifier & pay',
-              body: 'Present the secret to withdraw any portion, to ANY address. The note is destroyed (nullifier) and the pool pays out — no on-chain field links your deposit to the withdrawal.',
+              body: 'Present the secret to withdraw any portion, to ANY address. The note is destroyed (nullifier) and the pool pays out, no on-chain field links your deposit to the withdrawal.',
             },
           ].map((s) => (
             <div key={s.step} className="rounded-xl border border-vault/25 bg-vault/5 p-4">

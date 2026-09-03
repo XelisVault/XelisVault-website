@@ -116,7 +116,7 @@ export function Savings() {
 
         <div className="mt-4">
           <CliFallback
-            title="CLI alternative — savings"
+            title="CLI alternative, savings"
             commands={[
               { label: 'cli', cmd: 'xvault          # menu: Dashboard → Savings' },
             ]}
@@ -128,7 +128,7 @@ export function Savings() {
       <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
         Savings interest is funded by the protocol: VaultEngine stability fees flow into the rate, making xUSD
         deposits productive without any external yield source. Interest accrues every block (5 s) on your
-        confidential balance — the contract tracks your entitlement without exposing the amount.
+        confidential balance, the contract tracks your entitlement without exposing the amount.
       </p>
     </div>
   )

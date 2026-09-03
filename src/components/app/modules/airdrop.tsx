@@ -53,7 +53,7 @@ export function Airdrop() {
       {/* Your points */}
       <Panel
         title="Your contribution"
-        desc="Points are recorded on-chain by the protocol contracts themselves — every oracle submission, chat anchor, vote and liquidity deposit counts automatically."
+        desc="Points are recorded on-chain by the protocol contracts themselves, every oracle submission, chat anchor, vote and liquidity deposit counts automatically."
         actions={mine ? <Badge tone={qualifies ? 'emerald' : 'amber'}>{qualifies ? 'qualified' : 'in progress'}</Badge> : undefined}
       >
         {!address ? (
@@ -64,7 +64,7 @@ export function Airdrop() {
           <div className="rounded-xl border border-dashed border-border p-6 text-center">
             <Target className="w-6 h-6 text-vault/50 mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">No points recorded yet for this address.</p>
-            <p className="text-[11px] text-muted-foreground/70 mt-1">Start with mining or liquidity — points flow in automatically.</p>
+            <p className="text-[11px] text-muted-foreground/70 mt-1">Start with mining or liquidity, points flow in automatically.</p>
           </div>
         ) : (
           <>
@@ -110,7 +110,7 @@ export function Airdrop() {
 
         <div className="mt-4">
           <CliFallback
-            title="CLI — airdrop & mainnet registration"
+            title="CLI, airdrop & mainnet registration"
             commands={[
               { label: 'points', cmd: 'xvault          # menu: Airdrop → my points & leaderboard' },
               { label: 'register', cmd: 'xvault          # menu: Airdrop → register mainnet address' },
@@ -136,7 +136,7 @@ export function Airdrop() {
             </div>
           </div>
           <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
-            Points are recorded by the contracts you interact with — the oracle logs valid submissions, VaultChat
+            Points are recorded by the contracts you interact with, the oracle logs valid submissions, VaultChat
             logs anchors, the Governor logs votes, the AMM logs liquidity. There is nothing to submit or claim
             during the testnet: activity is the application. At freeze, multi-role participants (active in 3+
             categories) receive a +25% bonus, then the final allocation is written to a Merkle tree for the

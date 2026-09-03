@@ -204,7 +204,7 @@ export function SealingChamber({
       </div>
 
       <p className="mt-3 text-[10px] font-mono text-muted-foreground/60 leading-relaxed">
-        Envelopes drift in from the mempool. A block lands — they are pulled inside and encrypted
+        Envelopes drift in from the mempool. A block lands, they are pulled inside and encrypted
         under homomorphic Twisted ElGamal. Watch forever: you will never see an amount.
       </p>
     </div>

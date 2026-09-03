@@ -16,7 +16,7 @@ export const CLIENT_PUZZLES: ClientPuzzle[] = [
     title: 'Whispers in the Dark',
     riddle: `You found the door. But doors are not answers.
 
-Something was left here for you. Not on the page — behind it.
+Something was left here for you. Not on the page, behind it.
 
 Listen with your developer tools. The network speaks in colors you have not learned to see yet.
 
@@ -30,7 +30,7 @@ The answer is the name of the first block ever mined on the Xelis mainnet. Not i
     title: 'The Invisible Mark',
     riddle: `Every element carries attributes. Most are functional. Some are decorative. One was placed for you.
 
-It does not say what you seek. It says where to look. But "where" is not a place — it is a concept.
+It does not say what you seek. It says where to look. But "where" is not a place, it is a concept.
 
 Find the mark. Decode its meaning. The concept it describes is the name of the language that powers every contract on this protocol.
 
@@ -40,11 +40,11 @@ Four letters. A stone that sparks fire.`,
     id: 3,
     chapter: 'I · The Descent',
     title: 'The Number That Is Not a Number',
-    riddle: `There is text on this page that you cannot read. Not because it is encrypted — because it is the same color as the void around it.
+    riddle: `There is text on this page that you cannot read. Not because it is encrypted, because it is the same color as the void around it.
 
 It hides at the edge. The very bottom corner. You will not see it by looking. You will see it by inspecting.
 
-The hidden word is a concept from biology. It describes a network of roots — interconnected, decentralized, impossible to kill. Much like the protocol you are exploring.`,
+The hidden word is a concept from biology. It describes a network of roots, interconnected, decentralized, impossible to kill. Much like the protocol you are exploring.`,
   },
   {
     id: 4,
@@ -52,7 +52,7 @@ The hidden word is a concept from biology. It describes a network of roots — i
     title: 'The First Breath',
     riddle: `Every chain begins somewhere. The Xelis mainnet drew its first breath on a specific day.
 
-The day is not the answer. The answer is what that day is called — in the language of the Romans who named the days after their gods.
+The day is not the answer. The answer is what that day is called, in the language of the Romans who named the days after their gods.
 
 This god ruled time. Endings. Golden ages. His name became a day.
 
@@ -64,7 +64,7 @@ One word. Lowercase. English.`,
     title: 'The Valley',
     riddle: `A man. Cairo. 1955. Stanford. A paper that changed everything.
 
-His name, in Old Norse, means a geographic feature. A low area of land between hills. You find them in the mountains. You find his name in the whitepaper — section 3.4 — paired with Ristretto and twisted beyond recognition.
+His name, in Old Norse, means a geographic feature. A low area of land between hills. You find them in the mountains. You find his name in the whitepaper, section 3.4, paired with Ristretto and twisted beyond recognition.
 
 What is his surname?`,
   },
@@ -76,7 +76,7 @@ What is his surname?`,
 
 Silex does not.
 
-Its absence is not a bug. It is a security architecture. Without it, every reverting call aborts the entire transaction — every storage write, every state change, gone.
+Its absence is not a bug. It is a security architecture. Without it, every reverting call aborts the entire transaction, every storage write, every state change, gone.
 
 What is this feature? Two words. Joined by a slash.`,
   },
@@ -86,7 +86,7 @@ What is this feature? Two words. Joined by a slash.`,
     title: 'The Three Letters',
     riddle: `The privacy of every balance on Xelis reduces to a mathematical problem.
 
-You are given four values: g, g^a, g^b, g^c. You must determine if c equals a times b — or if c is random.
+You are given four values: g, g^a, g^b, g^c. You must determine if c equals a times b, or if c is random.
 
 No quantum computer can solve this in polynomial time. No AI. No brute force. The privacy of Xelis rests on this assumption.
 
@@ -98,7 +98,7 @@ What is the three-letter acronym for this problem?`,
     title: 'The Geometry',
     riddle: `Twisted ElGamal operates on a specific curve.
 
-The curve takes its name from a prime number. The prime is 2 raised to the power 252, plus a small constant. The group used in Xelis is a compressed form of this curve — the Ristretto group.
+The curve takes its name from a prime number. The prime is 2 raised to the power 252, plus a small constant. The group used in Xelis is a compressed form of this curve, the Ristretto group.
 
 What is the name of the underlying curve? Format: one word, letters and numbers, no spaces.`,
   },
@@ -175,7 +175,7 @@ What is the name of this hash function?`,
     id: 15,
     chapter: 'V · The Protocol',
     title: 'The Cost of Time',
-    riddle: `Before v5.0, borrowing was free. The whitepaper section 4.3 explains why this was a problem — and how it was fixed.
+    riddle: `Before v5.0, borrowing was free. The whitepaper section 4.3 explains why this was a problem, and how it was fixed.
 
 A global accumulator now accrues interest on every borrow. The default rate is configurable. Governance can raise it or lower it.
 
@@ -197,7 +197,7 @@ What is the default cap? Just the number.`,
     title: 'The Whistleblower',
     riddle: `When a miner cheats, three parties benefit. One portion is destroyed. One feeds the treasury. One rewards the one who spoke up.
 
-The whitepaper section 4.1 reveals the split. The whistleblower receives the smallest share — but a share nonetheless.
+The whitepaper section 4.1 reveals the split. The whistleblower receives the smallest share, but a share nonetheless.
 
 What percentage goes to the whistleblower? Just the number.`,
   },
@@ -217,7 +217,7 @@ What is the exact number of blocks?`,
     title: 'The Final Whisper',
     riddle: `You have come far. The last clue before the impossible.
 
-It was left for you. Not in the quest — on the page itself. Hidden in an attribute that no framework uses. Encoded in a format that machines speak but humans rarely read.
+It was left for you. Not in the quest, on the page itself. Hidden in an attribute that no framework uses. Encoded in a format that machines speak but humans rarely read.
 
 Find it. Decode it. The decoded word is your answer.`,
   },

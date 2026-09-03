@@ -1,7 +1,6 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Flame, TrendingDown, Users, Vote } from 'lucide-react'
 import { Reveal, RevealStagger, RevealItem, SectionLabel } from '@/components/site/reveal'
 
 const DISTRIBUTION = [
@@ -19,19 +18,16 @@ const DISTRIBUTION = [
 
 const BURN_MECHANISMS = [
   {
-    icon: Flame,
     title: 'FeeDistributor (v10.3)',
-    desc: 'Every protocol fee (swap, PSM, borrow, redemption) is split by FeeDistributor.slx: 50% burned permanently, 40% to treasury, 10% to founder (ongoing 10y vesting). No extra cost to users — only the split changes.',
+    desc: 'Every protocol fee (swap, PSM, borrow, redemption) is split by FeeDistributor.slx: 50% burned permanently, 40% to treasury, 10% to founder (ongoing 10y vesting). No extra cost to users; only the split changes.',
   },
   {
-    icon: TrendingDown,
     title: 'Reputation-Based Slashing',
-    desc: 'When a price provider submits an outlier, their reputation drops (5 tiers: 0× to 1.5×). Bad behavior reduces reward multiplier — and 50% of every slash is burned at the contract level. Bad behavior is deflationary.',
+    desc: 'When a price provider submits an outlier, their reputation drops (5 tiers: 0× to 1.5×). Bad behavior reduces the reward multiplier, and 50% of every slash is burned at the contract level. Bad behavior is deflationary.',
   },
   {
-    icon: Vote,
     title: 'Governance Burn',
-    desc: 'VLT holders can vote to burn treasury VLT to accelerate deflation. Quorum of 10% required (with 365-day lock boost up to 2× voting power) — a community-controlled supply sink.',
+    desc: 'VLT holders can vote to burn treasury VLT to accelerate deflation. Quorum of 10% required (with 365-day lock boost up to 2× voting power): a community-controlled supply sink.',
   },
 ]
 
@@ -55,7 +51,7 @@ export function Vlt() {
       <div className="absolute top-1/3 right-0 w-[500px] h-[500px] rounded-full bg-vlt/7 blur-[140px]" />
 
       <div className="relative max-w-7xl mx-auto">
-        {/* Header — copy + scarce-asset imagery */}
+        {/* Header: copy + scarce-asset imagery */}
         <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-12 items-center">
         <div className="max-w-3xl">
           <Reveal>
@@ -65,7 +61,7 @@ export function Vlt() {
           </Reveal>
           <Reveal delay={0.1}>
             <h2 className="mt-6 font-display text-4xl md:text-6xl lg:text-7xl font-medium tracking-[-0.02em] leading-[1.02]">
-              VLT — fixed supply,
+              VLT, fixed supply,
               <br />
               <span className="italic font-light text-gradient-vault">engineered to shrink.</span>
             </h2>
@@ -73,21 +69,21 @@ export function Vlt() {
           <Reveal delay={0.2}>
             <p className="mt-8 text-lg text-muted-foreground leading-relaxed">
               10 million VLT minted at launch. No more will ever exist. Three independent
-              burn mechanisms grind the supply down — projected to divide by 3 within a
+              burn mechanisms grind the supply down, projected to divide by 3 within a
               decade. Holders govern every parameter, earn oracle rewards, and capture
               protocol upside as the supply tightens.
             </p>
           </Reveal>
         </div>
 
-        {/* Gold — the scarce asset metaphor */}
+        {/* Gold: the scarce asset metaphor */}
         <Reveal delay={0.25} className="hidden lg:block">
           <div className="relative max-w-[380px] mx-auto">
             <div className="absolute -inset-2.5 rounded-[6px] border border-vlt/30 pointer-events-none" />
             <div className="relative aspect-[4/3] overflow-hidden rounded-[4px] ring-1 ring-foreground/15 shadow-maison">
               <img
                 src="/images/bank/gold-bars.jpg"
-                alt="Stacked gold bars — scarcity as monetary policy"
+                alt="Stacked gold bars: scarcity as monetary policy"
                 className="w-full h-full object-cover animate-kenburns"
               />
               <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-oklch(0.2 0.01 80 / 0.55) to-transparent" />
@@ -102,11 +98,12 @@ export function Vlt() {
         </Reveal>
         </div>
 
-        <div className="mt-16 grid lg:grid-cols-[1.3fr_1fr] gap-8">
+        {/* Distribution + supply: reference exhibits, hairline frames */}
+        <div className="mt-16 grid lg:grid-cols-[1.3fr_1fr] gap-x-12 gap-y-12">
           {/* Distribution chart */}
           <Reveal>
-            <div className="rounded-2xl glass-panel p-6 md:p-8">
-              <div className="flex items-center justify-between mb-6">
+            <div className="border-t border-foreground/12 pt-7">
+              <div className="flex items-baseline justify-between mb-6">
                 <div>
                   <div className="font-display text-xl font-semibold">Token Distribution</div>
                   <div className="text-xs text-muted-foreground font-mono mt-1">
@@ -120,7 +117,7 @@ export function Vlt() {
               </div>
 
               {/* Stacked bar */}
-              <div className="flex h-12 rounded-lg overflow-hidden border border-border">
+              <div className="flex h-12 overflow-hidden border border-foreground/12">
                 {DISTRIBUTION.map((d, i) => (
                   <motion.div
                     key={`vlt-legend-${i}`}
@@ -165,15 +162,14 @@ export function Vlt() {
 
           {/* Supply curve */}
           <Reveal delay={0.1}>
-            <div className="rounded-2xl glass-panel p-6 md:p-8 h-full">
-              <div className="flex items-center justify-between mb-6">
+            <div className="border-t border-foreground/12 pt-7 h-full">
+              <div className="flex items-baseline justify-between mb-6">
                 <div>
                   <div className="font-display text-xl font-semibold">Deflationary Curve</div>
                   <div className="text-xs text-muted-foreground font-mono mt-1">
                     Projected VLT supply · 10-year horizon
                   </div>
                 </div>
-                <Users className="w-5 h-5 text-vlt" />
               </div>
 
               {/* Chart */}
@@ -181,7 +177,7 @@ export function Vlt() {
                 {/* Grid lines */}
                 <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
                   {[0, 1, 2, 3, 4].map((i) => (
-                    <div key={`vlt-bar-${i}`} className="border-t border-border/50 w-full" />
+                    <div key={`vlt-bar-${i}`} className="border-t border-foreground/8 w-full" />
                   ))}
                 </div>
 
@@ -194,7 +190,7 @@ export function Vlt() {
                         whileInView={{ height: `${h}%` }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.8, delay: 0.3 + i * 0.15, ease: [0.21, 0.47, 0.32, 0.98] }}
-                        className="w-full rounded-t-md bg-gradient-to-t from-vlt/20 to-vlt/80 relative group"
+                        className="w-full bg-gradient-to-t from-vlt/20 to-vlt/80 relative group"
                       >
                         <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-xs font-mono font-semibold text-vlt whitespace-nowrap">
                           {point.supply}M
@@ -206,16 +202,11 @@ export function Vlt() {
                 })}
               </div>
 
-              <div className="mt-6 pt-6 border-t border-border">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-vlt/10 border border-vlt/20 flex items-center justify-center text-vlt">
-                    <TrendingDown className="w-4 h-4" />
-                  </div>
-                  <div className="text-sm">
-                    <span className="font-semibold">Supply ÷ 3</span> in 10 years
-                    <div className="text-xs text-muted-foreground font-mono mt-0.5">
-                      From 10M → ~3M VLT
-                    </div>
+              <div className="mt-6 pt-6 border-t border-foreground/10">
+                <div className="text-sm">
+                  <span className="font-semibold">Supply ÷ 3</span> in 10 years
+                  <div className="text-xs text-muted-foreground font-mono mt-0.5">
+                    From 10M to about 3M VLT
                   </div>
                 </div>
               </div>
@@ -223,24 +214,23 @@ export function Vlt() {
           </Reveal>
         </div>
 
-        {/* Burn mechanisms */}
+        {/* Burn mechanisms: editorial columns */}
         <div className="mt-16">
           <Reveal>
-            <div className="flex items-center gap-2 mb-6">
-              <Flame className="w-4 h-4 text-vlt" />
+            <div className="mb-6">
               <span className="font-mono text-xs uppercase tracking-[0.2em] text-vlt">
                 Three Burn Mechanisms
               </span>
             </div>
           </Reveal>
-          <RevealStagger className="grid md:grid-cols-3 gap-4">
+          <RevealStagger className="grid md:grid-cols-3 gap-x-12">
             {BURN_MECHANISMS.map((b, i) => (
               <RevealItem key={`vlt-supply-${i}`}>
-                <div className="h-full rounded-2xl glass-panel hover:glass-panel-hover p-6 transition-all">
-                  <div className="w-11 h-11 rounded-xl bg-vlt/10 border border-vlt/20 flex items-center justify-center text-vlt">
-                    <b.icon className="w-5 h-5" />
+                <div className="border-t border-foreground/12 pt-7 h-full">
+                  <div className="flex items-baseline justify-between">
+                    <h3 className="font-display text-lg font-semibold">{b.title}</h3>
+                    <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-vlt/60 shrink-0">0{i + 1}</span>
                   </div>
-                  <h3 className="mt-5 font-display text-lg font-semibold">{b.title}</h3>
                   <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{b.desc}</p>
                 </div>
               </RevealItem>

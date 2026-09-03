@@ -52,7 +52,7 @@ export function AssetRegistry({ assets }: { assets: AssetInfo[] }) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: Math.min(i * 0.03, 0.5) }}
               className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/40 hover:bg-card/80 hover:border-vault/40 transition-colors px-3 py-2 group"
-              title={`${a.name} — open in official explorer`}
+              title={`${a.name}, open in official explorer`}
             >
               <Identicon seed={a.asset} size={26} />
               <span className={`font-mono text-[12px] font-bold w-14 shrink-0 ${native ? 'text-vault' : 'text-foreground/90'}`}>

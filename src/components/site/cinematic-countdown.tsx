@@ -60,7 +60,7 @@ function phaseColor(hue: 'vault' | 'violet' | 'mix' | 'amber'): string {
 function MechanismRings({ speed }: { speed: number }) {
   return (
     <g>
-      {/* Outer gear — clockwise, slow */}
+      {/* Outer gear, clockwise, slow */}
       <motion.g
         key={`outer-${speed}`}
         animate={{ rotate: 360 }}
@@ -75,7 +75,7 @@ function MechanismRings({ speed }: { speed: number }) {
           strokeDasharray="1.5 9.5"
         />
       </motion.g>
-      {/* Mid gear — counter-clockwise */}
+      {/* Mid gear, counter-clockwise */}
       <motion.g
         key={`mid-${speed}`}
         animate={{ rotate: -360 }}
@@ -90,7 +90,7 @@ function MechanismRings({ speed }: { speed: number }) {
           strokeDasharray="2 7"
         />
       </motion.g>
-      {/* Inner fine gear — clockwise, faster */}
+      {/* Inner fine gear, clockwise, faster */}
       <motion.g
         key={`inner-${speed}`}
         animate={{ rotate: 360 }}
@@ -341,7 +341,7 @@ export function FinalSequenceOverlay({ seconds }: { seconds: number }) {
         }}
       />
 
-      {/* shockwave — remounts every second */}
+      {/* shockwave, remounts every second */}
       <motion.div
         key={`shock-${seconds}`}
         className="absolute rounded-full border-2 pointer-events-none"
@@ -369,7 +369,7 @@ export function FinalSequenceOverlay({ seconds }: { seconds: number }) {
         transition={{ duration: 1.35, ease: [0.12, 0.8, 0.3, 1], delay: 0.08 }}
       />
 
-      {/* screen flash — remounts every second */}
+      {/* screen flash, remounts every second */}
       <motion.div
         key={`flash-${seconds}`}
         className="absolute inset-0 pointer-events-none bg-white"
@@ -378,7 +378,7 @@ export function FinalSequenceOverlay({ seconds }: { seconds: number }) {
         transition={{ duration: 0.32, ease: 'easeOut' }}
       />
 
-      {/* shaken stage — remounts every second */}
+      {/* shaken stage, remounts every second */}
       <motion.div
         key={`stage-${seconds}`}
         className="relative flex flex-col items-center"
@@ -469,7 +469,7 @@ export function FinalSequenceOverlay({ seconds }: { seconds: number }) {
         </motion.div>
       </motion.div>
 
-      {/* bolt pips — one goes out per second */}
+      {/* bolt pips, one goes out per second */}
       <div className="absolute bottom-10 md:bottom-14 flex items-center gap-2 md:gap-3">
         {boltPips.map((i) => {
           const gone = i < 10 - seconds
@@ -576,7 +576,7 @@ export function CinematicCountdown() {
 
   return (
     <div className="flex flex-col items-center gap-8">
-      {/* Label — morphs with the escalation phase */}
+      {/* Label, morphs with the escalation phase */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -639,13 +639,13 @@ export function CinematicCountdown() {
             strokeDasharray="2 4"
           />
 
-          {/* Gear mechanism — accelerates with intensity */}
+          {/* Gear mechanism, accelerates with intensity */}
           <MechanismRings speed={gearSpeed} />
 
           {/* Orbiting glyphs */}
           <OrbitingGlyphs progress={progress} />
 
-          {/* Bolt ring — runs hot near the end */}
+          {/* Bolt ring, runs hot near the end */}
           <BoltRing progress={progress} hot={hot} />
 
           {/* Progress arc */}
@@ -670,7 +670,7 @@ export function CinematicCountdown() {
           />
         </motion.svg>
 
-        {/* HEARTBEAT RING — pulses each second in the final minute */}
+        {/* HEARTBEAT RING, pulses each second in the final minute */}
         {escalation === 'heartbeat' && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <motion.div

@@ -420,7 +420,7 @@ export function EasterEggs() {
       const found = secretsRef.current.size
       const name = SECRET_NAMES[id] ?? id
       toast({
-        title: isNew ? `🔑 Secret unlocked — ${name}` : `🔑 ${name}`,
+        title: isNew ? `🔑 Secret unlocked, ${name}` : `🔑 ${name}`,
         description: isNew
           ? `${found} / ${TOTAL_SECRETS} secrets found. Keep exploring…`
           : 'Already in your collection.',

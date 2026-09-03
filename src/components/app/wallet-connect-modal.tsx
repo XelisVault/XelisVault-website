@@ -100,7 +100,7 @@ export function WalletConnectModal() {
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                   <div className="min-w-0">
                     <div className="text-xs font-semibold text-emerald-300">
-                      XSWD — full access
+                      XSWD, full access
                     </div>
                     <div className="font-mono text-[11px] text-muted-foreground truncate mt-0.5">{address}</div>
                   </div>
@@ -139,9 +139,9 @@ export function WalletConnectModal() {
                     <div className="space-y-4">
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         Connect <span className="text-foreground font-medium">Genesix</span> (or xelis_wallet) via
-                        XSWD — the official XELIS dApp protocol. Approve the XELIS Vault application in the wallet
+                        XSWD, the official XELIS dApp protocol. Approve the XELIS Vault application in the wallet
                         popup, then confirm permissions once. Your keys never leave the wallet. Balances are
-                        confidential by design — they decrypt inside the wallet, never on this page.
+                        confidential by design, they decrypt inside the wallet, never on this page.
                       </p>
                       <a
                         href={GENESIX_URL} target="_blank" rel="noreferrer"
@@ -149,7 +149,7 @@ export function WalletConnectModal() {
                       >
                         <span className="flex items-center gap-2.5 text-xs">
                           <Download className="w-4 h-4 text-vault" />
-                          Get Genesix — the official XELIS wallet
+                          Get Genesix, the official XELIS wallet
                         </span>
                         <span className="text-[10px] font-mono text-muted-foreground">free</span>
                       </a>
@@ -172,7 +172,7 @@ export function WalletConnectModal() {
                             <>
                               <span className="font-semibold">Step 1 of 2 —</span> accept the{' '}
                               <span className="font-semibold">XELIS Vault</span> application in the Genesix popup.
-                              You have 5 minutes — the site waits for you.
+                              You have 5 minutes, the site waits for you.
                             </>
                           ) : (
                             <>
@@ -217,7 +217,7 @@ export function WalletConnectModal() {
                   {method === 'cli' && (
                     <div className="space-y-4">
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        No wallet popup? Run the official CLI instead — it includes a full wallet, miner, swap and
+                        No wallet popup? Run the official CLI instead, it includes a full wallet, miner, swap and
                         governance tooling. One line to install:
                       </p>
 

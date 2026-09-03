@@ -88,7 +88,7 @@ export function LearnPage() {
               Whether you are new to DeFi or a seasoned builder, the learning curve on a
               confidential chain is different. Below is a curated reading list that takes you from
               the cryptographic primitives to the protocol internals. Each link opens the original
-              source — no second-hand summaries.
+              source, no second-hand summaries.
             </p>
           </Reveal>
 

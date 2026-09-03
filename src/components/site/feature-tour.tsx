@@ -378,7 +378,7 @@ function SwapScene({ color }: { color: string }) {
           animate={{ pathLength: 1, opacity: 0.08 }}
           transition={{ duration: 0.7, ease: 'easeOut' }}
         />
-        {/* traveling bubble (native SMIL — loops forever) */}
+        {/* traveling bubble (native SMIL, loops forever) */}
         <circle r={8} fill={color} style={{ filter: `drop-shadow(0 0 10px ${color})` }} opacity={0.95}>
           <animateMotion dur="1.5s" repeatCount="indefinite" rotate="auto">
             <mpath href="#xv-swap-arc" />
@@ -589,7 +589,7 @@ function MixerScene({ color }: { color: string }) {
           ))}
         </motion.g>
 
-        {/* the deposits — enter, swirl, exit elsewhere */}
+        {/* the deposits, enter, swirl, exit elsewhere */}
         {drops.map((p) => (
           <motion.circle
             key={p.id}
@@ -789,7 +789,7 @@ function PegScene({ color }: { color: string }) {
           style={{ transformOrigin: '0px 23px', filter: `drop-shadow(0 0 8px ${color})` }}
         />
 
-        {/* the needle — oscillates, then locks dead center */}
+        {/* the needle, oscillates, then locks dead center */}
         <motion.g
           initial={{ x: -34 }}
           animate={{ x: [-34, 26, -16, 9, -4, 0] }}
@@ -1382,7 +1382,7 @@ export function FeatureTour({ fast = false }: { fast?: boolean }) {
         filter: { duration: 0.6 },
       }}
     >
-      {/* the chain rail — we are traveling INSIDE the blockchain */}
+      {/* the chain rail, we are traveling INSIDE the blockchain */}
       <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 pointer-events-none" style={{ opacity: 0.5 }}>
         <div
           className="h-px w-full"

@@ -153,7 +153,7 @@ const CATEGORIES: Category[] = [
     name: 'Privacy',
     color: 'vault',
     contracts: [
-      { name: 'PrivacyMixer', file: 'contracts/privacy/PrivacyMixer.slx', desc: 'Note + nullifier mixer, shared pool — mixes XEL, xUSD and VLT (v2, v12R-7)', phase: 'core' },
+      { name: 'PrivacyMixer', file: 'contracts/privacy/PrivacyMixer.slx', desc: 'Note + nullifier mixer with a shared pool; mixes XEL, xUSD and VLT (v2, v12R-7)', phase: 'core' },
     ],
   },
   {
@@ -242,10 +242,10 @@ const CATEGORIES: Category[] = [
   },
 ]
 
-const COLOR_CLASSES: Record<string, { text: string; bg: string; border: string; dot: string }> = {
-  vault: { text: 'text-vault', bg: 'bg-vault/10', border: 'border-vault/30', dot: 'bg-vault' },
-  xusd: { text: 'text-xusd', bg: 'bg-xusd/10', border: 'border-xusd/30', dot: 'bg-xusd' },
-  vlt: { text: 'text-vlt', bg: 'bg-vlt/10', border: 'border-vlt/30', dot: 'bg-vlt' },
+const COLOR_CLASSES: Record<string, { text: string; dot: string }> = {
+  vault: { text: 'text-vault', dot: 'bg-vault' },
+  xusd: { text: 'text-xusd', dot: 'bg-xusd' },
+  vlt: { text: 'text-vlt', dot: 'bg-vlt' },
 }
 
 export function Contracts() {
@@ -290,7 +290,7 @@ export function Contracts() {
               audit-remediated (9 critical bugs fixed in v10.5 + 34 cross-contract call bugs
               fixed in v11.1) and will deploy on testnet August 30.
               The 13 Phase 5+ contracts are written, security-reviewed internally, and gated
-              behind a governance vote — they will not deploy until the core protocol is stable.
+              behind a governance vote; they will not deploy until the core protocol is stable.
             </p>
           </Reveal>
         </div>
@@ -329,20 +329,20 @@ export function Contracts() {
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <div className="rounded-2xl glass-panel overflow-hidden">
+                  <div className="border-t border-foreground/12">
                     <button
                       onClick={() => setActiveCat(isActive ? null : cat.id)}
-                      className="w-full flex items-center justify-between p-5 md:p-6 hover:bg-card/30 transition-colors"
+                      className="w-full flex items-baseline justify-between py-5 hover:bg-card/20 transition-colors text-left"
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-2.5 h-2.5 rounded-full ${c.dot}`} />
+                        <div className={`w-2 h-2 rounded-full ${c.dot}`} />
                         <span className="font-display font-semibold text-lg">{cat.name}</span>
-                        <span className="text-xs font-mono text-muted-foreground px-2 py-0.5 rounded-full bg-card/60 border border-border">
-                          {cat.contracts.length}
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {cat.contracts.length} contracts
                         </span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="hidden md:block text-xs font-mono text-muted-foreground">
+                        <span className="hidden md:block text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground/60">
                           {isActive ? 'Collapse' : 'Expand'}
                         </span>
                         <motion.div animate={{ rotate: isActive ? 90 : 0 }} className="text-muted-foreground">
@@ -360,41 +360,36 @@ export function Contracts() {
                           transition={{ duration: 0.3 }}
                           className="overflow-hidden"
                         >
-                          <div className="px-5 md:px-6 pb-5 md:pb-6 grid sm:grid-cols-2 gap-3">
+                          <div className="pb-6 grid sm:grid-cols-2 gap-x-10 gap-y-4">
                             {cat.contracts.map((contract) => (
                               <a
                                 key={contract.name}
                                 href={`https://github.com/XelisVault/xelis-vault/blob/main/${contract.file}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className={`group rounded-xl ${c.bg} ${c.border} border p-4 hover:scale-[1.02] transition-all ${contract.phase === 'future' ? 'opacity-80' : ''}`}
+                                className={`group border-l-2 border-foreground/10 hover:border-vault pl-4 transition-all ${contract.phase === 'future' ? 'opacity-80' : ''}`}
                               >
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className={`font-mono text-sm font-semibold ${c.text}`}>
-                                        {contract.name}
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-baseline gap-2 flex-wrap">
+                                    <span className={`font-mono text-sm font-semibold ${c.text} border-b border-transparent group-hover:border-current transition-all`}>
+                                      {contract.name}
+                                    </span>
+                                    {contract.phase === 'future' && (
+                                      <span className="text-[9px] font-mono uppercase tracking-wider text-amber-700">
+                                        Phase 5+
                                       </span>
-                                      {contract.phase === 'future' && (
-                                        <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wider text-amber-700">
-                                          Phase 5+
-                                        </span>
-                                      )}
-                                      {contract.entries && (
-                                        <span className="text-[9px] font-mono text-muted-foreground/60">
-                                          {contract.entries} entries
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                                      {contract.desc}
-                                    </div>
-                                    <div className="mt-2 text-[10px] font-mono text-muted-foreground/70 truncate">
-                                      {contract.file}
-                                    </div>
+                                    )}
+                                    {contract.entries && (
+                                      <span className="text-[9px] font-mono text-muted-foreground/60">
+                                        {contract.entries} entries
+                                      </span>
+                                    )}
                                   </div>
-                                  <div className={`text-xs font-mono ${c.text} opacity-0 group-hover:opacity-100 transition-opacity shrink-0`}>
-                                    ↗
+                                  <div className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                                    {contract.desc}
+                                  </div>
+                                  <div className="mt-1.5 text-[10px] font-mono text-muted-foreground/60 truncate">
+                                    {contract.file}
                                   </div>
                                 </div>
                               </a>
@@ -419,9 +414,12 @@ export function Contracts() {
               href="https://github.com/XelisVault/xelis-vault"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-card/40 hover:bg-card/80 hover:border-vault/40 px-5 text-sm font-medium transition-all"
+              className="group inline-flex items-center h-10 rounded-full border border-border hover:border-vault/40 px-5 text-sm font-medium transition-all"
             >
-              View full repository on GitHub ↗
+              <span className="border-b border-transparent group-hover:border-vault group-hover:text-vault transition-colors pb-0.5">
+                View full repository on GitHub
+              </span>
+              <span className="ml-2 text-muted-foreground">↗</span>
             </a>
           </div>
         </Reveal>

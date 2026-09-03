@@ -177,7 +177,7 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
                     During final integration testing, we discovered that the XSWD (XELIS Secure
                     WebSocket DApp) protocol was not properly handling cross-contract call
                     permissions in certain edge cases. Wallet connections would silently fail
-                    when a transaction involved multiple contract calls — which is the case for
+                    when a transaction involved multiple contract calls, which is the case for
                     nearly every VaultEngine and PSM operation. We cannot ship a wallet
                     connection that drops transactions without warning.
                   </p>
@@ -257,13 +257,13 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
                     <li className="flex items-start gap-2">
                       <Wrench className="w-3.5 h-3.5 text-vault mt-1 shrink-0" />
                       <span>Building a <strong className="text-foreground">CLI tool</strong> on GitHub
-                      that lets you interact with all contracts directly — deposit, borrow, swap,
-                      mine, stake — without needing the web app</span>
+                      that lets you interact with all contracts directly, deposit, borrow, swap,
+                      mine, stake, without needing the web app</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Wrench className="w-3.5 h-3.5 text-vault mt-1 shrink-0" />
                       <span>Writing a dedicated <strong className="text-foreground">miner script</strong>
-                      with full setup wizard — register, stake, heartbeat, earn rewards</span>
+                      with full setup wizard, register, stake, heartbeat, earn rewards</span>
                     </li>
                   </ul>
                 </div>

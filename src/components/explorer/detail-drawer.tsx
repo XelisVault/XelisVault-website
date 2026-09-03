@@ -286,7 +286,7 @@ function BlockBody({
         <div className="space-y-1.5">
           {txs && txs.length === 0 && (
             <div className="rounded-xl border border-dashed border-border/70 px-4 py-3 text-[11px] font-mono text-muted-foreground">
-              empty block — miner reward only
+              empty block, miner reward only
             </div>
           )}
           {txs?.map((tx) => {
@@ -500,7 +500,7 @@ function TxDetail({ hash, onClose, closeBtn, onOpenBlock, onOpenAccount }: {
           {tx.range_proof && <div><span className="text-muted-foreground">range_proof:</span> {JSON.stringify(tx.range_proof).slice(0, 220)}…</div>}
           {tx.signature && <div><span className="text-muted-foreground">signature:</span> {String(tx.signature).slice(0, 220)}…</div>}
           {tx.source_commitments && <div><span className="text-muted-foreground">source_commitments:</span> {JSON.stringify(tx.source_commitments).slice(0, 220)}…</div>}
-          <div className="text-muted-foreground/60">proofs verifying since block #1 — no amount has ever leaked.</div>
+          <div className="text-muted-foreground/60">proofs verifying since block #1, no amount has ever leaked.</div>
         </div>
       )}
 
@@ -528,7 +528,7 @@ function AccountDetail({ address, onClose, closeBtn, onOpenBlock }: {
 
   useEffect(() => {
     let cancelled = false
-    getAddressNonce(address).then((n) => { if (!cancelled) setNonce(n) }).catch((e) => { if (!cancelled) setError(e?.message ?? 'Account not found — it may never have transacted.') })
+    getAddressNonce(address).then((n) => { if (!cancelled) setNonce(n) }).catch((e) => { if (!cancelled) setError(e?.message ?? 'Account not found, it may never have transacted.') })
     getRegistrationTopoheight(address).then((t) => { if (!cancelled) setRegTopo(t) }).catch(() => {})
     getAccountAssets(address).then((a) => { if (!cancelled) setAssets(a) }).catch(() => { if (!cancelled) setAssets([]) })
     getEncryptedBalance(address, XEL_ASSET).then((b) => { if (!cancelled) setBalance(b) }).catch(() => {})

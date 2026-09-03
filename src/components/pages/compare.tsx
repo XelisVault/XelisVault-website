@@ -44,7 +44,7 @@ const ROWS: Row[] = [
   { feature: 'Governance', xelis: 'On-chain VLT + 48h Timelock', aztec: 'Off-chain', railgun: 'Off-chain (DAO)', secret: 'On-chain (SCRT staking)' },
 
   // Tokenomics
-  { feature: 'Governance token supply', xelis: 'VLT — 10M fixed', aztec: 'Variable', railgun: 'RAIL — variable', secret: 'SCRT — variable', xelisHighlight: true },
+  { feature: 'Governance token supply', xelis: 'VLT, 10M fixed', aztec: 'Variable', railgun: 'RAIL, variable', secret: 'SCRT, variable', xelisHighlight: true },
   { feature: 'Deflationary mechanism', xelis: '3 burn vectors (slash + fees + governance)', aztec: 'No', railgun: 'No', secret: 'No', xelisHighlight: true },
 
   // Project
@@ -93,7 +93,7 @@ export function ComparePage() {
               <strong className="text-foreground">Important:</strong> XELIS Vault is a DeFi protocol,
               not a blockchain. It runs on the <strong className="text-foreground">XELIS BlockDAG</strong>{' '}
               (an L1 with native Twisted ElGamal encryption). The comparison below covers both the chain
-              layer and the DeFi ecosystem built on top — because privacy in DeFi requires both.
+              layer and the DeFi ecosystem built on top, because privacy in DeFi requires both.
             </p>
           </Reveal>
 
@@ -158,7 +158,7 @@ export function ComparePage() {
               <div className="text-xs text-muted-foreground leading-relaxed">
                 <strong className="text-foreground">A note on fairness.</strong> Aztec, Railgun, and
                 Secret Network are all genuinely good projects pushing privacy forward. They each
-                chose different tradeoffs — Aztec on Ethereum L2, Railgun as a privacy overlay, Secret
+                chose different tradeoffs, Aztec on Ethereum L2, Railgun as a privacy overlay, Secret
                 on a Tendermint chain with SGX. XELIS chose to build a layer-1 with native homomorphic
                 encryption, which lets XELIS Vault offer default-private smart contracts without SGX
                 trust assumptions or L2 sequencer risk. The right tool depends on your threat model.

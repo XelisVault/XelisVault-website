@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "**1) Horizontal overflow / clipped text?**\nYes. In the first screenshot, the hero headline is **clipped on the right edge** (the word *private* and the end of *financial stack* are cut off). The header text \"elich Top. Privacy...\" also appears to be overflowing or overlapping.\n\n**2) Hero read clean with single CTA + text link?**\nNo. The provided screenshots **do not show any CTA button or text link** in the hero section—only the headline and body copy are visible.\n\n**3) Big numerals 01-06 stacking correctly?**\nYes. The numerals (01, 02) are **stacking vertically** above their respective headings (\"Confidential Lending\", \"Private Stablecoin\") as expected for mobile.\n\n**4) Any em-dash visible?**\nNo. There are **no em-dashes (—)** visible in either screenshot; only standard hyphens (e.g., in \"USD-pegged\") and commas are present.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1788411965,
+  "id": "20260903130602898adfc524fe4455",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "20260903130602898adfc524fe4455",
+  "usage": {
+    "completion_tokens": 211,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 862,
+    "prompt_tokens_details": {
+      "cached_tokens": 2
+    },
+    "total_tokens": 1073
+  }
+}

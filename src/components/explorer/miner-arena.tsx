@@ -85,7 +85,7 @@ export function MinerArena({
               transition={{ delay: i * 0.05, type: 'spring', stiffness: 300, damping: 26 }}
               onClick={() => onSelectAccount(r.miner)}
               className="w-full text-left rounded-xl border border-border/60 bg-card/40 hover:bg-card/80 hover:border-vault/40 transition-colors px-3 py-2 group"
-              title={`Inspect ${shortHash(r.miner, 16, 10)} — rewards are public, balances stay sealed`}
+              title={`Inspect ${shortHash(r.miner, 16, 10)}, rewards are public, balances stay sealed`}
             >
               <div className="flex items-center gap-2.5">
                 <span className={`w-4 text-center font-mono text-[11px] font-bold ${style.medal}`}>

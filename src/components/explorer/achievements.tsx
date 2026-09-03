@@ -176,7 +176,7 @@ export function Achievements({
         </div>
 
         <p className="mt-3 text-[10px] font-mono text-muted-foreground/60 leading-relaxed">
-          Badges unlock only from blocks you watched land live — witnessing history, not loading it.
+          Badges unlock only from blocks you watched land live, witnessing history, not loading it.
           Progress persists on this device.
         </p>
       </div>
