@@ -263,6 +263,19 @@
   50% { transform: translate(var(--drift, 12px), -18px); opacity: 0.85; }
 }
 
+/* Boot veil — painted before React hydrates (class is added by the
+   inline script in the root layout on fresh sessions, lifted by
+   <BootVeil /> once the side gate has painted). Same color as the
+   gate background so the handoff is invisible. */
+html.xv-booting::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: oklch(0.045 0.015 270);
+  pointer-events: none;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -18,6 +18,8 @@ const SIDE_KEY = 'xv-side-session-v1'
 interface SideState {
   side: Side | null
   gateOpen: boolean
+  /** true once hydrate() has run (lets the boot veil know the gate decision) */
+  hydrated: boolean
   /** called once from the client after mount */
   hydrate: () => void
   choose: (side: Side) => void
@@ -43,14 +45,20 @@ function writeSessionSide(side: Side | null) {
   }
 }
 
+/** Does this tab already remember a chosen side? (safe everywhere) */
+export function hasSessionSide(): boolean {
+  return readSessionSide() !== null
+}
+
 export const useSide = create<SideState>((set) => ({
   side: null,
   gateOpen: false,
+  hydrated: false,
 
   hydrate: () => {
     const side = readSessionSide()
     // No choice yet this session → open the gate (the site entry ritual).
-    set(side ? { side, gateOpen: false } : { side: null, gateOpen: true })
+    set(side ? { side, gateOpen: false, hydrated: true } : { side: null, gateOpen: true, hydrated: true })
   },
 
   choose: (side) => {

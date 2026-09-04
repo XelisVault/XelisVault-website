@@ -81,6 +81,18 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrains.variable} ${fraunces.variable} antialiased bg-background text-foreground`}
       >
+        {/* Pre-paint veil: on a fresh session this covers the very first
+            paint (before React hydrates) so the Choose Your Side gate never
+            reveals the page underneath. The xv-booting class is lifted by
+            <BootVeil /> once the gate has painted. Keep the storage key in
+            sync with src/lib/side-store.ts. */}
+        <script
+          id="xv-boot-veil"
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{if(!sessionStorage.getItem('xv-side-session-v1')){document.documentElement.classList.add('xv-booting');setTimeout(function(){document.documentElement.classList.remove('xv-booting')},4000)}}catch(e){}})();",
+          }}
+        />
         {children}
         <Toaster />
         <GlobalChrome />

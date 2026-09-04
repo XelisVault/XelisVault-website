@@ -32,66 +32,6 @@ const ECOSYSTEM = [
   { label: 'Discord', href: 'https://discord.gg/ufysfvcFwe', icon: MessageSquare },
 ]
 
-const INTRO_KEY = 'xv-nerva-intro-v1'
-
-/* ── world intro: one short heartbeat per session ── */
-function WorldIntro() {
-  const [show, setShow] = useState(false)
-
-  useEffect(() => {
-    let seen = false
-    try { seen = sessionStorage.getItem(INTRO_KEY) === '1' } catch { /* ignore */ }
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    if (!seen) {
-      try { sessionStorage.setItem(INTRO_KEY, '1') } catch { /* ignore */ }
-    }
-    if (seen || reduce) return
-    // async flip (post-paint): one short heartbeat per session
-    const raf = setTimeout(() => setShow(true), 60)
-    const hide = setTimeout(() => setShow(false), 1750)
-    return () => { clearTimeout(raf); clearTimeout(hide) }
-  }, [])
-
-  return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          initial={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: { duration: 0.55 } }}
-          className="fixed inset-0 z-[80] bg-[oklch(0.11_0.018_255)] flex flex-col items-center justify-center pointer-events-none"
-          aria-hidden="true"
-        >
-          <div className="absolute inset-0 circuit-bg opacity-40" />
-          <motion.img
-            src="/images/nerva/nerva-mark.png"
-            alt=""
-            initial={{ scale: 0.82, opacity: 0, filter: 'brightness(2.5)' }}
-            animate={{ scale: 1, opacity: 1, filter: 'brightness(1)' }}
-            transition={{ duration: 0.85, ease: [0.22, 0.61, 0.36, 1] }}
-            className="relative w-20 h-20 drop-shadow-[0_0_28px_oklch(0.78_0.06_237_/_0.6)]"
-          />
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35, duration: 0.5 }}
-            className="mt-6 font-mono text-[11px] tracking-[0.45em] uppercase text-[oklch(0.75_0.1_225)]"
-          >
-            Signal acquired
-          </motion.div>
-          {/* scan sweep */}
-          <motion.div
-            initial={{ y: '-100vh' }}
-            animate={{ y: '100vh' }}
-            transition={{ duration: 1.3, ease: 'easeInOut' }}
-            className="absolute left-0 right-0 h-24"
-            style={{ background: 'linear-gradient(180deg, transparent, oklch(0.78 0.06 237 / 0.08), transparent)' }}
-          />
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
-}
-
 /* ── the two-world switch, Nerva side ── */
 function SideSwitchPill() {
   const openGate = useSide((s) => s.openGate)
@@ -147,8 +87,6 @@ export function NervaShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="nerva-world min-h-screen flex flex-col bg-background text-foreground selection:bg-[oklch(0.78_0.06_237_/_0.3)]">
-      <WorldIntro />
-
       <motion.header
         initial={{ y: -70, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
