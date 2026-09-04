@@ -23,6 +23,7 @@ import {
 } from '@/lib/nerva/nlink'
 import { atomicToDisplay } from '@/lib/nerva/nlink'
 import { getBlockCount, shortenHash, NERVA_LINKS, NERVA_CONSTANTS } from '@/lib/nerva/api'
+import { copyText } from '@/lib/clipboard'
 
 /* ───────────── countdown ───────────── */
 
@@ -211,7 +212,8 @@ export function PayPage() {
   const showTx = result?.txHash
 
   const copy = (text: string, key: string) => {
-    void navigator.clipboard?.writeText(text).then(() => {
+    void copyText(text).then((ok) => {
+      if (!ok) return
       setCopied(key)
       setTimeout(() => setCopied(null), 1500)
     })
@@ -324,6 +326,18 @@ export function PayPage() {
             animate={{ opacity: 1, y: 0 }}
             className="mt-5 panel-nerva rounded-lg p-6 sm:p-7 flex flex-col items-center"
           >
+            <div className="self-start w-full flex items-center justify-between gap-4 pb-4 mb-5 border-b border-white/8">
+              <div className="min-w-0">
+                <div className="font-semibold text-[14px] text-white">Scan this code to pay</div>
+                <div className="mt-0.5 font-mono text-[10px] text-[oklch(0.58_0.025_250)]">with NervaOne or any NERVA wallet</div>
+              </div>
+              {!countdown.expired && (
+                <span className="inline-flex items-center gap-1.5 shrink-0 font-mono tabular-nums text-[12px] font-semibold text-white/85 rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-1.5">
+                  <Clock className="w-3.5 h-3.5 text-[oklch(0.78_0.06_237)]" />
+                  {countdown.text}
+                </span>
+              )}
+            </div>
             {qr ? (
               <img
                 src={qr}
@@ -336,8 +350,8 @@ export function PayPage() {
               </div>
             )}
             <p className="mt-4 text-[12px] text-[oklch(0.62_0.012_250)] text-center max-w-xs leading-relaxed">
-              Scan with NervaOne or any NERVA wallet, address
-              {freeAmount ? '' : ', amount'} and reference are pre-filled.
+              Address{freeAmount ? '' : ', amount'} and reference are pre-filled
+              by the code{freeAmount ? '; you choose how much to send' : ''}.
             </p>
             <a
               href={uri}
@@ -346,23 +360,30 @@ export function PayPage() {
               <Wallet className="w-[17px] h-[17px]" />
               Open in my wallet
             </a>
-            <div className="mt-4 w-full space-y-2">
+            <div className="mt-4 w-full">
+              <div className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-[oklch(0.55_0.01_250)] pb-2.5">
+                or copy the details for a manual payment
+              </div>
+              <div className="space-y-2">
               <button
                 onClick={() => copy(invoice.a, 'addr')}
-                className="w-full flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.02] px-3.5 py-2.5 hover:border-white/20 transition-colors group"
+                className="w-full min-w-0 flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.02] px-3.5 py-2.5 hover:border-[oklch(0.78_0.06_237)]/35 transition-colors group"
+                title="Click to copy"
               >
                 <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[oklch(0.5_0.01_250)] shrink-0">Address</span>
-                <span className="font-mono text-[10px] text-white/65 truncate">{invoice.a}</span>
+                <span className="font-mono text-[10px] text-white/65 truncate min-w-0">{invoice.a}</span>
                 {copied === 'addr' ? <Check className="w-3.5 h-3.5 text-[oklch(0.72_0.12_160)] shrink-0" /> : <Copy className="w-3.5 h-3.5 text-white/30 group-hover:text-white/60 shrink-0" />}
               </button>
               <button
                 onClick={() => copy(invoice.pid, 'pid')}
-                className="w-full flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.02] px-3.5 py-2.5 hover:border-white/20 transition-colors group"
+                className="w-full min-w-0 flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.02] px-3.5 py-2.5 hover:border-[oklch(0.78_0.06_237)]/35 transition-colors group"
+                title="Click to copy"
               >
                 <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[oklch(0.5_0.01_250)] shrink-0">Reference</span>
-                <span className="font-mono text-[10px] text-[oklch(0.8_0.13_290)]/80 truncate">{invoice.pid}</span>
+                <span className="font-mono text-[10px] text-[oklch(0.8_0.13_290)]/80 truncate min-w-0">{invoice.pid}</span>
                 {copied === 'pid' ? <Check className="w-3.5 h-3.5 text-[oklch(0.72_0.12_160)] shrink-0" /> : <Copy className="w-3.5 h-3.5 text-white/30 group-hover:text-white/60 shrink-0" />}
               </button>
+              </div>
             </div>
           </motion.div>
         )}

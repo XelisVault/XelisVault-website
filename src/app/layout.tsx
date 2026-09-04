@@ -84,13 +84,14 @@ export default function RootLayout({
         {/* Pre-paint veil: on a fresh session this covers the very first
             paint (before React hydrates) so the Choose Your Side gate never
             reveals the page underneath. The xv-booting class is lifted by
-            <BootVeil /> once the gate has painted. Keep the storage key in
-            sync with src/lib/side-store.ts. */}
+            <BootVeil /> once the gate has painted. Keep the storage key and
+            the /nerva/pay path check in sync with src/lib/side-store.ts —
+            shared payment links skip the veil (and the gate) entirely. */}
         <script
           id="xv-boot-veil"
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){try{if(!sessionStorage.getItem('xv-side-session-v1')){document.documentElement.classList.add('xv-booting');setTimeout(function(){document.documentElement.classList.remove('xv-booting')},4000)}}catch(e){}})();",
+              "(function(){try{var p=location.pathname.replace(/\\/+$/,'');if(p==='/nerva/pay')return;if(!sessionStorage.getItem('xv-side-session-v1')){document.documentElement.classList.add('xv-booting');setTimeout(function(){document.documentElement.classList.remove('xv-booting')},4000)}}catch(e){}})();",
           }}
         />
         {children}

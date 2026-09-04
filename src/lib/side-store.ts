@@ -7,6 +7,11 @@
  *
  * The choice is session-scoped: every new browser session gets the
  * "Choose Your Side" gate again, exactly like launching the site fresh.
+ *
+ * EXCEPTION: shared payment links (/nerva/pay?d=…) are meant to be opened
+ * by complete strangers. They must land straight on the checkout, no
+ * ritual, no gate: hydrate() silently adopts the NERVA side for them.
+ * Keep the path check in sync with the boot-veil script in app/layout.tsx.
  */
 
 import { create } from 'zustand'
@@ -50,6 +55,20 @@ export function hasSessionSide(): boolean {
   return readSessionSide() !== null
 }
 
+/**
+ * Is the current URL a shared NervaLink checkout? Those are opened by
+ * payers who have never seen the site: they must skip the gate entirely.
+ * Pure-path check, safe in any environment (returns false server-side).
+ */
+export function isPaymentLinkPath(): boolean {
+  try {
+    return typeof window !== 'undefined'
+      && window.location.pathname.replace(/\/+$/, '') === '/nerva/pay'
+  } catch {
+    return false
+  }
+}
+
 export const useSide = create<SideState>((set) => ({
   side: null,
   gateOpen: false,
@@ -57,8 +76,19 @@ export const useSide = create<SideState>((set) => ({
 
   hydrate: () => {
     const side = readSessionSide()
+    if (side) {
+      set({ side, gateOpen: false, hydrated: true })
+      return
+    }
+    // A payer following a shared NervaLink lands straight on the checkout:
+    // adopt the NERVA side silently, never show the Choose Your Side gate.
+    if (isPaymentLinkPath()) {
+      writeSessionSide('nerva')
+      set({ side: 'nerva', gateOpen: false, hydrated: true })
+      return
+    }
     // No choice yet this session → open the gate (the site entry ritual).
-    set(side ? { side, gateOpen: false, hydrated: true } : { side: null, gateOpen: true, hydrated: true })
+    set({ side: null, gateOpen: true, hydrated: true })
   },
 
   choose: (side) => {

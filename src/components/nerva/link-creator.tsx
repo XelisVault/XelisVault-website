@@ -4,17 +4,24 @@
  * NervaLink creator: stateless XNV payment links.
  *
  * A random long payment id is minted client-side, the invoice is encoded
- * into the link itself (base64url JSON), and the QR encodes the canonical
- * `nerva:` URI (wallet2::make_uri format) so wallets pre-fill everything.
- * Nothing is stored anywhere: the link IS the invoice.
+ * into the link itself (base64url JSON), and the QR encodes either the
+ * canonical `nerva:` URI (wallet2::make_uri format, so wallets pre-fill
+ * everything) or the shareable checkout URL. Nothing is stored anywhere:
+ * the link IS the invoice.
+ *
+ * Layout contract (the overflow bug this file killed once): every chain
+ * from the 1fr grid track down to a truncated hash MUST be
+ * shrinkable. The grid track uses minmax(0,1fr) and every text-bearing
+ * flex child carries min-w-0, otherwise a ~500 char payment URL inflates
+ * its min-content size and pushes the panel 2800px past the viewport.
  */
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Link2, Copy, Check, ArrowRight, Wallet, ShieldCheck, Sparkles,
-  Radar, AlertTriangle, QrCode, ExternalLink,
+  Radar, AlertTriangle, QrCode, ExternalLink, ScanLine, Clock, LinkIcon,
 } from 'lucide-react'
 import { Reveal } from '@/components/site/reveal'
 import {
@@ -23,6 +30,7 @@ import {
   type NervaInvoice,
 } from '@/lib/nerva/nlink'
 import { parseXnv, getBlockCount } from '@/lib/nerva/api'
+import { copyText, middleTruncate } from '@/lib/clipboard'
 
 /* ───────────── form state ───────────── */
 
@@ -57,16 +65,157 @@ function Field({ label, hint, children, error }: {
 const inputCls =
   'w-full h-11 rounded-lg bg-white/[0.04] border border-white/10 focus:border-[oklch(0.78_0.06_237)]/60 outline-none px-3.5 font-mono text-[12.5px] text-white/90 placeholder:text-white/25 transition-colors'
 
+/* ───────────── live countdown for the minted link ───────────── */
+
+function useExpiryCountdown(expiresAt: number) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
+  const left = Math.max(0, expiresAt * 1000 - now)
+  const h = Math.floor(left / 3_600_000)
+  const m = Math.floor((left % 3_600_000) / 60_000)
+  const s = Math.floor((left % 60_000) / 1000)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return { expired: left <= 0, text: h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}` }
+}
+
+/* ───────────── success medallion: ring + check draw themselves ───────────── */
+
+function SuccessMedallion() {
+  return (
+    <div className="relative w-[52px] h-[52px] shrink-0">
+      <svg viewBox="0 0 56 56" className="w-full h-full">
+        <motion.circle
+          cx="28" cy="28" r="26" fill="none"
+          stroke="oklch(0.72 0.12 160 / 0.35)" strokeWidth="1.5"
+        />
+        <motion.circle
+          cx="28" cy="28" r="26" fill="none"
+          stroke="oklch(0.72 0.12 160)" strokeWidth="2" strokeLinecap="round"
+          pathLength={1} strokeDasharray="1 1"
+          initial={{ pathLength: 0, rotate: -90 }}
+          animate={{ pathLength: 1, rotate: -90 }}
+          transition={{ duration: 0.85, ease: [0.22, 0.61, 0.36, 1] }}
+          style={{ transformOrigin: 'center' }}
+        />
+        <motion.path
+          d="M17 28.5l7.5 7.5L39 20" fill="none"
+          stroke="oklch(0.78 0.13 160)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          pathLength={1} strokeDasharray="1 1"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 0.5, delay: 0.55, ease: 'easeOut' }}
+        />
+      </svg>
+      <motion.span
+        className="absolute inset-0 rounded-full"
+        style={{ boxShadow: '0 0 26px oklch(0.72 0.12 160 / 0.45)' }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 0.9, 0] }}
+        transition={{ duration: 1.4, delay: 0.6, times: [0, 0.25, 1] }}
+        aria-hidden
+      />
+    </div>
+  )
+}
+
+/* ───────────── viewfinder QR: corner brackets + scan sweep ───────────── */
+
+function ViewfinderQr({ qr, size = 216 }: { qr: string | null; size?: number }) {
+  return (
+    <div className="relative p-3.5 shrink-0" style={{ width: size + 28, height: size + 28 }}>
+      {/* corner brackets: a scanner locking onto the code */}
+      {[
+        'top-0 left-0 border-t-2 border-l-2',
+        'top-0 right-0 border-t-2 border-r-2',
+        'bottom-0 left-0 border-b-2 border-l-2',
+        'bottom-0 right-0 border-b-2 border-r-2',
+      ].map((pos) => (
+        <motion.span
+          key={pos}
+          className={`absolute w-6 h-6 border-[oklch(0.78_0.06_237)] ${pos}`}
+          initial={{ opacity: 0, scale: 1.35 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.45, delay: 0.25, ease: [0.22, 0.61, 0.36, 1] }}
+          aria-hidden
+        />
+      ))}
+      {qr ? (
+        <motion.img
+          src={qr}
+          alt="Payment QR code"
+          className="rounded-sm border border-white/10"
+          style={{ width: size, height: size }}
+          initial={{ opacity: 0, scale: 0.94 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+        />
+      ) : (
+        <div
+          className="rounded-sm border border-white/10 bg-white/[0.04] flex items-center justify-center"
+          style={{ width: size, height: size }}
+        >
+          <QrCode className="w-9 h-9 text-white/20" />
+        </div>
+      )}
+      {/* one scan sweep across the freshly minted code */}
+      <motion.div
+        className="absolute left-3.5 right-3.5 h-[2px] rounded-full"
+        style={{
+          background: 'linear-gradient(90deg, transparent, oklch(0.78 0.06 237 / 0.85), transparent)',
+          boxShadow: '0 0 12px oklch(0.78 0.06 237 / 0.5)',
+        }}
+        initial={{ top: '12%', opacity: 0 }}
+        animate={{ top: ['12%', '86%'], opacity: [0, 1, 1, 0] }}
+        transition={{ duration: 1.6, delay: 0.5, times: [0, 0.15, 0.85, 1], ease: 'easeInOut' }}
+        aria-hidden
+      />
+    </div>
+  )
+}
+
+/* ───────────── a click-to-copy fact row ───────────── */
+
+function CopyRow({ label, value, display, mono = 'steel' }: {
+  label: string; value: string; display?: string; mono?: 'steel' | 'mauve' | 'plain'
+}) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <button
+      type="button"
+      onClick={() => { void copyText(value).then((ok) => { if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1600) } }) }}
+      className="group w-full min-w-0 flex items-center gap-3 rounded-md border border-white/8 bg-white/[0.02] px-3.5 py-2.5 hover:border-[oklch(0.78_0.06_237)]/35 hover:bg-[oklch(0.78_0.06_237)]/[0.05] transition-colors text-left"
+      title="Click to copy"
+    >
+      <span className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-[oklch(0.55_0.01_250)] shrink-0 w-[76px]">{label}</span>
+      <span className={`flex-1 min-w-0 font-mono text-[10.5px] truncate ${
+        mono === 'mauve' ? 'text-[oklch(0.8_0.13_290)]/85'
+        : mono === 'steel' ? 'text-[oklch(0.83_0.055_237)]'
+        : 'text-white/70'
+      }`}>{display ?? value}</span>
+      {copied
+        ? <Check className="w-3.5 h-3.5 text-[oklch(0.72_0.12_160)] shrink-0" />
+        : <Copy className="w-3.5 h-3.5 text-white/25 group-hover:text-white/60 shrink-0 transition-colors" />}
+    </button>
+  )
+}
+
 /* ───────────── the creator ───────────── */
+
+type QrMode = 'wallet' | 'page'
 
 export function LinkCreator() {
   const [form, setForm] = useState<FormState>(INITIAL)
   const [touched, setTouched] = useState(false)
   const [invoice, setInvoice] = useState<NervaInvoice | null>(null)
+  const [qrMode, setQrMode] = useState<QrMode>('wallet')
   const [qr, setQr] = useState<string | null>(null)
   const [minting, setMinting] = useState(false)
-  const [copied, setCopied] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   const [origin, setOrigin] = useState('')
+  const resultRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { setOrigin(window.location.origin) }, [])
 
@@ -80,18 +229,20 @@ export function LinkCreator() {
   }, [invoice, origin])
 
   const nervaUri = useMemo(() => (invoice ? buildNervaUri(invoice) : ''), [invoice])
+  const countdown = useExpiryCountdown(invoice?.exp ?? 0)
 
-  /* QR for the nerva: URI (regenerated when invoice changes) */
+  /* QR for the active mode: nerva: URI (wallet) or checkout URL (share) */
   useEffect(() => {
     if (!invoice) { setQr(null); return }
     let alive = true
-    void renderQrDataUrl(buildNervaUri(invoice), 340).then((url) => {
+    const data = qrMode === 'wallet' ? buildNervaUri(invoice) : linkUrl
+    void renderQrDataUrl(data, 360).then((url) => {
       if (alive) setQr(url)
     }).catch(() => {
       if (alive) setQr(null)
     })
     return () => { alive = false }
-  }, [invoice])
+  }, [invoice, qrMode, linkUrl])
 
   const mint = async () => {
     setTouched(true)
@@ -112,18 +263,22 @@ export function LinkCreator() {
         exp: Math.floor(Date.now() / 1000) + ttl,
       }
       setInvoice(inv)
+      setQrMode('wallet')
       requestAnimationFrame(() => {
-        document.getElementById('nlink-result')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       })
     } finally {
       setMinting(false)
     }
   }
 
-  const copy = (text: string, key: string) => {
-    void navigator.clipboard?.writeText(text).then(() => {
-      setCopied(key)
-      setTimeout(() => setCopied(null), 1600)
+  const copyLink = () => {
+    if (!linkUrl) return
+    void copyText(linkUrl).then((ok) => {
+      if (ok) {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1800)
+      }
     })
   }
 
@@ -131,6 +286,7 @@ export function LinkCreator() {
     setInvoice(null)
     setForm(INITIAL)
     setTouched(false)
+    setCopied(false)
   }
 
   return (
@@ -156,9 +312,9 @@ export function LinkCreator() {
           </p>
         </div>
 
-        <div className="mt-10 grid lg:grid-cols-[1fr_360px] gap-8 items-start">
+        <div className="mt-10 grid lg:grid-cols-[minmax(0,1fr)_340px] gap-8 items-start">
           {/* ── form / result ── */}
-          <div>
+          <div className="min-w-0">
             <AnimatePresence mode="wait">
               {!invoice ? (
                 <motion.div
@@ -249,7 +405,14 @@ export function LinkCreator() {
                     className="mt-8 w-full sm:w-auto inline-flex h-12 items-center justify-center gap-2.5 rounded-md px-8 text-[14.5px] font-semibold bg-[oklch(0.66_0.083_233)] text-[oklch(0.13_0.02_255)] hover:bg-[oklch(0.7_0.08_236)] transition-colors disabled:opacity-60"
                   >
                     {minting ? (
-                      <>Minting the reference…</>
+                      <>
+                        <motion.span
+                          className="w-[17px] h-[17px] rounded-full border-2 border-[oklch(0.13_0.02_255)]/30 border-t-[oklch(0.13_0.02_255)]"
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+                        />
+                        Minting the reference…
+                      </>
                     ) : (
                       <>
                         <Sparkles className="w-[17px] h-[17px]" />
@@ -259,98 +422,235 @@ export function LinkCreator() {
                   </button>
                 </motion.div>
               ) : (
+                /* ══════════ THE MINTED LINK ══════════ */
                 <motion.div
                   key="result"
+                  ref={resultRef}
                   id="nlink-result"
                   initial={{ opacity: 0, y: 18 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.45 }}
-                  className="space-y-5"
+                  className="space-y-5 scroll-mt-24"
                 >
-                  {/* the link */}
-                  <div className="panel-nerva rounded-lg p-6 sm:p-7 border-l-2 border-l-[oklch(0.72_0.12_160)]">
-                    <div className="flex items-center gap-2.5">
-                      <Check className="w-4 h-4 text-[oklch(0.72_0.12_160)]" />
-                      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.72_0.12_160)]">
-                        Link minted, save it: it exists nowhere else
-                      </span>
+                  {/* success header */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.05 }}
+                    className="panel-nerva rounded-lg px-6 sm:px-7 py-5 flex items-center gap-5"
+                  >
+                    <SuccessMedallion />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-[15px] text-white">
+                        Your payment link is live
+                      </div>
+                      <div className="mt-1 font-mono text-[10px] text-[oklch(0.6_0.012_250)] truncate">
+                        reference <span className="text-[oklch(0.8_0.13_290)]/85">{invoice.pid.slice(0, 16)}…</span>
+                        {' · '}stateless, it exists nowhere but this URL
+                      </div>
                     </div>
-                    <div className="mt-4 flex items-center gap-2.5 rounded-md bg-[oklch(0.12_0.018_255)] border border-white/10 pl-4 pr-2 h-12">
-                      <span className="font-mono text-[11.5px] text-[oklch(0.83_0.055_237)] truncate flex-1">{linkUrl}</span>
-                      <button
-                        onClick={() => copy(linkUrl, 'link')}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-md px-3 bg-[oklch(0.78_0.06_237)]/15 text-[oklch(0.83_0.055_237)] font-mono text-[10.5px] hover:bg-[oklch(0.78_0.06_237)]/25 transition-colors"
-                      >
-                        {copied === 'link' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                        {copied === 'link' ? 'Copied' : 'Copy'}
-                      </button>
-                    </div>
-                    <div className="mt-4 flex flex-col sm:flex-row gap-2.5">
-                      <Link
-                        href={`/nerva/pay?d=${encodeInvoice(invoice)}`}
-                        className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-md text-[13.5px] font-semibold bg-[oklch(0.66_0.083_233)] text-[oklch(0.13_0.02_255)] hover:bg-[oklch(0.7_0.08_236)] transition-colors"
-                      >
-                        Open the checkout <ArrowRight className="w-4 h-4" />
-                      </Link>
-                      <button
-                        onClick={reset}
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-md px-5 text-[13.5px] font-medium border border-white/12 bg-white/[0.03] hover:bg-white/8 text-white/75 transition-colors"
-                      >
-                        Create another
-                      </button>
-                    </div>
-                  </div>
+                    {!countdown.expired && (
+                      <div className="shrink-0 hidden sm:flex flex-col items-end">
+                        <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-[oklch(0.55_0.01_250)]">expires in</span>
+                        <span className="font-mono tabular-nums text-[13px] font-semibold text-white/85 flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-[oklch(0.78_0.06_237)]" />
+                          {countdown.text}
+                        </span>
+                      </div>
+                    )}
+                  </motion.div>
 
-                  {/* QR + URI */}
-                  <div className="panel-nerva rounded-lg p-6 sm:p-7">
-                    <div className="flex flex-col sm:flex-row gap-7 items-center">
-                      <div className="shrink-0">
-                        {qr ? (
-                          <img
-                            src={qr}
-                            alt="Payment QR code, nerva: URI"
-                            className="w-[170px] h-[170px] rounded-md border border-white/12 bg-[#eef4fb]"
-                          />
-                        ) : (
-                          <div className="w-[170px] h-[170px] rounded-md border border-white/10 bg-white/[0.03] flex items-center justify-center">
-                            <QrCode className="w-8 h-8 text-white/20" />
-                          </div>
-                        )}
-                        <div className="mt-2.5 text-center font-mono text-[9px] uppercase tracking-[0.18em] text-[oklch(0.5_0.01_250)]">
-                          scan with any XNV wallet
-                        </div>
+                  {/* THE link: click anywhere to copy the shareable URL */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.45, delay: 0.12 }}
+                    className="panel-nerva rounded-lg overflow-hidden"
+                  >
+                    <div className="px-6 sm:px-7 pt-5 pb-4 border-b border-white/8 flex items-center justify-between gap-4">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.62_0.025_250)] min-w-0">
+                        2 · Share this payment link
                       </div>
-                      <div className="flex-1 min-w-0 w-full">
-                        <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.6_0.012_250)]">
-                          The nerva: URI your payer will scan
-                        </div>
-                        <div className="mt-3 rounded-lg bg-[oklch(0.12_0.018_255)] border border-white/10 p-3.5 font-mono text-[10.5px] leading-relaxed text-white/70 break-all max-h-32 overflow-y-auto">
-                          {nervaUri}
-                        </div>
-                        <div className="mt-3 grid grid-cols-2 gap-2.5">
-                          <button
-                            onClick={() => copy(nervaUri, 'uri')}
-                            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-white/12 bg-white/[0.03] hover:bg-white/8 font-mono text-[10.5px] text-white/70 transition-all"
-                          >
-                            {copied === 'uri' ? <Check className="w-3.5 h-3.5 text-[oklch(0.72_0.12_160)]" /> : <Copy className="w-3.5 h-3.5" />}
-                            Copy URI
-                          </button>
-                          <button
-                            onClick={() => copy(invoice.pid, 'pid')}
-                            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-white/12 bg-white/[0.03] hover:bg-white/8 font-mono text-[10.5px] text-white/70 transition-all"
-                          >
-                            {copied === 'pid' ? <Check className="w-3.5 h-3.5 text-[oklch(0.72_0.12_160)]" /> : <Copy className="w-3.5 h-3.5" />}
-                            Copy payment id
-                          </button>
-                        </div>
-                        <div className="mt-4 space-y-1.5 font-mono text-[10px] text-[oklch(0.55_0.01_250)]">
-                          <div>amount: <span className="text-white/70">{invoice.amt === '0' ? 'free (payer chooses)' : `${atomicToDisplay(invoice.amt)} XNV`}</span></div>
-                          <div>reference: <span className="text-[oklch(0.74_0.07_306)]">{invoice.pid.slice(0, 24)}…</span></div>
-                          <div>expires: <span className="text-white/70">{new Date(invoice.exp * 1000).toLocaleString()}</span></div>
-                        </div>
+                      <div className="font-mono text-[9.5px] text-[oklch(0.55_0.01_250)] shrink-0 hidden sm:block">
+                        send it to your payer, exactly as is
                       </div>
                     </div>
-                  </div>
+
+                    <div className="p-5 sm:p-6">
+                      <motion.button
+                        type="button"
+                        onClick={copyLink}
+                        whileTap={{ scale: 0.985 }}
+                        className={`group relative w-full min-w-0 flex items-center gap-3 rounded-md border pl-4 pr-3 py-3 text-left transition-all overflow-hidden ${
+                          copied
+                            ? 'border-[oklch(0.72_0.12_160)]/60 bg-[oklch(0.72_0.12_160)]/10'
+                            : 'border-white/12 bg-[oklch(0.12_0.018_255)] hover:border-[oklch(0.78_0.06_237)]/45'
+                        }`}
+                        title="Click to copy the full payment link"
+                      >
+                        {/* one shimmer sweep the first time the link appears */}
+                        <motion.span
+                          className="absolute inset-y-0 w-1/3 pointer-events-none"
+                          style={{
+                            background: 'linear-gradient(100deg, transparent, oklch(0.78 0.06 237 / 0.12), transparent)',
+                          }}
+                          initial={{ x: '-140%' }}
+                          animate={{ x: '420%' }}
+                          transition={{ duration: 1.5, delay: 0.55, ease: 'easeInOut' }}
+                          aria-hidden
+                        />
+                        <LinkIcon className={`w-4 h-4 shrink-0 transition-colors ${copied ? 'text-[oklch(0.72_0.12_160)]' : 'text-[oklch(0.78_0.06_237)]'}`} />
+                        <span className={`flex-1 min-w-0 font-mono text-[11.5px] sm:text-[12.5px] truncate ${
+                          copied ? 'text-[oklch(0.78_0.13_160)]' : 'text-[oklch(0.83_0.055_237)]'
+                        }`}>
+                          {copied
+                            ? 'Copied. The full link is in your clipboard.'
+                            : middleTruncate(linkUrl, 56, 22)}
+                        </span>
+                        <span className={`shrink-0 inline-flex h-9 items-center gap-1.5 rounded-md px-3.5 font-mono text-[11px] font-semibold transition-colors ${
+                          copied
+                            ? 'bg-[oklch(0.72_0.12_160)]/18 text-[oklch(0.78_0.13_160)]'
+                            : 'bg-[oklch(0.78_0.06_237)]/15 text-[oklch(0.83_0.055_237)] group-hover:bg-[oklch(0.78_0.06_237)]/25'
+                        }`}>
+                          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                          {copied ? 'Copied' : 'Copy'}
+                        </span>
+                      </motion.button>
+
+                      <div className="mt-4 flex flex-col sm:flex-row gap-2.5">
+                        <Link
+                          href={`/nerva/pay?d=${encodeInvoice(invoice)}`}
+                          className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-md text-[13.5px] font-semibold bg-[oklch(0.66_0.083_233)] text-[oklch(0.13_0.02_255)] hover:bg-[oklch(0.7_0.08_236)] transition-colors"
+                        >
+                          Open the checkout <ArrowRight className="w-4 h-4" />
+                        </Link>
+                        <button
+                          onClick={reset}
+                          className="inline-flex h-11 items-center justify-center gap-2 rounded-md px-5 text-[13.5px] font-medium border border-white/12 bg-white/[0.03] hover:bg-white/8 text-white/75 transition-colors"
+                        >
+                          Create another
+                        </button>
+                      </div>
+                      <div className="mt-3.5 font-mono text-[9.5px] text-[oklch(0.5_0.01_250)]">
+                        Anyone opening it lands directly on the checkout: no side selection, no account, nothing to install.
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* QR card with wallet / page toggle */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.45, delay: 0.2 }}
+                    className="panel-nerva rounded-lg overflow-hidden"
+                  >
+                    <div className="px-6 sm:px-7 py-5 border-b border-white/8 flex flex-wrap items-center justify-between gap-3">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.62_0.025_250)]">
+                        3 · Show a QR instead
+                      </div>
+                      {/* segmented mode toggle */}
+                      <div className="flex rounded-md border border-white/10 bg-[oklch(0.12_0.018_255)] p-0.5">
+                        <button
+                          onClick={() => setQrMode('wallet')}
+                          className={`inline-flex h-8 items-center gap-1.5 rounded-[5px] px-3 font-mono text-[10.5px] transition-all ${
+                            qrMode === 'wallet'
+                              ? 'bg-[oklch(0.78_0.06_237)]/18 text-[oklch(0.83_0.055_237)]'
+                              : 'text-white/45 hover:text-white/70'
+                          }`}
+                        >
+                          <Wallet className="w-3.5 h-3.5" /> Wallet
+                        </button>
+                        <button
+                          onClick={() => setQrMode('page')}
+                          className={`inline-flex h-8 items-center gap-1.5 rounded-[5px] px-3 font-mono text-[10.5px] transition-all ${
+                            qrMode === 'page'
+                              ? 'bg-[oklch(0.78_0.06_237)]/18 text-[oklch(0.83_0.055_237)]'
+                              : 'text-white/45 hover:text-white/70'
+                          }`}
+                        >
+                          <ScanLine className="w-3.5 h-3.5" /> Page link
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="p-5 sm:p-6 flex flex-col sm:flex-row items-center gap-6">
+                      <ViewfinderQr qr={qr} />
+                      <div className="flex-1 min-w-0 w-full">
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={qrMode}
+                            initial={{ opacity: 0, x: qrMode === 'wallet' ? -8 : 8 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: qrMode === 'wallet' ? 8 : -8 }}
+                            transition={{ duration: 0.22 }}
+                          >
+                            {qrMode === 'wallet' ? (
+                              <>
+                                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.6_0.012_250)]">
+                                  Payer scans with their XNV wallet
+                                </div>
+                                <p className="mt-2 text-[12px] leading-relaxed text-[oklch(0.66_0.012_250)]">
+                                  A canonical <span className="font-mono text-white/80">nerva:</span> URI that
+                                  NervaOne and the CLI wallet parse natively: address, amount and reference
+                                  are pre-filled on their side.
+                                </p>
+                                <div className="mt-3">
+                                  <CopyRow label="nerva: URI" value={nervaUri} display={middleTruncate(nervaUri, 26, 10)} mono="mauve" />
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.6_0.012_250)]">
+                                  Payer scans with a phone camera
+                                </div>
+                                <p className="mt-2 text-[12px] leading-relaxed text-[oklch(0.66_0.012_250)]">
+                                  Opens the hosted checkout page on their phone: amount, countdown
+                                  and live payment detection, without installing anything.
+                                </p>
+                                <div className="mt-3">
+                                  <CopyRow label="page link" value={linkUrl} display={middleTruncate(linkUrl, 30, 12)} />
+                                </div>
+                              </>
+                            )}
+                          </motion.div>
+                        </AnimatePresence>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* invoice details */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.45, delay: 0.28 }}
+                    className="panel-nerva rounded-lg overflow-hidden"
+                  >
+                    <div className="px-6 sm:px-7 py-5 border-b border-white/8">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.62_0.025_250)]">
+                        4 · Invoice details
+                      </div>
+                    </div>
+                    <div className="p-5 sm:p-6 grid sm:grid-cols-2 gap-2.5">
+                      <div className="rounded-md border border-white/8 bg-white/[0.02] px-3.5 py-2.5 flex items-center gap-3">
+                        <span className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-[oklch(0.55_0.01_250)] shrink-0 w-[76px]">amount</span>
+                        <span className="flex-1 min-w-0 font-mono text-[11px] text-white/80 truncate">
+                          {invoice.amt === '0' ? 'free, payer chooses' : `${atomicToDisplay(invoice.amt)} XNV`}
+                        </span>
+                      </div>
+                      <div className="rounded-md border border-white/8 bg-white/[0.02] px-3.5 py-2.5 flex items-center gap-3">
+                        <span className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-[oklch(0.55_0.01_250)] shrink-0 w-[76px]">expires</span>
+                        <span className="flex-1 min-w-0 font-mono text-[11px] text-white/80 truncate">
+                          {new Date(invoice.exp * 1000).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <CopyRow label="address" value={invoice.a} display={middleTruncate(invoice.a, 34, 10)} mono="plain" />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <CopyRow label="reference" value={invoice.pid} display={middleTruncate(invoice.pid, 30, 12)} mono="mauve" />
+                      </div>
+                    </div>
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -359,7 +659,7 @@ export function LinkCreator() {
             <Reveal delay={0.1}>
               <div className="mt-8 panel-nerva rounded-lg p-6 sm:p-7">
                 <div className="flex items-center gap-2.5">
-                  <ShieldCheck className="w-4.5 h-4.5 w-[18px] h-[18px] text-[oklch(0.78_0.06_237)]" />
+                  <ShieldCheck className="w-[18px] h-[18px] text-[oklch(0.78_0.06_237)]" />
                   <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.012_250)]">
                     How NervaLink works, the honest version
                   </span>
@@ -406,7 +706,7 @@ export function LinkCreator() {
           </div>
 
           {/* ── side summary ── */}
-          <div className="lg:sticky lg:top-24 space-y-4">
+          <div className="lg:sticky lg:top-24 space-y-4 min-w-0">
             <div className="panel-nerva rounded-lg p-6">
               <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.012_250)]">
                 Architecture
