@@ -1,21 +1,22 @@
 'use client'
 
 /**
- * The NERVA landing — the other world of XelisVault.
+ * The NERVA landing: the other world of XelisVault.
  *
- * Everything on this page is LIVE where it can be: network height,
- * difficulty, hashrate and the block ticker come from the public
- * NERVA explorer API, queried directly from the browser (CORS-open,
- * verified live). Everything else is the honest story of the protocol.
+ * Design language: editorial, flat, photography-led. The NERVA brand
+ * palette (steel blue, mauve) on deep navy. Real duotone photography,
+ * sharp 6px corners, honest copy. Everything live where it can be:
+ * network height, difficulty, hashrate and the block ticker come from
+ * the public NERVA explorer API, queried directly from the browser.
  */
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
-  Radar, Link2, Cpu, Shield, EyeOff, Layers, Coins, Zap, Users,
-  ArrowUpRight, ArrowRight, BookOpen, Globe, Github, MessageSquare, Map as MapIcon,
-  Radio, Fingerprint, Lock, Server,
+  Radar, Link2, Cpu, Shield, EyeOff, Users, Lock, Fingerprint,
+  ArrowUpRight, ArrowRight, BookOpen, Globe, Github, MessageSquare,
+  Map as MapIcon, Radio, Layers, Server, Zap,
 } from 'lucide-react'
 import { Reveal, RevealStagger, RevealItem, SectionLabel } from '@/components/site/reveal'
 import { useLiveInfo } from '@/components/nerva/live-info'
@@ -26,16 +27,36 @@ import {
   getBlockHeadersRange, type NervaBlockHeader,
 } from '@/lib/nerva/api'
 
+/* Shared button styles: solid steel, sharp corners, no gradients. */
+const BTN_PRIMARY =
+  'inline-flex h-11 items-center justify-center gap-2 rounded-md px-6 text-[14px] font-semibold bg-[oklch(0.66_0.083_233)] text-[oklch(0.13_0.02_255)] hover:bg-[oklch(0.7_0.08_236)] transition-colors'
+const BTN_SECONDARY =
+  'inline-flex h-11 items-center justify-center gap-2 rounded-md px-6 text-[14px] font-medium border border-[oklch(0.92_0.008_250/0.2)] text-white/85 hover:border-[oklch(0.78_0.06_237/0.55)] hover:bg-white/[0.04] transition-colors'
+
+/* A captioned photograph: the anti-AI signal. Real hardware, real grain. */
+function Figure({ src, alt, caption, ratio = 'aspect-[4/3]', className = '' }: {
+  src: string; alt: string; caption: string; ratio?: string; className?: string
+}) {
+  return (
+    <figure className={`border border-[oklch(0.92_0.008_250/0.12)] rounded-md overflow-hidden bg-[oklch(0.17_0.02_252)] ${className}`}>
+      <img src={src} alt={alt} className={`w-full ${ratio} object-cover`} loading="lazy" draggable={false} />
+      <figcaption className="px-3.5 py-2.5 border-t border-[oklch(0.92_0.008_250/0.1)] font-mono text-[9.5px] uppercase tracking-[0.14em] text-[oklch(0.57_0.012_250)]">
+        {caption}
+      </figcaption>
+    </figure>
+  )
+}
+
 /* ═══════════════════ HERO ═══════════════════ */
 
-function LiveStat({ label, value, accent = false, sub }: { label: string; value: string; accent?: boolean; sub?: string }) {
+function LiveCell({ label, value, accent = false, sub }: { label: string; value: string; accent?: boolean; sub?: string }) {
   return (
-    <div className="panel-nerva rounded-xl px-4 py-3.5 min-w-[128px] flex-1">
-      <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-[oklch(0.6_0.025_250)]">{label}</div>
-      <div className={`mt-1.5 font-mono font-bold tabular-nums text-[15px] sm:text-[17px] ${accent ? 'text-[oklch(0.82_0.115_215)]' : 'text-white/90'}`}>
+    <div className="px-4 py-3.5 min-w-0">
+      <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-[oklch(0.57_0.012_250)] truncate">{label}</div>
+      <div className={`mt-1 font-mono font-semibold tabular-nums text-[15px] ${accent ? 'text-[oklch(0.78_0.06_237)]' : 'text-white/90'}`}>
         {value}
       </div>
-      {sub && <div className="mt-0.5 font-mono text-[9.5px] text-[oklch(0.55_0.025_250)]">{sub}</div>}
+      {sub && <div className="mt-0.5 font-mono text-[9px] text-[oklch(0.52_0.01_250)] truncate">{sub}</div>}
     </div>
   )
 }
@@ -47,128 +68,104 @@ function Hero() {
   const hashrate = info ? difficultyToHashrate(info.difficulty) : null
 
   return (
-    <section className="relative min-h-[92vh] flex flex-col items-center justify-center overflow-hidden pt-28 pb-16">
-      {/* atmosphere */}
-      <div className="absolute inset-0 circuit-bg" />
+    <section className="relative min-h-[92vh] flex flex-col justify-end overflow-hidden">
+      {/* real photography: PCB macro, duotone navy/steel */}
+      <motion.img
+        src="/images/nerva/photo-pcb.jpg"
+        alt=""
+        aria-hidden="true"
+        initial={reduce ? { scale: 1 } : { scale: 1.05 }}
+        animate={reduce ? { scale: 1 } : { scale: 1 }}
+        transition={{ duration: 2.2, ease: 'easeOut' }}
+        className="absolute inset-0 w-full h-full object-cover"
+        draggable={false}
+      />
+      {/* legibility washes, flat */}
+      <div className="absolute inset-0 bg-[oklch(0.14_0.018_255/0.72)]" />
       <div
         className="absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 90% 55% at 50% -5%, oklch(0.3 0.09 265 / 0.55), transparent 70%), radial-gradient(ellipse 60% 40% at 85% 100%, oklch(0.24 0.08 290 / 0.4), transparent 70%)',
-        }}
+        style={{ background: 'linear-gradient(180deg, oklch(0.14 0.018 255 / 0.55) 0%, transparent 30%, oklch(0.14 0.018 255 / 0.88) 100%)' }}
       />
-      {/* orbiting signal rings around the logo */}
-      {!reduce && (
-        <div className="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true">
-          {[340, 470, 610].map((size, i) => (
-            <motion.div
-              key={size}
-              className="absolute left-1/2 top-1/2 rounded-full border"
-              style={{
-                width: size, height: size,
-                marginLeft: -size / 2, marginTop: -size / 2,
-                borderColor: `oklch(0.82 0.115 215 / ${0.16 - i * 0.04})`,
-                borderStyle: i === 1 ? 'dashed' : 'solid',
-              }}
-              animate={{ rotate: i % 2 ? -360 : 360 }}
-              transition={{ duration: 60 + i * 30, repeat: Infinity, ease: 'linear' }}
-            />
-          ))}
-        </div>
-      )}
 
-      <div className="relative z-10 flex flex-col items-center text-center px-5 max-w-4xl mx-auto">
+      <div className="relative z-10 mx-auto w-full max-w-6xl px-5 md:px-8 pt-32 pb-10">
         <motion.div
-          initial={{ scale: 0.7, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.9, ease: [0.22, 0.61, 0.36, 1] }}
-          className="relative mb-8"
-        >
-          <div
-            className="absolute -inset-10 rounded-full blur-3xl"
-            style={{ background: 'radial-gradient(circle, oklch(0.82 0.115 215 / 0.35), oklch(0.72 0.15 290 / 0.25) 60%, transparent 75%)' }}
-          />
-          <img
-            src="/images/nerva/nerva-mark.png"
-            alt="NERVA — the CPU chip"
-            className="relative w-28 h-28 sm:w-32 sm:h-32 drop-shadow-[0_0_38px_oklch(0.82_0.115_215_/_0.55)]"
-            draggable={false}
-          />
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25, duration: 0.8 }}
-          className="font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.42em] text-[oklch(0.72_0.1_240)]"
+          transition={{ delay: 0.15, duration: 0.6 }}
+          className="flex flex-wrap items-center gap-3"
         >
-          The Nerva side of XelisVault
+          <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] text-[oklch(0.78_0.06_237)]">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-[oklch(0.72_0.12_160)] opacity-70 animate-ping" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[oklch(0.72_0.12_160)]" />
+            </span>
+            XelisVault · Nerva world
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/40 tabular-nums">
+            live · block {typeof height === 'number' ? height.toLocaleString() : 'syncing'}
+          </span>
         </motion.div>
 
         <motion.h1
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 22 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.9, ease: [0.22, 0.61, 0.36, 1] }}
-          className="mt-5 text-4xl sm:text-5xl lg:text-[64px] font-bold leading-[1.04] tracking-[-0.01em] text-white max-w-3xl"
+          transition={{ delay: 0.25, duration: 0.8, ease: [0.22, 0.61, 0.36, 1] }}
+          className="mt-6 text-4xl sm:text-5xl lg:text-[56px] font-bold leading-[1.05] tracking-[-0.015em] text-white max-w-3xl"
         >
-          Money that cannot
-          <br />
-          be <span className="text-gradient-nerva">watched</span>
+          Private cash, mined on{' '}
+          <span className="text-[oklch(0.78_0.06_237)]">ordinary computers</span>.
         </motion.h1>
 
         <motion.p
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 22 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.9 }}
-          className="mt-6 text-[15px] sm:text-[17px] leading-relaxed text-[oklch(0.7_0.025_250)] max-w-2xl"
+          transition={{ delay: 0.4, duration: 0.8 }}
+          className="mt-6 text-[15px] sm:text-[16.5px] leading-relaxed text-[oklch(0.78_0.012_250)] max-w-2xl"
         >
-          NERVA is private digital cash, forked from Monero in 2018 and engineered so
-          that <span className="text-white/90 font-medium">only CPUs can mine it</span> —
-          no GPUs, no ASICs, no pools. Ring signatures hide the sender, RingCT hides the
-          amount, one-time addresses hide the receiver. This world gives you the network
-          as it happens: a live explorer, telemetry, and payment links.
+          NERVA is digital cash forked from Monero in 2018, engineered so that only CPUs
+          can mine it: no GPUs, no ASICs, no pools. Ring signatures hide the sender,
+          RingCT hides the amount, one-time addresses hide the receiver. This world is
+          your window onto the network, with a live explorer, telemetry and payment links.
         </motion.p>
 
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 22 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.62, duration: 0.9 }}
-          className="mt-9 flex flex-col sm:flex-row gap-3.5"
+          transition={{ delay: 0.52, duration: 0.8 }}
+          className="mt-9 flex flex-col sm:flex-row gap-3"
         >
-          <Link
-            href="/nerva/explorer"
-            className="group inline-flex h-12 items-center justify-center gap-2.5 rounded-xl px-7 text-[14.5px] font-semibold bg-gradient-to-br from-[oklch(0.8_0.11_215)] to-[oklch(0.66_0.15_290)] text-[oklch(0.13_0.03_262)] hover:brightness-110 transition-all shadow-[0_10px_36px_-12px_oklch(0.82_0.115_215_/_0.7)]"
-          >
-            <Radar className="w-[18px] h-[18px]" />
-            Open the live explorer
-            <ArrowRight className="w-4 h-4 opacity-70 group-hover:translate-x-1 transition-transform" />
+          <Link href="/nerva/explorer" className={BTN_PRIMARY}>
+            <Radar className="w-[17px] h-[17px]" />
+            Open the block explorer
+            <ArrowRight className="w-4 h-4 opacity-60" />
           </Link>
-          <Link
-            href="/nerva/link"
-            className="inline-flex h-12 items-center justify-center gap-2.5 rounded-xl px-7 text-[14.5px] font-semibold border border-white/14 bg-white/4 hover:bg-white/8 hover:border-[oklch(0.82_0.115_215)]/50 text-white/90 transition-all"
-          >
-            <Link2 className="w-[18px] h-[18px] text-[oklch(0.82_0.115_215)]" />
+          <Link href="/nerva/link" className={BTN_SECONDARY}>
+            <Link2 className="w-[17px] h-[17px] text-[oklch(0.78_0.06_237)]" />
             Create a payment link
           </Link>
         </motion.div>
 
-        {/* live stats */}
+        {/* live network bar: one flat strip, divided cells */}
         <motion.div
-          initial={{ opacity: 0, y: 28 }}
+          initial={{ opacity: 0, y: 26 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.78, duration: 0.9 }}
-          className="mt-12 w-full max-w-3xl"
+          transition={{ delay: 0.66, duration: 0.8 }}
+          className="mt-12 border border-[oklch(0.92_0.008_250/0.14)] rounded-md overflow-hidden bg-[oklch(0.16_0.02_252/0.85)] backdrop-blur-sm max-w-4xl"
         >
-          <div className="flex flex-wrap gap-2.5 justify-center">
-            <LiveStat label="Height" value={typeof height === 'number' ? height.toLocaleString() : 'syncing…'} accent />
-            <LiveStat label="Network hashrate" value={hashrate ? formatHashrate(hashrate) : '…'} sub="difficulty ÷ 60s target" />
-            <LiveStat label="Difficulty" value={info ? info.difficulty.toLocaleString() : '…'} />
-            <LiveStat label="Transactions" value={info ? info.tx_count.toLocaleString() : '…'} />
-            <LiveStat label="Block reward" value={`${NERVA_CONSTANTS.tailReward} XNV`} sub="tail emission, forever" />
-            <LiveStat label="Supply ≈" value={typeof height === 'number' ? `${(estimateSupply(height) / 1e6).toFixed(2)}M XNV` : '…'} sub="18.44M + 0.3/block since 2021" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+            <LiveCell label="Height" value={typeof height === 'number' ? height.toLocaleString() : '…'} accent />
+            <LiveCell label="Hashrate" value={hashrate ? formatHashrate(hashrate) : '…'} sub="difficulty ÷ 60s" />
+            <LiveCell label="Difficulty" value={info ? info.difficulty.toLocaleString() : '…'} />
+            <LiveCell label="Transactions" value={info ? info.tx_count.toLocaleString() : '…'} sub="all time" />
+            <LiveCell label="Reward" value={`${NERVA_CONSTANTS.tailReward} XNV`} sub="per block, forever" />
+            <LiveCell
+              label="Supply"
+              value={typeof height === 'number' ? `${(estimateSupply(height) / 1e6).toFixed(2)}M` : '…'}
+              sub="XNV, tail emission"
+            />
           </div>
-          <div className="mt-3 font-mono text-[9px] uppercase tracking-[0.22em] text-[oklch(0.5_0.02_255)]">
-            Live from the public explorer API · refreshed every ~12s
+          <div className="border-t border-[oklch(0.92_0.008_250/0.1)] px-4 py-2 font-mono text-[8.5px] uppercase tracking-[0.2em] text-[oklch(0.5_0.01_250)]">
+            Live from the public explorer API · refreshed every ~12s · no server in between
           </div>
         </motion.div>
       </div>
@@ -197,38 +194,30 @@ function BlockTicker() {
   }, [])
 
   return (
-    <div className="relative border-y border-white/8 bg-[oklch(0.11_0.025_262)] overflow-hidden">
-      <div className="absolute left-0 top-0 bottom-0 z-10 w-20 bg-gradient-to-r from-[oklch(0.11_0.025_262)] to-transparent pointer-events-none" />
-      <div className="absolute right-0 top-0 bottom-0 z-10 w-20 bg-gradient-to-l from-[oklch(0.11_0.025_262)] to-transparent pointer-events-none" />
-      <div className="flex items-center gap-0 py-3 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="shrink-0 pr-5 mr-4 border-r border-white/10 flex items-center gap-2">
-          <Radio className="w-3.5 h-3.5 text-[oklch(0.75_0.14_160)] animate-pulse" />
-          <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[oklch(0.66_0.03_250)]">
-            Chain
-          </span>
+    <div className="relative border-y border-[oklch(0.92_0.008_250/0.1)] bg-[oklch(0.12_0.018_255)] overflow-hidden">
+      <div className="absolute left-0 top-0 bottom-0 z-10 w-16 bg-gradient-to-r from-[oklch(0.12_0.018_255)] to-transparent pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-0 z-10 w-16 bg-gradient-to-l from-[oklch(0.12_0.018_255)] to-transparent pointer-events-none" />
+      <div className="flex items-center gap-0 py-2.5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="shrink-0 pr-5 mr-4 border-r border-[oklch(0.92_0.008_250/0.12)] flex items-center gap-2">
+          <Radio className="w-3.5 h-3.5 text-[oklch(0.72_0.12_160)]" />
+          <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[oklch(0.6_0.012_250)]">Chain</span>
         </div>
         {blocks.length === 0 && (
-          <span className="font-mono text-[10px] text-[oklch(0.5_0.02_255)]">syncing blocks…</span>
+          <span className="font-mono text-[10px] text-[oklch(0.5_0.01_250)]">syncing blocks…</span>
         )}
         {blocks.map((b) => (
           <a
             key={b.hash}
             href={`/nerva/explorer?block=${b.hash}`}
-            className="shrink-0 px-4 py-1.5 mr-2 rounded-lg border border-white/8 bg-white/[0.03] hover:border-[oklch(0.82_0.115_215)]/45 hover:bg-[oklch(0.82_0.115_215)]/8 transition-all group"
+            className="shrink-0 px-3.5 py-1.5 mr-2 rounded-sm border border-[oklch(0.92_0.008_250/0.1)] bg-white/[0.02] hover:border-[oklch(0.78_0.06_237/0.5)] hover:bg-white/[0.05] transition-colors group"
           >
-            <span className="font-mono text-[11px] tabular-nums text-white/85 group-hover:text-[oklch(0.85_0.1_225)]">
+            <span className="font-mono text-[11px] tabular-nums text-white/85 group-hover:text-[oklch(0.83_0.055_237)]">
               #{b.height.toLocaleString()}
             </span>
-            <span className="font-mono text-[9px] text-[oklch(0.5_0.02_255)] ml-2.5">
-              {shortenHash(b.hash, 4, 4)}
-            </span>
-            <span className="font-mono text-[9px] text-[oklch(0.55_0.04_160)] ml-2.5">
-              {timeAgo(b.timestamp)}
-            </span>
+            <span className="font-mono text-[9px] text-[oklch(0.5_0.01_250)] ml-2.5">{shortenHash(b.hash, 4, 4)}</span>
+            <span className="font-mono text-[9px] text-[oklch(0.55_0.03_160)] ml-2.5">{timeAgo(b.timestamp)}</span>
             {(b.num_txes ?? 0) > 0 && (
-              <span className="ml-2 font-mono text-[9px] text-[oklch(0.82_0.115_215)]">
-                +{b.num_txes} tx
-              </span>
+              <span className="ml-2 font-mono text-[9px] text-[oklch(0.78_0.06_237)]">+{b.num_txes} tx</span>
             )}
           </a>
         ))}
@@ -240,101 +229,81 @@ function BlockTicker() {
 /* ═══════════════════ STORY ═══════════════════ */
 
 function Story() {
+  const facts = [
+    ['Launched', '1 May 2018'],
+    ['Forked from', 'Monero (CryptoNote)'],
+    ['Algorithm', 'CryptoNight-Adaptive v6'],
+    ['Supply', '~18.44M XNV mined by early 2021'],
+    ['Emission', '0.3 XNV per block, forever'],
+    ['Premine', '1% (180,000 XNV)'],
+  ]
   return (
-    <section className="relative py-24 sm:py-32">
+    <section className="relative py-20 sm:py-28">
       <div className="mx-auto max-w-6xl px-5 md:px-8">
         <Reveal>
           <SectionLabel>01 · The idea</SectionLabel>
         </Reveal>
-        <div className="mt-8 grid lg:grid-cols-2 gap-14 lg:gap-20 items-start">
+        <div className="mt-8 grid lg:grid-cols-[1.1fr_0.9fr] gap-12 lg:gap-16 items-start">
           <div>
             <Reveal delay={0.05}>
-              <h2 className="text-3xl sm:text-4xl lg:text-[44px] font-bold leading-[1.08] text-white tracking-[-0.01em]">
-                Proof-of-work is
-                <br />
-                essentially <span className="text-gradient-nerva">one-CPU-one-vote</span>
+              <h2 className="text-3xl sm:text-4xl font-bold leading-[1.1] text-white tracking-[-0.01em]">
+                Proof-of-work is essentially{' '}
+                <span className="text-[oklch(0.78_0.06_237)]">one-CPU-one-vote</span>
               </h2>
-              <p className="mt-4 font-mono text-[11px] tracking-[0.18em] text-[oklch(0.55_0.025_250)] uppercase">
-                — Satoshi Nakamoto, Bitcoin whitepaper
-              </p>
+              <div className="mt-4 pl-4 border-l-2 border-[oklch(0.78_0.06_237/0.5)]">
+                <p className="font-mono text-[11px] tracking-[0.16em] text-[oklch(0.55_0.012_250)] uppercase">
+                  Satoshi Nakamoto · Bitcoin whitepaper
+                </p>
+              </div>
             </Reveal>
             <Reveal delay={0.12}>
-              <div className="mt-8 space-y-5 text-[15px] leading-relaxed text-[oklch(0.72_0.025_250)]">
+              <div className="mt-8 space-y-5 text-[15px] leading-relaxed text-[oklch(0.75_0.012_250)]">
                 <p>
-                  NERVA launched on 1 May 2018 as a fork of Monero with one conviction:
-                  if mining can be industrialised, money becomes centralised. GPUs, ASICs
-                  and mining pools turn &ldquo;one-CPU-one-vote&rdquo; into one-datacenter-one-vote.
-                  NERVA simply refuses that future.
+                  NERVA launched on 1 May 2018 as a fork of Monero built on a single
+                  conviction: when mining can be industrialised, money becomes
+                  centralised. GPUs, ASICs and mining pools quietly turn
+                  one-CPU-one-vote into one-datacenter-one-vote. NERVA simply refuses
+                  that future.
                 </p>
                 <p>
-                  Its CryptoNight-Adaptive v6 algorithm (hardened again in hard fork v13,
-                  July 2026) is tuned to make GPUs and ASICs uncompetitive, and the
-                  protocol&rsquo;s solo-mining design — every miner runs a full node —
-                  makes pools unnecessary. The result is a network secured by thousands of
-                  ordinary computers, naturally resistant to 51% attacks.
+                  Its CryptoNight-Adaptive algorithm is re-tuned whenever hardware
+                  starts drifting toward dominance. The v6 revision, activated in hard
+                  fork v13, widens the memory-latency gap that keeps GPUs and ASICs
+                  unprofitable. Miners work solo through their own full node, so there
+                  is no pool operator to trust and no hashrate rental market to fear.
                 </p>
                 <p>
-                  Privacy is inherited from the CryptoNote lineage: ring signatures, RingCT
-                  and one-time addresses. An observer sees neither who sent, nor who
-                  received, nor how much. The chain is a crowd, not a ledger of names.
+                  Privacy is inherited from the CryptoNote lineage. Ring signatures,
+                  RingCT and one-time addresses mean an observer sees neither who sent,
+                  nor who received, nor how much. The chain is a crowd, not a ledger
+                  of names.
                 </p>
               </div>
             </Reveal>
           </div>
 
-          <RevealStagger className="grid gap-4">
-            <RevealItem>
-              <div className="panel-nerva rounded-xl p-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-[oklch(0.82_0.115_215)]/12 flex items-center justify-center">
-                    <Cpu className="w-5 h-5 text-[oklch(0.82_0.115_215)]" />
+          <div className="space-y-6">
+            <Reveal delay={0.1}>
+              <Figure
+                src="/images/nerva/photo-datacenter.jpg"
+                alt="Rows of industrial server racks in a datacenter corridor"
+                caption="Industrial racks: the centralisation NERVA is built against"
+              />
+            </Reveal>
+            <Reveal delay={0.18}>
+              <dl className="border border-[oklch(0.92_0.008_250/0.12)] rounded-md overflow-hidden bg-[oklch(0.17_0.02_252)]">
+                {facts.map(([k, v], i) => (
+                  <div
+                    key={k}
+                    className={`flex items-baseline justify-between gap-4 px-4 py-2.5 ${i > 0 ? 'border-t border-[oklch(0.92_0.008_250/0.08)]' : ''}`}
+                  >
+                    <dt className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-[oklch(0.57_0.012_250)] shrink-0">{k}</dt>
+                    <dd className="font-mono text-[12px] text-white/85 text-right tabular-nums">{v}</dd>
                   </div>
-                  <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.025_250)]">
-                    The machine
-                  </div>
-                </div>
-                <p className="mt-4 text-[13.5px] leading-relaxed text-[oklch(0.72_0.025_250)]">
-                  Mine competitively with the CPU in the device you are reading this on.
-                  CryptoNight-Adaptive v6, LWMA difficulty, 60-second blocks — and mining
-                  requires a full local node, tying security to decentralisation.
-                </p>
-              </div>
-            </RevealItem>
-            <RevealItem>
-              <div className="panel-nerva rounded-xl p-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-[oklch(0.72_0.15_290)]/14 flex items-center justify-center">
-                    <EyeOff className="w-5 h-5 text-[oklch(0.78_0.13_290)]" />
-                  </div>
-                  <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.025_250)]">
-                    The privacy
-                  </div>
-                </div>
-                <p className="mt-4 text-[13.5px] leading-relaxed text-[oklch(0.72_0.025_250)]">
-                  Ring size fixed at 5, amounts encrypted with RingCT, one-time stealth
-                  addresses per transaction. NERVA is private by default — there is no
-                  transparent mode to opt out of.
-                </p>
-              </div>
-            </RevealItem>
-            <RevealItem>
-              <div className="panel-nerva rounded-xl p-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-[oklch(0.75_0.12_160)]/12 flex items-center justify-center">
-                    <Coins className="w-5 h-5 text-[oklch(0.78_0.11_160)]" />
-                  </div>
-                  <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.025_250)]">
-                    The money
-                  </div>
-                </div>
-                <p className="mt-4 text-[13.5px] leading-relaxed text-[oklch(0.72_0.025_250)]">
-                  All ~18.44M XNV were mined by early 2021 — one of the first Monero
-                  lineage coins to reach tail emission. Every block now pays 0.3 XNV
-                  forever: ~432 XNV/day, ≈0.82% annual inflation, slowly shrinking.
-                </p>
-              </div>
-            </RevealItem>
-          </RevealStagger>
+                ))}
+              </dl>
+            </Reveal>
+          </div>
         </div>
       </div>
     </section>
@@ -352,14 +321,14 @@ function RingVisual() {
   return (
     <div className="relative w-full max-w-[300px] mx-auto aspect-square">
       <svg viewBox="0 0 100 100" className="w-full h-full">
-        <circle cx="50" cy="50" r="38" fill="none" stroke="oklch(0.82 0.115 215 / 0.25)" strokeWidth="0.6" />
-        <circle cx="50" cy="50" r="26" fill="none" stroke="oklch(0.72 0.15 290 / 0.18)" strokeWidth="0.5" strokeDasharray="2 2" />
+        <circle cx="50" cy="50" r="38" fill="none" stroke="oklch(0.78 0.06 237 / 0.3)" strokeWidth="0.6" />
+        <circle cx="50" cy="50" r="26" fill="none" stroke="oklch(0.62 0.08 306 / 0.22)" strokeWidth="0.5" strokeDasharray="2 2" />
         {nodes.map((n) => (
           <g key={n.i}>
             <circle
               cx={n.x} cy={n.y} r={n.i === 3 ? 3.2 : 2.1}
-              fill={n.i === 3 ? 'oklch(0.82 0.115 215)' : 'oklch(0.6 0.03 250 / 0.5)'}
-              stroke={n.i === 3 ? 'oklch(0.9 0.08 215)' : 'none'}
+              fill={n.i === 3 ? 'oklch(0.78 0.06 237)' : 'oklch(0.55 0.015 250 / 0.5)'}
+              stroke={n.i === 3 ? 'oklch(0.85 0.05 237)' : 'none'}
               strokeWidth={n.i === 3 ? 0.8 : 0}
             >
               {!reduce && (
@@ -368,75 +337,78 @@ function RingVisual() {
             </circle>
           </g>
         ))}
-        {/* the true signer is unknowable — all five candidates sign identically */}
+        {/* the true signer is unknowable: all five candidates sign identically */}
         {nodes.filter((n) => [2, 3, 4, 5, 6].includes(n.i)).map((n) => (
           <line key={`l-${n.i}`} x1="50" y1="50" x2={n.x} y2={n.y}
-            stroke="oklch(0.82 0.115 215 / 0.22)" strokeWidth="0.45" strokeDasharray="1.4 1.4">
+            stroke="oklch(0.78 0.06 237 / 0.25)" strokeWidth="0.45" strokeDasharray="1.4 1.4">
             {!reduce && (
               <animate attributeName="stroke-dashoffset" from="0" to="-5.6" dur="1.6s" repeatCount="indefinite" />
             )}
           </line>
         ))}
-        <text x="50" y="50" textAnchor="middle" dy="0.35" fontSize="4.6" fill="oklch(0.85 0.03 250)" fontFamily="monospace" letterSpacing="0.5">
+        <text x="50" y="50" textAnchor="middle" dy="0.35" fontSize="4.6" fill="oklch(0.75 0.012 250)" fontFamily="monospace" letterSpacing="0.5">
           ring
         </text>
       </svg>
-      <div className="absolute -bottom-2 left-0 right-0 text-center font-mono text-[9px] uppercase tracking-[0.24em] text-[oklch(0.55_0.02_255)]">
-        5 signers · 1 real · 0 knowledge
+      <div className="absolute -bottom-2 left-0 right-0 text-center font-mono text-[9px] uppercase tracking-[0.24em] text-[oklch(0.5_0.01_250)]">
+        5 possible signers · 1 real · 0 observers
       </div>
     </div>
   )
 }
 
 function PrivacySection() {
-  const cards = [
+  const items = [
     {
       icon: Users,
       title: 'Ring signatures',
-      body: 'Every transaction is signed by a ring of 5 possible spenders. The real signer is computationally indistinguishable from the decoys chosen automatically from the chain.',
-      accent: 'oklch(0.82 0.115 215)',
+      body: 'Every transaction is signed by a ring of five possible spenders. The real signer is computationally indistinguishable from the decoys the wallet picks automatically from the chain.',
     },
     {
       icon: Lock,
       title: 'RingCT amounts',
-      body: 'Amounts are encrypted with Pedersen commitments. The network verifies no inflation without ever seeing a balance — sums prove out, values stay sealed.',
-      accent: 'oklch(0.78_0.13_290)',
+      body: 'Amounts are sealed with Pedersen commitments. The network proves no coins were created out of thin air without ever seeing a balance.',
     },
     {
       icon: Fingerprint,
       title: 'One-time addresses',
-      body: 'Each transfer derives a unique stealth address on the receiver side. Reuse is impossible, linkage is impossible, address books are not a thing.',
-      accent: 'oklch(0.78_0.11_160)',
+      body: 'Each transfer derives a unique stealth address on the receiver side. Addresses cannot be reused, so nothing links two payments to the same person.',
     },
   ]
   return (
-    <section className="relative py-24 sm:py-32">
-      <div className="absolute inset-0 circuit-bg opacity-40" />
-      <div className="relative mx-auto max-w-6xl px-5 md:px-8">
+    <section className="relative py-20 sm:py-28 border-t border-[oklch(0.92_0.008_250/0.08)]">
+      <div className="mx-auto max-w-6xl px-5 md:px-8">
         <Reveal>
-          <SectionLabel>02 · Privacy</SectionLabel>
+          <SectionLabel>02 · Privacy by default</SectionLabel>
         </Reveal>
-        <div className="mt-8 grid lg:grid-cols-[1fr_auto] gap-14 items-center">
+        <div className="mt-8 grid lg:grid-cols-[1.25fr_0.75fr] gap-12 items-center">
           <div>
             <Reveal delay={0.05}>
               <h2 className="text-3xl sm:text-4xl font-bold leading-[1.1] text-white max-w-xl">
-                The chain is a <span className="text-gradient-nerva">crowd</span>,
+                The chain is a <span className="text-[oklch(0.78_0.06_237)]">crowd</span>,
                 not a ledger of names
               </h2>
             </Reveal>
-            <RevealStagger className="mt-9 grid sm:grid-cols-3 gap-4">
-              {cards.map((c) => (
+            <RevealStagger className="mt-10 grid sm:grid-cols-3 gap-x-8 gap-y-8">
+              {items.map((c) => (
                 <RevealItem key={c.title}>
-                  <div className="panel-nerva rounded-xl p-5 h-full hover:border-[oklch(0.82_0.115_215)]/30 transition-colors">
-                    <c.icon className="w-5 h-5" style={{ color: c.accent }} />
-                    <div className="mt-3.5 font-semibold text-[14.5px] text-white/90">{c.title}</div>
-                    <p className="mt-2 text-[12.5px] leading-relaxed text-[oklch(0.66_0.025_250)]">{c.body}</p>
+                  <div className="border-t-2 border-[oklch(0.78_0.06_237/0.35)] pt-5">
+                    <c.icon className="w-[18px] h-[18px] text-[oklch(0.78_0.06_237)]" />
+                    <div className="mt-3 font-semibold text-[14.5px] text-white/90">{c.title}</div>
+                    <p className="mt-2 text-[12.5px] leading-relaxed text-[oklch(0.68_0.012_250)]">{c.body}</p>
                   </div>
                 </RevealItem>
               ))}
             </RevealStagger>
+            <Reveal delay={0.15}>
+              <p className="mt-8 text-[12.5px] text-[oklch(0.62_0.012_250)] flex items-start gap-2">
+                <EyeOff className="w-4 h-4 mt-0.5 text-[oklch(0.62_0.08_306)] shrink-0" />
+                There is no transparent mode to opt out of. Every transaction is private,
+                for everyone, by default.
+              </p>
+            </Reveal>
           </div>
-          <Reveal delay={0.15} className="lg:pl-6">
+          <Reveal delay={0.18} className="lg:pl-6">
             <RingVisual />
           </Reveal>
         </div>
@@ -451,68 +423,60 @@ function MiningSection() {
   const facts = [
     { label: 'Algorithm', value: 'CryptoNight-Adaptive v6' },
     { label: 'Hard fork', value: 'v13 · July 2026 · block 4,320,000' },
-    { label: 'Difficulty', value: 'LWMA — smooth retarget' },
+    { label: 'Difficulty', value: 'LWMA, smooth retarget' },
     { label: 'Block time', value: '60 seconds' },
-    { label: 'Maturity', value: 'coinbase spendable after 20 blocks' },
+    { label: 'Coinbase maturity', value: 'spendable after 20 blocks' },
     { label: 'Transfers', value: 'spendable after 10 blocks' },
     { label: 'Premine', value: '1% (180,000 XNV)' },
     { label: 'Pools', value: 'deliberately pointless' },
   ]
   return (
-    <section className="relative py-24 sm:py-32">
+    <section className="relative py-20 sm:py-28 border-t border-[oklch(0.92_0.008_250/0.08)]">
       <div className="mx-auto max-w-6xl px-5 md:px-8">
         <Reveal>
           <SectionLabel>03 · Mining</SectionLabel>
         </Reveal>
-        <div className="mt-8 grid lg:grid-cols-2 gap-14 items-center">
+        <div className="mt-8 grid lg:grid-cols-2 gap-12 items-start">
           <Reveal delay={0.05}>
             <div className="relative">
-              {/* stylized CPU chip */}
-              <div className="panel-nerva rounded-2xl p-10 sm:p-14 flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 circuit-bg opacity-70" />
-                <div className="absolute inset-0 scanline-nerva" />
-                <div className="relative">
-                  <img src="/images/nerva/nerva-mark.png" alt="" className="w-28 h-28 drop-shadow-[0_0_30px_oklch(0.82_0.115_215_/_0.6)]" />
-                  {/* chip pins */}
-                  <div className="absolute -left-7 top-1/2 -translate-y-1/2 flex flex-col gap-2.5">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <span key={i} className="block w-4 h-0.5 rounded-full bg-[oklch(0.82_0.115_215_/_0.5)]" />
-                    ))}
-                  </div>
-                  <div className="absolute -right-7 top-1/2 -translate-y-1/2 flex flex-col gap-2.5">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <span key={i} className="block w-4 h-0.5 rounded-full bg-[oklch(0.82_0.115_215_/_0.5)]" />
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="absolute -top-3 -right-3 font-mono text-[9px] uppercase tracking-[0.2em] px-2.5 py-1 rounded-md bg-[oklch(0.82_0.115_215)] text-[oklch(0.13_0.03_262)] font-bold">
-                GPU / ASIC resistant
+              <Figure
+                src="/images/nerva/photo-cpu.jpg"
+                alt="Macro photograph of the underside of a CPU, golden pins and capacitors"
+                caption="A commodity CPU: the only mining rig NERVA needs"
+                ratio="aspect-[4/3]"
+              />
+              <div className="absolute top-3 right-3 font-mono text-[9px] uppercase tracking-[0.16em] px-2.5 py-1 rounded-sm bg-[oklch(0.66_0.083_233)] text-[oklch(0.13_0.02_255)] font-semibold">
+                GPU and ASIC resistant
               </div>
             </div>
           </Reveal>
           <div>
             <Reveal delay={0.1}>
               <h2 className="text-3xl sm:text-4xl font-bold leading-[1.1] text-white">
-                Secured by <span className="text-gradient-nerva">ordinary computers</span>
+                Secured by <span className="text-[oklch(0.78_0.06_237)]">ordinary computers</span>
               </h2>
-              <p className="mt-5 text-[15px] leading-relaxed text-[oklch(0.72_0.025_250)]">
-                CryptoNight-Adaptive is repeatedly re-tuned to whatever hardware is
-                drifting towards dominance — the v6 revision in July 2026 widened the
-                memory-latency gap that kills GPUs and ASICs. NERVA miners mine solo,
-                through their own full node: no pool operator to trust, no hashrate
-                rental market to attack you with.
+              <p className="mt-5 text-[15px] leading-relaxed text-[oklch(0.75_0.012_250)]">
+                CryptoNight-Adaptive v6 is tuned for the CPU in the device you are
+                reading this on. LWMA difficulty retargets smoothly every block, and
+                solo mining requires running a full node, tying security directly to
+                decentralisation. No pool operator stands between you and the network,
+                and the hardware you already own is competitive.
               </p>
             </Reveal>
             <Reveal delay={0.18}>
-              <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-4">
+              <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-0">
                 {facts.map((f) => (
-                  <div key={f.label} className="border-b border-white/8 pb-3">
-                    <dt className="font-mono text-[9px] uppercase tracking-[0.18em] text-[oklch(0.55_0.025_250)]">{f.label}</dt>
+                  <div key={f.label} className="border-b border-[oklch(0.92_0.008_250/0.1)] py-3">
+                    <dt className="font-mono text-[9px] uppercase tracking-[0.16em] text-[oklch(0.55_0.012_250)]">{f.label}</dt>
                     <dd className="mt-1 font-mono text-[12.5px] text-white/85 tabular-nums">{f.value}</dd>
                   </div>
                 ))}
               </dl>
+              <p className="mt-6 text-[12.5px] text-[oklch(0.62_0.012_250)] flex items-start gap-2">
+                <Cpu className="w-4 h-4 mt-0.5 text-[oklch(0.78_0.06_237)] shrink-0" />
+                Mining runs through the official CLI or NervaOne; this interface itself
+                only reads the chain.
+              </p>
             </Reveal>
           </div>
         </div>
@@ -527,67 +491,110 @@ function HowItWorks() {
   const steps = [
     {
       icon: Server,
+      num: '01',
       title: 'Read-only, key-free',
-      body: 'This interface talks straight to the public NERVA explorer API (api.nerva.one) from your browser. It never holds a seed, a spend key, or a view key. There is nothing here to steal.',
+      body: 'This interface talks straight to the public NERVA explorer API (api.nerva.one) from your browser. It never holds a seed, a spend key or a view key. There is nothing here to steal.',
     },
     {
       icon: Zap,
+      num: '02',
       title: 'Live, not cached theatre',
-      body: 'Height, difficulty, blocks and the mempool are polled every few seconds — the same public feed the official explorer uses. The block ticker you saw above is the actual chain.',
+      body: 'Height, difficulty, blocks and the mempool are polled every few seconds, the same public feed the official explorer uses. The block ticker at the top of this page is the actual chain.',
     },
     {
       icon: Link2,
+      num: '03',
       title: 'Stateless payment links',
-      body: 'NervaLink invoices live entirely inside their URL. The pay page watches the chain for your invoice reference (a payment id) and follows it from mempool to 10 confirmations — no account, no database, no server.',
+      body: 'NervaLink invoices live entirely inside their URL. The pay page watches the chain for your invoice reference and follows it from the mempool to 10 confirmations, with no account, no database and no server.',
     },
   ]
   return (
-    <section className="relative py-24 sm:py-32">
-      <div className="absolute inset-0"
-        style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 0%, oklch(0.16 0.04 268 / 0.8), transparent 70%)' }} />
-      <div className="relative mx-auto max-w-6xl px-5 md:px-8">
+    <section className="relative py-20 sm:py-28 border-t border-[oklch(0.92_0.008_250/0.08)]">
+      <div className="mx-auto max-w-6xl px-5 md:px-8">
         <Reveal>
           <SectionLabel>04 · How this world works</SectionLabel>
         </Reveal>
-        <Reveal delay={0.05}>
-          <h2 className="mt-8 text-3xl sm:text-4xl font-bold leading-[1.1] text-white max-w-2xl">
-            Everything runs <span className="text-gradient-nerva">client-side</span> — nothing to hack, nothing to custody
-          </h2>
-          <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-[oklch(0.72_0.025_250)]">
-            XelisVault&rsquo;s Nerva side is an independent window onto the network —
-            built in the spirit of the protocol itself: no accounts, no tracking, no
-            keys, no third-party scripts. Here is exactly what happens under the hood:
-          </p>
-        </Reveal>
-        <RevealStagger className="mt-10 grid md:grid-cols-3 gap-4">
-          {steps.map((s, i) => (
-            <RevealItem key={s.title}>
-              <div className="panel-nerva rounded-xl p-6 h-full relative overflow-hidden">
-                <div className="absolute top-4 right-5 font-mono text-[34px] font-bold text-white/6 tabular-nums">
-                  0{i + 1}
+        <div className="mt-8 grid lg:grid-cols-[1.15fr_0.85fr] gap-12 items-start">
+          <div>
+            <Reveal delay={0.05}>
+              <h2 className="text-3xl sm:text-4xl font-bold leading-[1.1] text-white max-w-xl">
+                Everything runs client-side:{' '}
+                <span className="text-[oklch(0.78_0.06_237)]">nothing to hack, nothing to custody</span>
+              </h2>
+              <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-[oklch(0.75_0.012_250)]">
+                The Nerva side of XelisVault is an independent window onto the network,
+                built in the spirit of the protocol itself: no accounts, no tracking,
+                no keys, no third-party scripts. Here is exactly what happens under
+                the hood.
+              </p>
+            </Reveal>
+            <RevealStagger className="mt-10 space-y-0">
+              {steps.map((s) => (
+                <RevealItem key={s.title}>
+                  <div className="flex gap-6 border-t border-[oklch(0.92_0.008_250/0.1)] py-7">
+                    <div className="shrink-0 w-14">
+                      <div className="font-mono text-[22px] font-bold text-[oklch(0.78_0.06_237/0.85)] tabular-nums leading-none">{s.num}</div>
+                      <s.icon className="mt-3.5 w-4 h-4 text-[oklch(0.55_0.012_250)]" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-[15px] text-white/90">{s.title}</div>
+                      <p className="mt-2 text-[13.5px] leading-relaxed text-[oklch(0.68_0.012_250)] max-w-lg">{s.body}</p>
+                    </div>
+                  </div>
+                </RevealItem>
+              ))}
+            </RevealStagger>
+            <Reveal delay={0.2}>
+              <div className="mt-2 border border-[oklch(0.92_0.008_250/0.12)] border-l-2 border-l-[oklch(0.78_0.06_237)] rounded-r-md bg-[oklch(0.17_0.02_252)] p-5">
+                <div className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-[oklch(0.78_0.06_237)]">
+                  Honest limitations · read this
                 </div>
-                <s.icon className="w-5 h-5 text-[oklch(0.82_0.115_215)]" />
-                <div className="mt-3.5 font-semibold text-[14.5px] text-white/90">{s.title}</div>
-                <p className="mt-2 text-[12.5px] leading-relaxed text-[oklch(0.66_0.025_250)]">{s.body}</p>
+                <p className="mt-2.5 text-[12.5px] leading-relaxed text-[oklch(0.72_0.012_250)]">
+                  RingCT amounts are encrypted. Payment detection confirms that your
+                  invoice reference appeared on-chain with enough confirmations; it
+                  cannot read the exact amount paid. Your wallet (NervaOne or the CLI)
+                  shows the amount paired with the reference for final reconciliation.
+                  Recent wallet versions may require enabling long payment ids for URI
+                  payments, so the pay page always offers the plain address as a
+                  fallback.
+                </p>
               </div>
-            </RevealItem>
-          ))}
-        </RevealStagger>
-        <Reveal delay={0.2}>
-          <div className="mt-6 panel-nerva rounded-xl p-5 border-l-2 border-l-[oklch(0.82_0.115_215)]/60">
-            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.82_0.115_215)]">
-              Honest limitations — read this
-            </div>
-            <p className="mt-2.5 text-[12.5px] leading-relaxed text-[oklch(0.7_0.025_250)]">
-              RingCT amounts are encrypted: payment detection confirms that your
-              invoice reference appeared on-chain with enough confirmations — it cannot
-              read the exact amount paid. Your wallet (NervaOne or the CLI) shows the
-              amount paired with the reference for final reconciliation. Recent wallet
-              versions may require enabling long payment ids for URI payments — the pay
-              page always offers the plain address as a fallback.
-            </p>
+            </Reveal>
           </div>
-        </Reveal>
+          <div className="space-y-6 lg:sticky lg:top-28">
+            <Reveal delay={0.12}>
+              <Figure
+                src="/images/nerva/photo-racks.jpg"
+                alt="Server racks with network equipment and status lights"
+                caption="Your browser is the client. There is no server in the middle"
+              />
+            </Reveal>
+            <Reveal delay={0.2}>
+              <div className="border border-[oklch(0.92_0.008_250/0.12)] rounded-md bg-[oklch(0.17_0.02_252)] p-5">
+                <div className="flex items-center gap-2.5">
+                  <Layers className="w-4 h-4 text-[oklch(0.78_0.06_237)]" />
+                  <span className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-[oklch(0.57_0.012_250)]">
+                    Under the hood
+                  </span>
+                </div>
+                <dl className="mt-3.5 space-y-2.5 font-mono text-[11.5px]">
+                  {[
+                    ['data source', 'api.nerva.one (public, CORS-open)'],
+                    ['polling', '~10s feed, ~120s chart'],
+                    ['wallet exposure', 'none: read-only'],
+                    ['analytics', 'none: zero trackers'],
+                    ['build', 'static, deploys on Vercel'],
+                  ].map(([k, v]) => (
+                    <div key={k} className="flex justify-between gap-4">
+                      <dt className="text-[oklch(0.55_0.012_250)] uppercase tracking-[0.1em] text-[9.5px] pt-0.5">{k}</dt>
+                      <dd className="text-white/80 text-right">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            </Reveal>
+          </div>
+        </div>
       </div>
     </section>
   )
@@ -597,39 +604,42 @@ function HowItWorks() {
 
 function Ecosystem() {
   const items = [
-    { icon: Globe, title: 'nerva.one', desc: 'Official site — downloads, exchanges, paper wallet', href: NERVA_LINKS.site },
-    { icon: BookOpen, title: 'Documentation', desc: 'Guides: CLI, mining, Tor, daemon & wallet RPC', href: NERVA_LINKS.docs },
-    { icon: Radar, title: 'Official explorer', desc: 'The reference block & transaction explorer', href: NERVA_LINKS.explorer },
-    { icon: MapIcon, title: 'Node map', desc: 'Live geographic map of reachable nodes', href: NERVA_LINKS.nodeMap },
-    { icon: Github, title: 'GitHub', desc: 'nerva-project — the C++ source of the chain', href: NERVA_LINKS.github },
-    { icon: MessageSquare, title: 'Discord', desc: 'The community — help, ideas, test funds', href: NERVA_LINKS.discord },
+    { domain: 'nerva.one', title: 'Official site', desc: 'Downloads, exchanges, paper wallet', href: NERVA_LINKS.site, icon: Globe },
+    { domain: 'docs.nerva.one', title: 'Documentation', desc: 'Guides for the CLI, mining, Tor, daemon and wallet RPC', href: NERVA_LINKS.docs, icon: BookOpen },
+    { domain: 'explorer.nerva.one', title: 'Official explorer', desc: 'The reference block and transaction explorer', href: NERVA_LINKS.explorer, icon: Radar },
+    { domain: 'map.nerva.one', title: 'Node map', desc: 'Live geographic map of reachable nodes', href: NERVA_LINKS.nodeMap, icon: MapIcon },
+    { domain: 'github.com/nerva-project', title: 'GitHub', desc: 'The C++ source of the chain', href: NERVA_LINKS.github, icon: Github },
+    { domain: 'discord', title: 'Discord', desc: 'The community: help, ideas, test funds', href: NERVA_LINKS.discord, icon: MessageSquare },
   ]
   return (
-    <section className="relative py-24 sm:py-32">
+    <section className="relative py-20 sm:py-28 border-t border-[oklch(0.92_0.008_250/0.08)]">
       <div className="mx-auto max-w-6xl px-5 md:px-8">
         <Reveal>
           <SectionLabel>05 · Ecosystem</SectionLabel>
         </Reveal>
         <Reveal delay={0.05}>
           <h2 className="mt-8 text-3xl sm:text-4xl font-bold leading-[1.1] text-white">
-            The wider <span className="text-gradient-nerva">NERVA</span> world
+            The wider <span className="text-[oklch(0.78_0.06_237)]">NERVA</span> world
           </h2>
         </Reveal>
-        <RevealStagger className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <RevealStagger className="mt-10 grid sm:grid-cols-2 gap-x-12">
           {items.map((it) => (
             <RevealItem key={it.title}>
               <a
                 href={it.href}
                 target="_blank"
                 rel="noreferrer"
-                className="panel-nerva rounded-xl p-6 h-full block hover:border-[oklch(0.82_0.115_215)]/40 hover:-translate-y-0.5 transition-all group"
+                className="group flex items-center gap-4 border-t border-[oklch(0.92_0.008_250/0.1)] py-5 hover:bg-white/[0.02] transition-colors -mx-3 px-3 rounded-sm"
               >
-                <div className="flex items-center justify-between">
-                  <it.icon className="w-5 h-5 text-[oklch(0.82_0.115_215)]" />
-                  <ArrowUpRight className="w-4 h-4 text-white/25 group-hover:text-[oklch(0.82_0.115_215)] transition-colors" />
+                <it.icon className="w-[18px] h-[18px] text-[oklch(0.78_0.06_237)] shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-3">
+                    <span className="font-semibold text-[14.5px] text-white/90 group-hover:text-white transition-colors">{it.title}</span>
+                    <span className="font-mono text-[10.5px] text-[oklch(0.78_0.06_237/0.8)] truncate">{it.domain}</span>
+                  </div>
+                  <p className="mt-1 text-[12.5px] text-[oklch(0.62_0.012_250)]">{it.desc}</p>
                 </div>
-                <div className="mt-4 font-semibold text-[14.5px] text-white/90">{it.title}</div>
-                <p className="mt-1.5 text-[12.5px] leading-relaxed text-[oklch(0.62_0.025_250)]">{it.desc}</p>
+                <ArrowUpRight className="w-4 h-4 text-white/25 group-hover:text-[oklch(0.78_0.06_237)] transition-colors shrink-0" />
               </a>
             </RevealItem>
           ))}
@@ -644,35 +654,31 @@ function Ecosystem() {
 function FinalCTA() {
   const openGate = useSide((s) => s.openGate)
   return (
-    <section className="relative py-24 sm:py-28 overflow-hidden">
-      <div className="absolute inset-0 circuit-bg opacity-50" />
-      <div className="absolute inset-0"
-        style={{ background: 'radial-gradient(ellipse 60% 70% at 50% 100%, oklch(0.24 0.08 285 / 0.45), transparent 70%)' }} />
+    <section className="relative py-20 sm:py-28 border-t border-[oklch(0.92_0.008_250/0.08)] overflow-hidden">
+      <div className="absolute inset-0">
+        <img src="/images/nerva/photo-pcb.jpg" alt="" aria-hidden="true" className="w-full h-full object-cover opacity-30" draggable={false} />
+        <div className="absolute inset-0 bg-[oklch(0.14_0.018_255/0.85)]" />
+      </div>
       <div className="relative mx-auto max-w-3xl px-5 text-center">
         <Reveal>
-          <Shield className="w-10 h-10 mx-auto text-[oklch(0.82_0.115_215)]" />
+          <Shield className="w-9 h-9 mx-auto text-[oklch(0.78_0.06_237)]" />
           <h2 className="mt-6 text-3xl sm:text-4xl font-bold leading-[1.12] text-white">
-            Two protocols. One standard: <span className="text-gradient-nerva">privacy</span>
+            Two protocols. One standard:{' '}
+            <span className="text-[oklch(0.78_0.06_237)]">privacy</span>
           </h2>
-          <p className="mt-5 text-[15px] leading-relaxed text-[oklch(0.7_0.025_250)]">
-            You are standing in the Nerva world of XelisVault. The Xelis world holds the
-            confidential BlockDAG platform — xUSD, VLT, VaultSwap, the vault app itself.
-            Cross back any time; the gate remembers nothing.
+          <p className="mt-5 text-[15px] leading-relaxed text-[oklch(0.75_0.012_250)]">
+            You are standing in the Nerva world of XelisVault. The Xelis world holds
+            the confidential BlockDAG platform: xUSD, VLT, VaultSwap and the vault app
+            itself. Cross back any time; the gate remembers nothing.
           </p>
         </Reveal>
         <Reveal delay={0.12}>
-          <div className="mt-9 flex flex-col sm:flex-row gap-3.5 justify-center">
-            <Link
-              href="/nerva/explorer"
-              className="inline-flex h-12 items-center justify-center gap-2.5 rounded-xl px-7 text-[14.5px] font-semibold bg-gradient-to-br from-[oklch(0.8_0.11_215)] to-[oklch(0.66_0.15_290)] text-[oklch(0.13_0.03_262)] hover:brightness-110 transition-all"
-            >
-              <Radar className="w-[18px] h-[18px]" /> Live explorer
+          <div className="mt-9 flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/nerva/explorer" className={BTN_PRIMARY}>
+              <Radar className="w-[17px] h-[17px]" /> Live explorer
             </Link>
-            <button
-              onClick={openGate}
-              className="inline-flex h-12 items-center justify-center gap-2.5 rounded-xl px-7 text-[14.5px] font-semibold border border-white/14 bg-white/4 hover:bg-white/8 text-white/90 transition-all"
-            >
-              <Layers className="w-[18px] h-[18px] text-[oklch(0.78_0.13_290)]" /> Choose your side
+            <button onClick={openGate} className={BTN_SECONDARY}>
+              <Layers className="w-[17px] h-[17px] text-[oklch(0.74_0.07_306)]" /> Choose your side
             </button>
           </div>
         </Reveal>

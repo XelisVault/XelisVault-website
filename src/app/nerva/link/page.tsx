@@ -5,7 +5,7 @@ import { LinkCreator } from '@/components/nerva/link-creator'
 export const metadata: Metadata = {
   title: 'NervaLink · Payment Links',
   description:
-    'Create NERVA (XNV) payment links in seconds — stateless, keyless, serverless. The invoice lives in the URL; detection watches the chain from your browser.',
+    'Create NERVA (XNV) payment links in seconds: stateless, keyless, serverless. The invoice lives in the URL and detection watches the chain from your browser.',
 }
 
 export default function NervaLinkPage() {

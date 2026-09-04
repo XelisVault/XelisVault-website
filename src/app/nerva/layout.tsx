@@ -3,11 +3,11 @@ import { NervaShell } from '@/components/nerva/shell'
 
 export const metadata: Metadata = {
   title: {
-    default: 'NERVA · Private CPU Money — the Nerva side of XelisVault',
+    default: 'NERVA · Private CPU Money · the Nerva side of XelisVault',
     template: '%s · NERVA · XelisVault',
   },
   description:
-    'NERVA (XNV) is private digital cash you can mine with your CPU. Live explorer, payment links and network telemetry — the Nerva side of XelisVault, powered by the public explorer API.',
+    'NERVA (XNV) is private digital cash you can mine with your CPU. Live explorer, payment links and network telemetry, the Nerva side of XelisVault, powered by the public explorer API.',
   keywords: [
     'NERVA',
     'XNV',
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: 'NERVA · Private CPU Money — the Nerva side of XelisVault',
+    title: 'NERVA · Private CPU Money · the Nerva side of XelisVault',
     description:
       'Private digital cash, mined by CPUs alone. Live explorer, payment links and network telemetry for the NERVA network.',
     siteName: 'XelisVault · Nerva side',

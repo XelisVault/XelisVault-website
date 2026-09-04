@@ -72,11 +72,11 @@ function SideSwitchPill() {
   return (
     <button
       onClick={openGate}
-      title="Switch protocol side — XELIS ⇄ NERVA"
+      title="Switch protocol side: XELIS ⇄ NERVA"
       aria-label="Switch protocol side"
       className="inline-flex items-center gap-1.5 h-6 pl-1.5 pr-2.5 rounded-full border border-ink-foreground/15 hover:border-vault/50 bg-ink-foreground/4 hover:bg-vault/8 transition-all group"
     >
-      <img src="/images/xelisvault-logo.png" alt="" className="w-3.5 h-3.5 rounded-[2px] ring-1 ring-white/25" />
+      <img src="/images/xelis-logo.svg" alt="XELIS" className="w-3.5 h-3.5" />
       <span className="font-mono text-[9px] tracking-[0.1em] text-ink-foreground/60 group-hover:text-ink-foreground transition-colors">⇄</span>
       <img src="/images/nerva/nerva-mark.png" alt="" className="w-3.5 h-3.5 rounded-full ring-1 ring-white/25" />
       <span className="hidden sm:inline font-mono text-[9px] uppercase tracking-[0.14em] text-ink-foreground/70 group-hover:text-vault transition-colors">Sides</span>

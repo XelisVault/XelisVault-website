@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * NervaLink checkout — the payment page.
+ * NervaLink checkout: the payment page.
  *
  * The invoice is decoded from the URL (stateless), a QR of the `nerva:` URI
  * is rendered locally, and the page polls the public explorer API every
@@ -50,36 +50,36 @@ const PHASES: Record<Phase, { label: string; sub: string; color: string; icon: P
   pending: {
     label: 'Listening for your payment',
     sub: 'Scanning the mempool and every new block · every 10 seconds',
-    color: 'oklch(0.82 0.115 215)',
+    color: 'oklch(0.78 0.06 237)',
     icon: Radar,
   },
   detected: {
     label: 'Payment seen',
-    sub: 'Your transaction is on the network — waiting for its first block',
+    sub: 'Your transaction is on the network, waiting for its first block',
     color: 'oklch(0.78 0.13 290)',
     icon: EyeOff,
   },
   confirmed: {
     label: 'Payment confirmed',
-    sub: 'Included in a block — follow it to full settlement',
+    sub: 'Included in a block, follow it to full settlement',
     color: 'oklch(0.8 0.11 200)',
     icon: CheckCircle2,
   },
   settled: {
     label: 'Payment settled',
-    sub: '10 confirmations — the funds are spendable on the receiver side',
-    color: 'oklch(0.75 0.14 160)',
+    sub: '10 confirmations, the funds are spendable on the receiver side',
+    color: 'oklch(0.72 0.12 160)',
     icon: CheckCircle2,
   },
   expired: {
     label: 'Link expired',
-    sub: 'This invoice passed its lifetime — ask the merchant for a fresh link',
+    sub: 'This invoice passed its lifetime, ask the merchant for a fresh link',
     color: 'oklch(0.65 0.15 25)',
     icon: Clock,
   },
   'link-expired': {
     label: 'Link expired',
-    sub: 'This invoice passed its lifetime — ask the merchant for a fresh link',
+    sub: 'This invoice passed its lifetime, ask the merchant for a fresh link',
     color: 'oklch(0.65 0.15 25)',
     icon: Clock,
   },
@@ -134,7 +134,7 @@ export function PayPage() {
 
   const uri = useMemo(() => (invoice ? buildNervaUri(invoice) : ''), [invoice])
 
-  /* QR — generated locally, never via a third-party service */
+  /* QR generated locally, never via a third-party service */
   useEffect(() => {
     if (!invoice) return
     let alive = true
@@ -144,7 +144,7 @@ export function PayPage() {
     return () => { alive = false }
   }, [invoice])
 
-  /* the watcher loop — poll every 10s + jitter, stop when settled/expired */
+  /* the watcher loop: poll every 10s + jitter, stop when settled/expired */
   const watch = useCallback(async () => {
     if (!invoice || busy.current) return
     const phase0 = invoicePhase(invoice)
@@ -185,7 +185,7 @@ export function PayPage() {
     return (
       <div className="relative pt-36 pb-32 flex items-center justify-center min-h-screen">
         <div className="absolute inset-0 circuit-bg opacity-25" />
-        <div className="relative panel-nerva rounded-2xl p-8 max-w-md mx-5 text-center">
+        <div className="relative panel-nerva rounded-lg p-8 max-w-md mx-5 text-center">
           <AlertTriangle className="w-9 h-9 mx-auto text-[oklch(0.75_0.13_80)]" />
           <h1 className="mt-5 text-xl font-bold text-white">This payment link is invalid</h1>
           <p className="mt-3 text-[13px] leading-relaxed text-[oklch(0.66_0.025_250)]">
@@ -194,7 +194,7 @@ export function PayPage() {
           </p>
           <Link
             href="/nerva/link"
-            className="mt-7 inline-flex h-11 items-center justify-center gap-2 rounded-xl px-6 text-[13.5px] font-semibold bg-gradient-to-br from-[oklch(0.8_0.11_215)] to-[oklch(0.66_0.15_290)] text-[oklch(0.13_0.03_262)] hover:brightness-110 transition-all"
+            className="mt-7 inline-flex h-11 items-center justify-center gap-2 rounded-md px-6 text-[13.5px] font-semibold bg-[oklch(0.66_0.083_233)] text-[oklch(0.13_0.02_255)] hover:bg-[oklch(0.7_0.08_236)] transition-colors"
           >
             <LinkIcon className="w-4 h-4" /> Create one yourself
           </Link>
@@ -225,15 +225,15 @@ export function PayPage() {
         style={{
           background:
             phase === 'settled'
-              ? 'radial-gradient(ellipse 70% 60% at 50% 0%, oklch(0.24 0.1 160 / 0.4), transparent 70%)'
-              : 'radial-gradient(ellipse 70% 60% at 50% 0%, oklch(0.22 0.07 270 / 0.5), transparent 70%)',
+              ? 'radial-gradient(ellipse 70% 60% at 50% 0%, oklch(0.2 0.07 160 / 0.35), transparent 70%)'
+              : 'radial-gradient(ellipse 70% 60% at 50% 0%, oklch(0.19 0.04 250 / 0.4), transparent 70%)',
         }}
       />
 
       <div className="relative mx-auto max-w-xl px-5">
         {/* merchant header */}
         <div className="text-center">
-          <div className="font-mono text-[9.5px] uppercase tracking-[0.32em] text-[oklch(0.6_0.025_250)]">
+          <div className="font-mono text-[9.5px] uppercase tracking-[0.32em] text-[oklch(0.6_0.012_250)]">
             NervaLink checkout
           </div>
           <div className="mt-3 flex items-center justify-center gap-2.5">
@@ -243,7 +243,7 @@ export function PayPage() {
             </span>
           </div>
           {invoice.d && (
-            <div className="mt-2.5 text-[13px] text-[oklch(0.7_0.025_250)]">{invoice.d}</div>
+            <div className="mt-2.5 text-[13px] text-[oklch(0.7_0.012_250)]">{invoice.d}</div>
           )}
         </div>
 
@@ -257,8 +257,8 @@ export function PayPage() {
             {!freeAmount && <span className="text-[20px] ml-2 text-[oklch(0.7_0.08_220)]">XNV</span>}
           </div>
           {freeAmount && (
-            <div className="mt-2 font-mono text-[11px] text-[oklch(0.55_0.02_255)]">
-              the payer chooses the sum — a donation-style link
+            <div className="mt-2 font-mono text-[11px] text-[oklch(0.55_0.01_250)]">
+              the payer chooses the sum, a donation-style link
             </div>
           )}
         </div>
@@ -266,7 +266,7 @@ export function PayPage() {
         {/* status card */}
         <motion.div
           layout
-          className="mt-8 panel-nerva rounded-2xl p-6 sm:p-7"
+          className="mt-8 panel-nerva rounded-lg p-6 sm:p-7"
         >
           <div className="flex items-center gap-5 sm:gap-6">
             <StatusRing phase={phase} confirmations={result?.confirmations ?? 0} />
@@ -284,7 +284,7 @@ export function PayPage() {
                     {conf.sub}
                   </p>
                   {phase === 'pending' && (
-                    <div className="mt-2.5 inline-flex items-center gap-2 font-mono text-[10px] text-[oklch(0.6_0.025_250)]">
+                    <div className="mt-2.5 inline-flex items-center gap-2 font-mono text-[10px] text-[oklch(0.6_0.012_250)]">
                       <Loader2 className="w-3 h-3 animate-spin" />
                       {offline ? 'reconnecting to the network…' : `network height ${netHeight.toLocaleString()} · scanned ${result?.scannedBlocks ?? 0} blocks`}
                     </div>
@@ -294,7 +294,7 @@ export function PayPage() {
                       href={`${NERVA_LINKS.explorer}/?hash=${result.txHash}#tx`}
                       target="_blank"
                       rel="noreferrer"
-                      className="mt-2.5 inline-flex items-center gap-1.5 font-mono text-[11px] text-[oklch(0.82_0.115_215)] hover:text-[oklch(0.9_0.1_215)] transition-colors"
+                      className="mt-2.5 inline-flex items-center gap-1.5 font-mono text-[11px] text-[oklch(0.78_0.06_237)] hover:text-[oklch(0.9_0.1_215)] transition-colors"
                     >
                       tx {shortenHash(result.txHash!, 10, 6)} <ExternalLink className="w-3 h-3" />
                     </a>
@@ -317,31 +317,31 @@ export function PayPage() {
           )}
         </motion.div>
 
-        {/* QR card — only while waiting */}
+        {/* QR card, only while waiting */}
         {phase === 'pending' && (
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-5 panel-nerva rounded-2xl p-6 sm:p-7 flex flex-col items-center"
+            className="mt-5 panel-nerva rounded-lg p-6 sm:p-7 flex flex-col items-center"
           >
             {qr ? (
               <img
                 src={qr}
                 alt="NERVA payment QR code"
-                className="w-[240px] h-[240px] rounded-2xl bg-[#eef4fb] border border-white/15"
+                className="w-[240px] h-[240px] rounded-md bg-[#eef4fb] border border-white/15"
               />
             ) : (
-              <div className="w-[240px] h-[240px] rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center">
+              <div className="w-[240px] h-[240px] rounded-md bg-white/[0.04] border border-white/10 flex items-center justify-center">
                 <Loader2 className="w-6 h-6 animate-spin text-white/30" />
               </div>
             )}
-            <p className="mt-4 text-[12px] text-[oklch(0.62_0.025_250)] text-center max-w-xs leading-relaxed">
-              Scan with NervaOne or any NERVA wallet — address
+            <p className="mt-4 text-[12px] text-[oklch(0.62_0.012_250)] text-center max-w-xs leading-relaxed">
+              Scan with NervaOne or any NERVA wallet, address
               {freeAmount ? '' : ', amount'} and reference are pre-filled.
             </p>
             <a
               href={uri}
-              className="mt-5 inline-flex h-11 items-center justify-center gap-2.5 rounded-xl px-7 text-[13.5px] font-semibold bg-gradient-to-br from-[oklch(0.8_0.11_215)] to-[oklch(0.66_0.15_290)] text-[oklch(0.13_0.03_262)] hover:brightness-110 transition-all"
+              className="mt-5 inline-flex h-11 items-center justify-center gap-2.5 rounded-md px-7 text-[13.5px] font-semibold bg-[oklch(0.66_0.083_233)] text-[oklch(0.13_0.02_255)] hover:bg-[oklch(0.7_0.08_236)] transition-colors"
             >
               <Wallet className="w-[17px] h-[17px]" />
               Open in my wallet
@@ -351,29 +351,29 @@ export function PayPage() {
                 onClick={() => copy(invoice.a, 'addr')}
                 className="w-full flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.02] px-3.5 py-2.5 hover:border-white/20 transition-colors group"
               >
-                <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[oklch(0.5_0.02_255)] shrink-0">Address</span>
+                <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[oklch(0.5_0.01_250)] shrink-0">Address</span>
                 <span className="font-mono text-[10px] text-white/65 truncate">{invoice.a}</span>
-                {copied === 'addr' ? <Check className="w-3.5 h-3.5 text-[oklch(0.75_0.14_160)] shrink-0" /> : <Copy className="w-3.5 h-3.5 text-white/30 group-hover:text-white/60 shrink-0" />}
+                {copied === 'addr' ? <Check className="w-3.5 h-3.5 text-[oklch(0.72_0.12_160)] shrink-0" /> : <Copy className="w-3.5 h-3.5 text-white/30 group-hover:text-white/60 shrink-0" />}
               </button>
               <button
                 onClick={() => copy(invoice.pid, 'pid')}
                 className="w-full flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.02] px-3.5 py-2.5 hover:border-white/20 transition-colors group"
               >
-                <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[oklch(0.5_0.02_255)] shrink-0">Reference</span>
+                <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[oklch(0.5_0.01_250)] shrink-0">Reference</span>
                 <span className="font-mono text-[10px] text-[oklch(0.8_0.13_290)]/80 truncate">{invoice.pid}</span>
-                {copied === 'pid' ? <Check className="w-3.5 h-3.5 text-[oklch(0.75_0.14_160)] shrink-0" /> : <Copy className="w-3.5 h-3.5 text-white/30 group-hover:text-white/60 shrink-0" />}
+                {copied === 'pid' ? <Check className="w-3.5 h-3.5 text-[oklch(0.72_0.12_160)] shrink-0" /> : <Copy className="w-3.5 h-3.5 text-white/30 group-hover:text-white/60 shrink-0" />}
               </button>
             </div>
           </motion.div>
         )}
 
         {/* honesty note */}
-        <div className="mt-6 flex items-start gap-3 rounded-xl border border-white/8 bg-white/[0.02] p-4">
-          <ShieldCheck className="w-4 h-4 text-[oklch(0.82_0.115_215)] shrink-0 mt-0.5" />
-          <p className="text-[11.5px] leading-relaxed text-[oklch(0.64_0.025_250)]">
+        <div className="mt-6 flex items-start gap-3 rounded-md border border-white/8 bg-white/[0.02] p-4">
+          <ShieldCheck className="w-4 h-4 text-[oklch(0.78_0.06_237)] shrink-0 mt-0.5" />
+          <p className="text-[11.5px] leading-relaxed text-[oklch(0.64_0.012_250)]">
             This checkout runs entirely in your browser against the public explorer
             API. It confirms that <span className="text-white/80">this reference</span> appeared
-            on-chain with enough confirmations — RingCT keeps the amount itself
+            on-chain with enough confirmations. RingCT keeps the amount itself
             encrypted, so the receiver verifies the exact sum in their wallet. If
             your wallet refuses the long payment id, send manually to the address
             above: detection works either way.
@@ -383,7 +383,7 @@ export function PayPage() {
         <div className="mt-8 text-center">
           <Link
             href="/nerva"
-            className="inline-flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.16em] text-white/40 hover:text-[oklch(0.82_0.115_215)] transition-colors"
+            className="inline-flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.16em] text-white/40 hover:text-[oklch(0.78_0.06_237)] transition-colors"
           >
             ← Back to the Nerva world
           </Link>

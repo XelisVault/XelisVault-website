@@ -5,7 +5,7 @@ import { Explorer } from '@/components/nerva/explorer/explorer'
 export const metadata: Metadata = {
   title: 'Live Explorer',
   description:
-    'Live NERVA (XNV) network telemetry — blocks, transactions, mempool, difficulty and hashrate, streamed directly from the public explorer API in your browser.',
+    'Live NERVA (XNV) network telemetry: blocks, transactions, mempool, difficulty and hashrate, streamed directly from the public explorer API in your browser.',
 }
 
 export default function NervaExplorerPage() {

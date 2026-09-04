@@ -1,12 +1,12 @@
 'use client'
 
 /**
- * NervaLink creator — stateless XNV payment links.
+ * NervaLink creator: stateless XNV payment links.
  *
  * A random long payment id is minted client-side, the invoice is encoded
  * into the link itself (base64url JSON), and the QR encodes the canonical
  * `nerva:` URI (wallet2::make_uri format) so wallets pre-fill everything.
- * Nothing is stored anywhere — the link IS the invoice.
+ * Nothing is stored anywhere: the link IS the invoice.
  */
 
 import { useMemo, useState, useEffect } from 'react'
@@ -48,14 +48,14 @@ function Field({ label, hint, children, error }: {
       {error ? (
         <div className="mt-1.5 font-mono text-[10px] text-[oklch(0.75_0.13_25)]">{error}</div>
       ) : hint ? (
-        <div className="mt-1.5 font-mono text-[9.5px] text-[oklch(0.5_0.02_255)]">{hint}</div>
+        <div className="mt-1.5 font-mono text-[9.5px] text-[oklch(0.5_0.01_250)]">{hint}</div>
       ) : null}
     </div>
   )
 }
 
 const inputCls =
-  'w-full h-11 rounded-lg bg-white/[0.04] border border-white/10 focus:border-[oklch(0.82_0.115_215)]/60 outline-none px-3.5 font-mono text-[12.5px] text-white/90 placeholder:text-white/25 transition-colors'
+  'w-full h-11 rounded-lg bg-white/[0.04] border border-white/10 focus:border-[oklch(0.78_0.06_237)]/60 outline-none px-3.5 font-mono text-[12.5px] text-white/90 placeholder:text-white/25 transition-colors'
 
 /* ───────────── the creator ───────────── */
 
@@ -137,19 +137,19 @@ export function LinkCreator() {
     <div className="relative pt-28 pb-20 min-h-screen">
       <div className="absolute inset-0 circuit-bg opacity-30 pointer-events-none" />
       <div className="absolute inset-x-0 top-0 h-[420px]"
-        style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 0%, oklch(0.22 0.07 270 / 0.5), transparent 70%)' }} />
+        style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 0%, oklch(0.19 0.04 250 / 0.4), transparent 70%)' }} />
 
       <div className="relative mx-auto max-w-6xl px-5 md:px-8">
         {/* header */}
         <div className="max-w-2xl">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[oklch(0.8_0.11_215)]/18 to-[oklch(0.72_0.15_290)]/18 border border-[oklch(0.82_0.115_215)]/25 flex items-center justify-center">
-              <Link2 className="w-5 h-5 text-[oklch(0.82_0.115_215)]" />
+            <div className="w-11 h-11 rounded-md bg-[oklch(0.78_0.06_237)]/12 border border-[oklch(0.78_0.06_237)]/25 flex items-center justify-center">
+              <Link2 className="w-5 h-5 text-[oklch(0.78_0.06_237)]" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">NervaLink</h1>
           </div>
-          <p className="mt-4 text-[14.5px] leading-relaxed text-[oklch(0.7_0.025_250)]">
-            Payment links for NERVA — a mini Stripe-style checkout with zero
+          <p className="mt-4 text-[14.5px] leading-relaxed text-[oklch(0.7_0.012_250)]">
+            Payment links for NERVA: a mini Stripe-style checkout with zero
             infrastructure. The invoice lives <span className="text-white/90 font-medium">entirely inside the link</span>:
             no database, no account, no keys. Whoever opens it gets a QR the wallet
             understands, and the page itself watches the chain for the payment.
@@ -167,16 +167,16 @@ export function LinkCreator() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.3 }}
-                  className="panel-nerva rounded-2xl p-6 sm:p-8"
+                  className="panel-nerva rounded-lg p-6 sm:p-8"
                 >
-                  <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.025_250)]">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.012_250)]">
                     1 · Your receiving details
                   </div>
 
                   <div className="mt-6 space-y-5">
                     <Field
                       label="Your NERVA address"
-                      hint="Standard address from NervaOne or nerva-wallet-cli — starts with NV"
+                      hint="Standard address from NervaOne or nerva-wallet-cli, starts with NV"
                       error={touched ? (addrCheck.ok ? undefined : addrCheck.reason) : undefined}
                     >
                       <input
@@ -191,7 +191,7 @@ export function LinkCreator() {
 
                     <div className="grid sm:grid-cols-2 gap-5">
                       <Field
-                        label="Amount (XNV) — optional"
+                        label="Amount (XNV), optional"
                         hint="Leave empty for a free-amount / donation link"
                         error={touched && !amountValid ? 'Invalid number' : undefined}
                       >
@@ -218,7 +218,7 @@ export function LinkCreator() {
                       <input
                         value={form.description}
                         onChange={(e) => setForm((f) => ({ ...f, description: e.target.value.slice(0, 140) }))}
-                        placeholder="e.g. Order #1042 — whole bean 1kg"
+                        placeholder="e.g. Order #1042, whole bean 1kg"
                         className={inputCls}
                         maxLength={140}
                       />
@@ -230,9 +230,9 @@ export function LinkCreator() {
                           <button
                             key={t.seconds}
                             onClick={() => setForm((f) => ({ ...f, ttlIndex: i }))}
-                            className={`h-10 px-4 rounded-lg font-mono text-[11.5px] border transition-all ${
+                            className={`h-10 px-4 rounded-md font-mono text-[11.5px] border transition-all ${
                               form.ttlIndex === i
-                                ? 'border-[oklch(0.82_0.115_215)]/70 bg-[oklch(0.82_0.115_215)]/12 text-[oklch(0.86_0.1_220)]'
+                                ? 'border-[oklch(0.78_0.06_237)]/70 bg-[oklch(0.78_0.06_237)]/12 text-[oklch(0.83_0.055_237)]'
                                 : 'border-white/10 bg-white/[0.03] text-white/55 hover:border-white/25'
                             }`}
                           >
@@ -246,7 +246,7 @@ export function LinkCreator() {
                   <button
                     onClick={() => void mint()}
                     disabled={minting}
-                    className="mt-8 w-full sm:w-auto inline-flex h-12 items-center justify-center gap-2.5 rounded-xl px-8 text-[14.5px] font-semibold bg-gradient-to-br from-[oklch(0.8_0.11_215)] to-[oklch(0.66_0.15_290)] text-[oklch(0.13_0.03_262)] hover:brightness-110 transition-all shadow-[0_10px_36px_-12px_oklch(0.82_0.115_215_/_0.7)] disabled:opacity-60"
+                    className="mt-8 w-full sm:w-auto inline-flex h-12 items-center justify-center gap-2.5 rounded-md px-8 text-[14.5px] font-semibold bg-[oklch(0.66_0.083_233)] text-[oklch(0.13_0.02_255)] hover:bg-[oklch(0.7_0.08_236)] transition-colors disabled:opacity-60"
                   >
                     {minting ? (
                       <>Minting the reference…</>
@@ -268,18 +268,18 @@ export function LinkCreator() {
                   className="space-y-5"
                 >
                   {/* the link */}
-                  <div className="panel-nerva rounded-2xl p-6 sm:p-7 border-l-2 border-l-[oklch(0.75_0.14_160)]">
+                  <div className="panel-nerva rounded-lg p-6 sm:p-7 border-l-2 border-l-[oklch(0.72_0.12_160)]">
                     <div className="flex items-center gap-2.5">
-                      <Check className="w-4 h-4 text-[oklch(0.75_0.14_160)]" />
-                      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.75_0.14_160)]">
-                        Link minted — save it, it exists nowhere else
+                      <Check className="w-4 h-4 text-[oklch(0.72_0.12_160)]" />
+                      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.72_0.12_160)]">
+                        Link minted, save it: it exists nowhere else
                       </span>
                     </div>
-                    <div className="mt-4 flex items-center gap-2.5 rounded-xl bg-[oklch(0.1_0.02_262)] border border-white/10 pl-4 pr-2 h-12">
-                      <span className="font-mono text-[11.5px] text-[oklch(0.85_0.08_220)] truncate flex-1">{linkUrl}</span>
+                    <div className="mt-4 flex items-center gap-2.5 rounded-md bg-[oklch(0.12_0.018_255)] border border-white/10 pl-4 pr-2 h-12">
+                      <span className="font-mono text-[11.5px] text-[oklch(0.83_0.055_237)] truncate flex-1">{linkUrl}</span>
                       <button
                         onClick={() => copy(linkUrl, 'link')}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-lg px-3 bg-[oklch(0.82_0.115_215)]/15 text-[oklch(0.85_0.1_220)] font-mono text-[10.5px] hover:bg-[oklch(0.82_0.115_215)]/25 transition-colors"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-md px-3 bg-[oklch(0.78_0.06_237)]/15 text-[oklch(0.83_0.055_237)] font-mono text-[10.5px] hover:bg-[oklch(0.78_0.06_237)]/25 transition-colors"
                       >
                         {copied === 'link' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                         {copied === 'link' ? 'Copied' : 'Copy'}
@@ -288,13 +288,13 @@ export function LinkCreator() {
                     <div className="mt-4 flex flex-col sm:flex-row gap-2.5">
                       <Link
                         href={`/nerva/pay?d=${encodeInvoice(invoice)}`}
-                        className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl text-[13.5px] font-semibold bg-gradient-to-br from-[oklch(0.8_0.11_215)] to-[oklch(0.66_0.15_290)] text-[oklch(0.13_0.03_262)] hover:brightness-110 transition-all"
+                        className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-md text-[13.5px] font-semibold bg-[oklch(0.66_0.083_233)] text-[oklch(0.13_0.02_255)] hover:bg-[oklch(0.7_0.08_236)] transition-colors"
                       >
                         Open the checkout <ArrowRight className="w-4 h-4" />
                       </Link>
                       <button
                         onClick={reset}
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-[13.5px] font-medium border border-white/12 bg-white/[0.03] hover:bg-white/8 text-white/75 transition-all"
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-md px-5 text-[13.5px] font-medium border border-white/12 bg-white/[0.03] hover:bg-white/8 text-white/75 transition-colors"
                       >
                         Create another
                       </button>
@@ -302,50 +302,50 @@ export function LinkCreator() {
                   </div>
 
                   {/* QR + URI */}
-                  <div className="panel-nerva rounded-2xl p-6 sm:p-7">
+                  <div className="panel-nerva rounded-lg p-6 sm:p-7">
                     <div className="flex flex-col sm:flex-row gap-7 items-center">
                       <div className="shrink-0">
                         {qr ? (
                           <img
                             src={qr}
-                            alt="Payment QR code — nerva: URI"
-                            className="w-[170px] h-[170px] rounded-xl border border-white/12 bg-[#eef4fb]"
+                            alt="Payment QR code, nerva: URI"
+                            className="w-[170px] h-[170px] rounded-md border border-white/12 bg-[#eef4fb]"
                           />
                         ) : (
-                          <div className="w-[170px] h-[170px] rounded-xl border border-white/10 bg-white/[0.03] flex items-center justify-center">
+                          <div className="w-[170px] h-[170px] rounded-md border border-white/10 bg-white/[0.03] flex items-center justify-center">
                             <QrCode className="w-8 h-8 text-white/20" />
                           </div>
                         )}
-                        <div className="mt-2.5 text-center font-mono text-[9px] uppercase tracking-[0.18em] text-[oklch(0.5_0.02_255)]">
+                        <div className="mt-2.5 text-center font-mono text-[9px] uppercase tracking-[0.18em] text-[oklch(0.5_0.01_250)]">
                           scan with any XNV wallet
                         </div>
                       </div>
                       <div className="flex-1 min-w-0 w-full">
-                        <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.6_0.025_250)]">
+                        <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.6_0.012_250)]">
                           The nerva: URI your payer will scan
                         </div>
-                        <div className="mt-3 rounded-lg bg-[oklch(0.1_0.02_262)] border border-white/10 p-3.5 font-mono text-[10.5px] leading-relaxed text-white/70 break-all max-h-32 overflow-y-auto">
+                        <div className="mt-3 rounded-lg bg-[oklch(0.12_0.018_255)] border border-white/10 p-3.5 font-mono text-[10.5px] leading-relaxed text-white/70 break-all max-h-32 overflow-y-auto">
                           {nervaUri}
                         </div>
                         <div className="mt-3 grid grid-cols-2 gap-2.5">
                           <button
                             onClick={() => copy(nervaUri, 'uri')}
-                            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-white/12 bg-white/[0.03] hover:bg-white/8 font-mono text-[10.5px] text-white/70 transition-all"
+                            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-white/12 bg-white/[0.03] hover:bg-white/8 font-mono text-[10.5px] text-white/70 transition-all"
                           >
-                            {copied === 'uri' ? <Check className="w-3.5 h-3.5 text-[oklch(0.75_0.14_160)]" /> : <Copy className="w-3.5 h-3.5" />}
+                            {copied === 'uri' ? <Check className="w-3.5 h-3.5 text-[oklch(0.72_0.12_160)]" /> : <Copy className="w-3.5 h-3.5" />}
                             Copy URI
                           </button>
                           <button
                             onClick={() => copy(invoice.pid, 'pid')}
-                            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-white/12 bg-white/[0.03] hover:bg-white/8 font-mono text-[10.5px] text-white/70 transition-all"
+                            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-white/12 bg-white/[0.03] hover:bg-white/8 font-mono text-[10.5px] text-white/70 transition-all"
                           >
-                            {copied === 'pid' ? <Check className="w-3.5 h-3.5 text-[oklch(0.75_0.14_160)]" /> : <Copy className="w-3.5 h-3.5" />}
+                            {copied === 'pid' ? <Check className="w-3.5 h-3.5 text-[oklch(0.72_0.12_160)]" /> : <Copy className="w-3.5 h-3.5" />}
                             Copy payment id
                           </button>
                         </div>
-                        <div className="mt-4 space-y-1.5 font-mono text-[10px] text-[oklch(0.55_0.02_255)]">
+                        <div className="mt-4 space-y-1.5 font-mono text-[10px] text-[oklch(0.55_0.01_250)]">
                           <div>amount: <span className="text-white/70">{invoice.amt === '0' ? 'free (payer chooses)' : `${atomicToDisplay(invoice.amt)} XNV`}</span></div>
-                          <div>reference: <span className="text-[oklch(0.8_0.13_290)]">{invoice.pid.slice(0, 24)}…</span></div>
+                          <div>reference: <span className="text-[oklch(0.74_0.07_306)]">{invoice.pid.slice(0, 24)}…</span></div>
                           <div>expires: <span className="text-white/70">{new Date(invoice.exp * 1000).toLocaleString()}</span></div>
                         </div>
                       </div>
@@ -357,11 +357,11 @@ export function LinkCreator() {
 
             {/* how it works */}
             <Reveal delay={0.1}>
-              <div className="mt-8 panel-nerva rounded-2xl p-6 sm:p-7">
+              <div className="mt-8 panel-nerva rounded-lg p-6 sm:p-7">
                 <div className="flex items-center gap-2.5">
-                  <ShieldCheck className="w-4.5 h-4.5 w-[18px] h-[18px] text-[oklch(0.82_0.115_215)]" />
-                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.025_250)]">
-                    How NervaLink works — the honest version
+                  <ShieldCheck className="w-4.5 h-4.5 w-[18px] h-[18px] text-[oklch(0.78_0.06_237)]" />
+                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.012_250)]">
+                    How NervaLink works, the honest version
                   </span>
                 </div>
                 <div className="mt-5 grid sm:grid-cols-3 gap-4">
@@ -374,7 +374,7 @@ export function LinkCreator() {
                     {
                       icon: Wallet,
                       title: '2 · Pay',
-                      body: 'The payer scans the QR — a canonical nerva: URI that NervaOne and the CLI wallet parse natively, pre-filling address, amount and reference.',
+                      body: 'The payer scans the QR, a canonical nerva: URI that NervaOne and the CLI wallet parse natively, pre-filling address, amount and reference.',
                     },
                     {
                       icon: Radar,
@@ -382,18 +382,18 @@ export function LinkCreator() {
                       body: 'The checkout page polls the public explorer API every ~10s, scanning the mempool and new blocks for your reference, following it to 10 confirmations.',
                     },
                   ].map((s) => (
-                    <div key={s.title} className="rounded-xl border border-white/8 bg-white/[0.02] p-4">
-                      <s.icon className="w-4 h-4 text-[oklch(0.82_0.115_215)]" />
+                    <div key={s.title} className="rounded-md border border-white/8 bg-white/[0.02] p-4">
+                      <s.icon className="w-4 h-4 text-[oklch(0.78_0.06_237)]" />
                       <div className="mt-2.5 font-mono text-[11px] font-semibold text-white/85">{s.title}</div>
-                      <p className="mt-1.5 text-[11.5px] leading-relaxed text-[oklch(0.64_0.025_250)]">{s.body}</p>
+                      <p className="mt-1.5 text-[11.5px] leading-relaxed text-[oklch(0.64_0.012_250)]">{s.body}</p>
                     </div>
                   ))}
                 </div>
-                <div className="mt-5 flex items-start gap-3 rounded-xl border border-[oklch(0.7_0.1_75)]/25 bg-[oklch(0.6_0.1_75)]/8 p-4">
+                <div className="mt-5 flex items-start gap-3 rounded-md border border-[oklch(0.7_0.1_75)]/25 bg-[oklch(0.6_0.1_75)]/8 p-4">
                   <AlertTriangle className="w-4 h-4 text-[oklch(0.75_0.1_80)] shrink-0 mt-0.5" />
-                  <p className="text-[11.5px] leading-relaxed text-[oklch(0.7_0.025_250)]">
+                  <p className="text-[11.5px] leading-relaxed text-[oklch(0.7_0.012_250)]">
                     RingCT amounts are encrypted on-chain: the checkout detects your
-                    reference and its confirmations, not the exact amount — verify the
+                    reference and its confirmations, not the exact amount. Verify the
                     final amount in your wallet (it pairs the payment id with the received
                     sum). Recent CLI wallet versions gate long payment ids behind
                     <span className="font-mono text-white/75"> --long-payment-id-support</span>;
@@ -407,39 +407,39 @@ export function LinkCreator() {
 
           {/* ── side summary ── */}
           <div className="lg:sticky lg:top-24 space-y-4">
-            <div className="panel-nerva rounded-2xl p-6">
-              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.025_250)]">
+            <div className="panel-nerva rounded-lg p-6">
+              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.012_250)]">
                 Architecture
               </div>
               <ul className="mt-4 space-y-3">
                 {[
-                  ['Stateless', 'the invoice is the URL — no DB, no server'],
+                  ['Stateless', 'the invoice is the URL: no DB, no server'],
                   ['Keyless', 'no seed, no spend key, no view key, ever'],
                   ['Serverless', 'runs on Vercel static + the public explorer API'],
                   ['Private', 'the payer scans a QR; nothing is logged here'],
                 ].map(([k, v]) => (
                   <li key={k} className="flex items-start gap-2.5">
-                    <Check className="w-3.5 h-3.5 text-[oklch(0.75_0.14_160)] shrink-0 mt-0.5" />
+                    <Check className="w-3.5 h-3.5 text-[oklch(0.72_0.12_160)] shrink-0 mt-0.5" />
                     <div>
                       <span className="font-mono text-[11px] text-white/85 font-semibold">{k}</span>
-                      <span className="block text-[11px] text-[oklch(0.6_0.025_250)] leading-snug mt-0.5">{v}</span>
+                      <span className="block text-[11px] text-[oklch(0.6_0.012_250)] leading-snug mt-0.5">{v}</span>
                     </div>
                   </li>
                 ))}
               </ul>
             </div>
-            <div className="panel-nerva rounded-2xl p-6">
-              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.025_250)]">
+            <div className="panel-nerva rounded-lg p-6">
+              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.012_250)]">
                 Where does the money go?
               </div>
               <p className="mt-3 text-[12px] leading-relaxed text-[oklch(0.66_0.025_250)]">
-                Straight from the payer&rsquo;s wallet to yours — peer to peer, as
+                Straight from the payer&rsquo;s wallet to yours, peer to peer, as
                 designed. XelisVault&rsquo;s Nerva side never touches funds: it draws
                 QR codes and reads public blocks. That is all it can do.
               </p>
               <Link
                 href="/nerva/explorer"
-                className="mt-4 inline-flex items-center gap-1.5 font-mono text-[11px] text-[oklch(0.82_0.115_215)] hover:text-[oklch(0.9_0.1_215)] transition-colors"
+                className="mt-4 inline-flex items-center gap-1.5 font-mono text-[11px] text-[oklch(0.78_0.06_237)] hover:text-[oklch(0.86_0.05_237)] transition-colors"
               >
                 See the live chain <ExternalLink className="w-3 h-3" />
               </Link>

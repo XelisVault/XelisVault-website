@@ -20,7 +20,7 @@ export function CopyButton({ text, className = '' }: { text: string; className?:
       aria-label="Copy"
       title="Copy"
     >
-      {copied ? <Check className="w-3.5 h-3.5 text-[oklch(0.75_0.14_160)]" /> : <Copy className="w-3.5 h-3.5" />}
+      {copied ? <Check className="w-3.5 h-3.5 text-[oklch(0.72_0.12_160)]" /> : <Copy className="w-3.5 h-3.5" />}
     </button>
   )
 }

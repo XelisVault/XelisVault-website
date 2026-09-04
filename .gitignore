@@ -73,3 +73,6 @@ worklog.md
 /door-*.webm
 /qa-img-*.png
 /audit-*.png
+
+# nerva raw photo sources (processed duotones are committed)
+public/images/nerva/raw/

@@ -1,12 +1,12 @@
 'use client'
 
 /**
- * NervaShell — the skin of the NERVA world.
+ * NervaShell: the skin of the NERVA world.
  *
  * Wraps every /nerva page in the .nerva-world design system (deep navy,
  * signal cyan, electric violet), with its own navigation, live network
  * heartbeat strip, world intro, and footer. Completely independent from
- * the Xelis "Maison" skin — two worlds, two interfaces.
+ * the Xelis "Maison" skin. Two worlds, two interfaces.
  */
 
 import { useEffect, useState } from 'react'
@@ -46,7 +46,7 @@ function WorldIntro() {
       try { sessionStorage.setItem(INTRO_KEY, '1') } catch { /* ignore */ }
     }
     if (seen || reduce) return
-    // async flip (post-paint) — one short heartbeat per session
+    // async flip (post-paint): one short heartbeat per session
     const raf = setTimeout(() => setShow(true), 60)
     const hide = setTimeout(() => setShow(false), 1750)
     return () => { clearTimeout(raf); clearTimeout(hide) }
@@ -58,7 +58,7 @@ function WorldIntro() {
         <motion.div
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.55 } }}
-          className="fixed inset-0 z-[80] bg-[oklch(0.1_0.03_265)] flex flex-col items-center justify-center pointer-events-none"
+          className="fixed inset-0 z-[80] bg-[oklch(0.11_0.018_255)] flex flex-col items-center justify-center pointer-events-none"
           aria-hidden="true"
         >
           <div className="absolute inset-0 circuit-bg opacity-40" />
@@ -68,7 +68,7 @@ function WorldIntro() {
             initial={{ scale: 0.82, opacity: 0, filter: 'brightness(2.5)' }}
             animate={{ scale: 1, opacity: 1, filter: 'brightness(1)' }}
             transition={{ duration: 0.85, ease: [0.22, 0.61, 0.36, 1] }}
-            className="relative w-20 h-20 drop-shadow-[0_0_28px_oklch(0.82_0.115_215_/_0.75)]"
+            className="relative w-20 h-20 drop-shadow-[0_0_28px_oklch(0.78_0.06_237_/_0.6)]"
           />
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -84,7 +84,7 @@ function WorldIntro() {
             animate={{ y: '100vh' }}
             transition={{ duration: 1.3, ease: 'easeInOut' }}
             className="absolute left-0 right-0 h-24"
-            style={{ background: 'linear-gradient(180deg, transparent, oklch(0.82 0.115 215 / 0.09), transparent)' }}
+            style={{ background: 'linear-gradient(180deg, transparent, oklch(0.78 0.06 237 / 0.08), transparent)' }}
           />
         </motion.div>
       )}
@@ -98,14 +98,14 @@ function SideSwitchPill() {
   return (
     <button
       onClick={openGate}
-      title="Switch protocol side — NERVA ⇄ XELIS"
+      title="Switch protocol side: NERVA ⇄ XELIS"
       aria-label="Switch protocol side"
-      className="inline-flex items-center gap-1.5 h-6 pl-1.5 pr-2.5 rounded-full border border-white/15 hover:border-[oklch(0.82_0.115_215)]/60 bg-white/4 hover:bg-[oklch(0.82_0.115_215)]/10 transition-all group"
+      className="inline-flex items-center gap-1.5 h-6 pl-1.5 pr-2.5 rounded-full border border-white/15 hover:border-[oklch(0.78_0.06_237)]/60 bg-white/4 hover:bg-[oklch(0.78_0.06_237)]/10 transition-all group"
     >
       <img src="/images/nerva/nerva-mark.png" alt="" className="w-3.5 h-3.5 rounded-full ring-1 ring-white/25" />
       <span className="font-mono text-[9px] tracking-[0.1em] text-white/55 group-hover:text-white/85 transition-colors">⇄</span>
-      <img src="/images/xelisvault-logo.png" alt="" className="w-3.5 h-3.5 rounded-[2px] ring-1 ring-white/25" />
-      <span className="hidden sm:inline font-mono text-[9px] uppercase tracking-[0.14em] text-white/65 group-hover:text-[oklch(0.82_0.115_215)] transition-colors">Sides</span>
+      <img src="/images/xelis-logo.svg" alt="XELIS" className="w-3.5 h-3.5" />
+      <span className="hidden sm:inline font-mono text-[9px] uppercase tracking-[0.14em] text-white/65 group-hover:text-[oklch(0.78_0.06_237)] transition-colors">Sides</span>
     </button>
   )
 }
@@ -116,12 +116,12 @@ function HeartbeatStrip() {
   const height = info?.height
   const peers = (info?.incoming_connections_count ?? 0) + (info?.outgoing_connections_count ?? 0)
   return (
-    <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-[oklch(0.64_0.03_250)]">
+    <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-[oklch(0.64_0.012_250)]">
       <span className="relative mr-1.5 inline-flex h-1.5 w-1.5 align-middle">
-        <span className="absolute inline-flex h-full w-full rounded-full bg-[oklch(0.75_0.14_160)] opacity-70 animate-ping" />
-        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[oklch(0.75_0.14_160)]" />
+        <span className="absolute inline-flex h-full w-full rounded-full bg-[oklch(0.72_0.12_160)] opacity-70 animate-ping" />
+        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[oklch(0.72_0.12_160)]" />
       </span>
-      <span className="tabular-nums text-[oklch(0.82_0.115_215)]">{typeof height === 'number' ? height.toLocaleString() : '····'}</span>
+      <span className="tabular-nums text-[oklch(0.78_0.06_237)]">{typeof height === 'number' ? height.toLocaleString() : '····'}</span>
       <span className="hidden sm:inline"> · mainnet · 60s blocks</span>
       <span className="hidden md:inline"> · {peers} peers</span>
     </div>
@@ -146,7 +146,7 @@ export function NervaShell({ children }: { children: React.ReactNode }) {
   }, [open])
 
   return (
-    <div className="nerva-world min-h-screen flex flex-col bg-background text-foreground selection:bg-[oklch(0.82_0.115_215_/_0.3)]">
+    <div className="nerva-world min-h-screen flex flex-col bg-background text-foreground selection:bg-[oklch(0.78_0.06_237_/_0.3)]">
       <WorldIntro />
 
       <motion.header
@@ -156,7 +156,7 @@ export function NervaShell({ children }: { children: React.ReactNode }) {
         className="fixed top-0 left-0 right-0 z-50"
       >
         {/* utility strip */}
-        <div className="bg-[oklch(0.1_0.025_262)] border-b border-white/6">
+        <div className="bg-[oklch(0.12_0.018_255)] border-b border-white/6">
           <div className="mx-auto max-w-7xl px-5 md:px-8 h-8 flex items-center justify-between gap-4">
             <HeartbeatStrip />
             <nav className="flex items-center gap-4" aria-label="Utility">
@@ -191,18 +191,18 @@ export function NervaShell({ children }: { children: React.ReactNode }) {
             <Link href="/nerva" className="flex items-center gap-3 group shrink-0">
               <div className="relative">
                 <div className="absolute -inset-2 rounded-full blur-lg opacity-30 group-hover:opacity-60 transition-opacity"
-                  style={{ background: 'radial-gradient(circle, oklch(0.82 0.115 215 / 0.8), transparent 70%)' }} />
+                  style={{ background: 'radial-gradient(circle, oklch(0.78 0.06 237 / 0.6), transparent 70%)' }} />
                 <img
                   src="/images/nerva/nerva-mark.png"
                   alt="NERVA"
-                  className="relative w-9 h-9 drop-shadow-[0_0_10px_oklch(0.82_0.115_215_/_0.45)]"
+                  className="relative w-9 h-9 drop-shadow-[0_0_10px_oklch(0.78_0.06_237_/_0.35)]"
                 />
               </div>
               <div className="leading-none">
                 <div className="font-mono font-bold tracking-[0.24em] text-[15px] text-white">
                   NERVA
                 </div>
-                <div className="font-mono text-[8.5px] uppercase tracking-[0.22em] text-[oklch(0.64_0.03_250)] mt-1">
+                <div className="font-mono text-[8.5px] uppercase tracking-[0.22em] text-[oklch(0.64_0.012_250)] mt-1">
                   XelisVault · Nerva side
                 </div>
               </div>
@@ -215,16 +215,16 @@ export function NervaShell({ children }: { children: React.ReactNode }) {
                   <Link
                     key={l.href}
                     href={l.href}
-                    className={`relative inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-[13px] font-medium transition-colors ${
+                    className={`relative inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-[13px] font-medium transition-colors ${
                       active
-                        ? 'text-[oklch(0.88_0.1_225)] bg-[oklch(0.82_0.115_215)]/10'
+                        ? 'text-[oklch(0.88_0.1_225)] bg-[oklch(0.78_0.06_237)]/10'
                         : 'text-white/60 hover:text-white hover:bg-white/5'
                     }`}
                   >
                     {l.live && (
                       <span className="relative flex h-1.5 w-1.5">
-                        <span className="absolute inline-flex h-full w-full rounded-full bg-[oklch(0.75_0.14_160)] opacity-70 animate-ping" />
-                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[oklch(0.75_0.14_160)]" />
+                        <span className="absolute inline-flex h-full w-full rounded-full bg-[oklch(0.72_0.12_160)] opacity-70 animate-ping" />
+                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[oklch(0.72_0.12_160)]" />
                       </span>
                     )}
                     {l.label}
@@ -235,7 +235,7 @@ export function NervaShell({ children }: { children: React.ReactNode }) {
                 href="https://docs.nerva.one/"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-[13px] font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors"
               >
                 Docs <ArrowUpRight className="w-3 h-3 opacity-60" />
               </a>
@@ -244,14 +244,14 @@ export function NervaShell({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-2.5 shrink-0">
               <Link
                 href="/nerva/link"
-                className="hidden sm:inline-flex h-9 items-center gap-2 rounded-lg px-4 text-[13px] font-semibold bg-gradient-to-br from-[oklch(0.8_0.11_215)] to-[oklch(0.66_0.15_290)] text-[oklch(0.13_0.03_262)] hover:brightness-110 transition-all shadow-[0_6px_20px_-8px_oklch(0.82_0.115_215_/_0.6)]"
+                className="hidden sm:inline-flex h-9 items-center gap-2 rounded-md px-4 text-[13px] font-semibold bg-[oklch(0.66_0.083_233)] text-[oklch(0.13_0.02_255)] hover:bg-[oklch(0.7_0.08_236)] transition-colors"
               >
                 <Link2 className="w-4 h-4" />
                 Create payment link
               </Link>
               <button
                 onClick={() => setOpen(true)}
-                className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-white/5"
+                className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-white/5"
                 aria-label="Open menu"
               >
                 <Menu className="w-5 h-5" />
@@ -264,7 +264,7 @@ export function NervaShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 relative">{children}</main>
 
       {/* footer */}
-      <footer className="relative mt-20 border-t border-white/8 bg-[oklch(0.11_0.025_262)]">
+      <footer className="relative mt-20 border-t border-white/8 bg-[oklch(0.12_0.018_255)]">
         <div className="absolute inset-0 circuit-bg opacity-30 pointer-events-none" />
         <div className="relative mx-auto max-w-7xl px-5 md:px-8 py-12">
           <div className="flex flex-col md:flex-row justify-between gap-10">
@@ -273,15 +273,15 @@ export function NervaShell({ children }: { children: React.ReactNode }) {
                 <img src="/images/nerva/nerva-mark.png" alt="NERVA" className="w-7 h-7" />
                 <span className="font-mono font-bold tracking-[0.22em] text-white text-sm">NERVA</span>
               </div>
-              <p className="mt-4 text-[12.5px] leading-relaxed text-[oklch(0.64_0.03_250)]">
-                The Nerva side of XelisVault — an independent interface into the NERVA
-                network: live telemetry, an explorer and stateless payment links, all
-                running client-side against the public explorer API. XelisVault holds no
-                keys and no funds. Not affiliated with — only grateful guests of — the
-                Nerva project.
+              <p className="mt-4 text-[12.5px] leading-relaxed text-[oklch(0.64_0.012_250)]">
+                The Nerva side of XelisVault: an independent interface into the NERVA
+                network with live telemetry, an explorer and stateless payment links,
+                all running client-side against the public explorer API. XelisVault
+                holds no keys and no funds. Not affiliated with, only grateful guests
+                of, the Nerva project.
               </p>
-              <p className="mt-3 text-[11px] text-[oklch(0.5_0.025_255)] font-mono">
-                XNV unit: 10¹² · ring size 5 · 60s blocks
+              <p className="mt-3 text-[11px] text-[oklch(0.5_0.01_250)] font-mono">
+                XNV unit: 10^12 atomic units · ring size 5 · 60s blocks
               </p>
             </div>
             <div>
@@ -289,7 +289,7 @@ export function NervaShell({ children }: { children: React.ReactNode }) {
               <ul className="space-y-2.5">
                 {NAV_LINKS.map((l) => (
                   <li key={l.href}>
-                    <Link href={l.href} className="text-[13px] text-white/65 hover:text-[oklch(0.82_0.115_215)] transition-colors">
+                    <Link href={l.href} className="text-[13px] text-white/65 hover:text-[oklch(0.78_0.06_237)] transition-colors">
                       {l.label}
                     </Link>
                   </li>
@@ -301,7 +301,7 @@ export function NervaShell({ children }: { children: React.ReactNode }) {
               <ul className="space-y-2.5">
                 {ECOSYSTEM.map((l) => (
                   <li key={l.href}>
-                    <a href={l.href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[13px] text-white/65 hover:text-[oklch(0.82_0.115_215)] transition-colors">
+                    <a href={l.href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[13px] text-white/65 hover:text-[oklch(0.78_0.06_237)] transition-colors">
                       {l.label} <ArrowUpRight className="w-3 h-3 opacity-50" />
                     </a>
                   </li>
@@ -311,12 +311,12 @@ export function NervaShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="mt-10 pt-6 border-t border-white/8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="font-mono text-[10px] tracking-[0.14em] text-white/35 uppercase">
-              XelisVault · Two protocols, one standard — privacy
+              XelisVault · Two protocols, one standard: privacy
             </div>
             <div className="flex items-center gap-2">
-              <Cpu className="w-3.5 h-3.5 text-[oklch(0.64_0.03_250)]" />
+              <Cpu className="w-3.5 h-3.5 text-[oklch(0.64_0.012_250)]" />
               <span className="font-mono text-[10px] tracking-[0.14em] text-white/35 uppercase">
-                One CPU, one vote — S. Nakamoto
+                One CPU, one vote · S. Nakamoto
               </span>
             </div>
           </div>
@@ -330,13 +330,13 @@ export function NervaShell({ children }: { children: React.ReactNode }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[70] md:hidden bg-[oklch(0.1_0.03_262)]/98 backdrop-blur-xl overflow-y-auto"
+            className="fixed inset-0 z-[70] md:hidden bg-[oklch(0.11_0.018_255)]/98 backdrop-blur-xl overflow-y-auto"
           >
             <div className="flex items-center justify-between px-5 py-5">
               <span className="font-mono font-bold tracking-[0.2em] text-white">NERVA</span>
               <button
                 onClick={() => setOpen(false)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-white/5"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-white/5"
                 aria-label="Close menu"
               >
                 <X className="w-5 h-5" />
@@ -355,7 +355,7 @@ export function NervaShell({ children }: { children: React.ReactNode }) {
                     onClick={() => setOpen(false)}
                     className="py-3.5 text-lg font-medium border-b border-white/8 flex items-center gap-3 text-white/85"
                   >
-                    {l.live && <span className="w-1.5 h-1.5 rounded-full bg-[oklch(0.75_0.14_160)] animate-pulse" />}
+                    {l.live && <span className="w-1.5 h-1.5 rounded-full bg-[oklch(0.72_0.12_160)] animate-pulse" />}
                     {l.label}
                   </Link>
                 </motion.div>

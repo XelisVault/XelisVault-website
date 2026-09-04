@@ -85,7 +85,7 @@ function Particles({ world, count = 26 }: { world: Side; count?: number }) {
           className={`absolute rounded-full ${
             world === 'xelis'
               ? 'bg-[oklch(0.82_0.1_78_/_0.55)]'
-              : 'bg-[oklch(0.84_0.11_215_/_0.6)]'
+              : 'bg-[oklch(0.8_0.06_237_/_0.6)]'
           }`}
           style={{
             left: `${d.x}%`,
@@ -126,9 +126,9 @@ function WorldPanel({ world, active, dimmed, onChoose, onSelect }: WorldPanelPro
       }}
       transition={{ duration: 0.45, ease: [0.22, 0.61, 0.36, 1] }}
       className={`relative flex-1 group flex flex-col items-center justify-center overflow-hidden h-full w-full px-8 sm:px-12 outline-none focus-visible:ring-2 ${
-        isXelis ? 'focus-visible:ring-[oklch(0.52_0.09_70)]' : 'focus-visible:ring-[oklch(0.82_0.115_215)]'
+        isXelis ? 'focus-visible:ring-[oklch(0.52_0.09_70)]' : 'focus-visible:ring-[oklch(0.78_0.06_237)]'
       }`}
-      aria-label={isXelis ? 'Enter the XELIS side — confidential finance on BlockDAG' : 'Enter the NERVA side — private CPU-mined digital cash'}
+      aria-label={isXelis ? 'Enter the XELIS side: confidential finance on BlockDAG' : 'Enter the NERVA side: private CPU-mined digital cash'}
     >
       {/* ambient world wash */}
       {isXelis ? (
@@ -150,7 +150,7 @@ function WorldPanel({ world, active, dimmed, onChoose, onSelect }: WorldPanelPro
             style={{
               opacity: active ? 0.14 : 0.06,
               background:
-                'radial-gradient(ellipse 80% 60% at 70% 75%, oklch(0.72 0.15 290 / 0.8), transparent 60%), radial-gradient(ellipse 70% 50% at 25% 25%, oklch(0.82 0.115 215 / 0.7), transparent 65%)',
+                'radial-gradient(ellipse 80% 60% at 70% 75%, oklch(0.62 0.08 306 / 0.7), transparent 60%), radial-gradient(ellipse 70% 50% at 25% 25%, oklch(0.78 0.06 237 / 0.6), transparent 65%)',
             }}
           />
           <div className="absolute inset-0 circuit-bg opacity-60" />
@@ -166,7 +166,7 @@ function WorldPanel({ world, active, dimmed, onChoose, onSelect }: WorldPanelPro
           opacity: active ? 1 : 0,
           boxShadow: isXelis
             ? 'inset 0 0 120px -30px oklch(0.72 0.09 75 / 0.5)'
-            : 'inset 0 0 120px -30px oklch(0.82 0.115 215 / 0.55), inset 0 0 200px -60px oklch(0.72 0.15 290 / 0.5)',
+            : 'inset 0 0 120px -30px oklch(0.78 0.06 237 / 0.5), inset 0 0 200px -60px oklch(0.62 0.08 306 / 0.45)',
         }}
       />
 
@@ -180,18 +180,16 @@ function WorldPanel({ world, active, dimmed, onChoose, onSelect }: WorldPanelPro
           <div
             className="absolute -inset-6 rounded-full blur-2xl transition-opacity duration-500"
             style={{
-              opacity: active ? 0.55 : 0.2,
+              opacity: active ? 0.5 : 0.18,
               background: isXelis
                 ? 'radial-gradient(circle, oklch(0.72 0.09 75 / 0.6), transparent 70%)'
-                : 'radial-gradient(circle, oklch(0.82 0.115 215 / 0.55), transparent 70%)',
+                : 'radial-gradient(circle, oklch(0.78 0.06 237 / 0.5), transparent 70%)',
             }}
           />
           <img
-            src={isXelis ? '/images/xelisvault-logo.png' : '/images/nerva/nerva-mark.png'}
-            alt={isXelis ? 'Xelis Vault logo' : 'NERVA logo'}
-            className={`relative w-20 h-20 sm:w-24 sm:h-24 object-contain drop-shadow-2xl ${
-              isXelis ? 'rounded-[6px] ring-1 ring-white/20' : ''
-            }`}
+            src={isXelis ? '/images/xelis-logo.svg' : '/images/nerva/nerva-mark.png'}
+            alt={isXelis ? 'XELIS logo' : 'NERVA logo'}
+            className={`relative w-20 h-20 sm:w-24 sm:h-24 object-contain ${isXelis ? 'drop-shadow-[0_2px_12px_oklch(0_0_0_/_0.5)]' : 'drop-shadow-2xl'}`}
             draggable={false}
           />
         </motion.div>
@@ -199,7 +197,7 @@ function WorldPanel({ world, active, dimmed, onChoose, onSelect }: WorldPanelPro
         {/* protocol name */}
         <div
           className={`font-mono tracking-[0.42em] text-[26px] sm:text-[32px] font-bold leading-none ${
-            isXelis ? 'text-[oklch(0.93_0.03_80)]' : 'text-[oklch(0.88_0.1_240)]'
+            isXelis ? 'text-[oklch(0.93_0.03_80)]' : 'text-[oklch(0.88_0.04_240)]'
           }`}
         >
           {isXelis ? 'XELIS' : 'NERVA'}
@@ -207,7 +205,7 @@ function WorldPanel({ world, active, dimmed, onChoose, onSelect }: WorldPanelPro
 
         <div
           className={`mt-4 font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.3em] ${
-            isXelis ? 'text-[oklch(0.78_0.06_78)]' : 'text-[oklch(0.72_0.1_250)]'
+            isXelis ? 'text-[oklch(0.78_0.06_78)]' : 'text-[oklch(0.7_0.04_240)]'
           }`}
         >
           {isXelis ? 'Confidential Finance' : 'Private Digital Cash'}
@@ -217,12 +215,12 @@ function WorldPanel({ world, active, dimmed, onChoose, onSelect }: WorldPanelPro
         <ul className="mt-7 space-y-2.5 text-left">
           {(isXelis
             ? ['BlockDAG · 5s finality · homomorphic encryption', 'xUSD stablecoin · VLT governance · P2P lending', 'Institutional-grade private banking interface']
-            : ['CryptoNight-Adaptive v6 · CPU-only mining', 'Ring signatures ×5 · RingCT · one-time addresses', 'Tail emission 0.3 XNV/block · live explorer & payments']
+            : ['CryptoNight-Adaptive v6 · CPU-only mining', 'Ring signatures ×5 · RingCT · one-time addresses', 'Tail emission 0.3 XNV/block · live explorer and payments']
           ).map((line) => (
             <li key={line} className="flex items-start gap-2.5 text-[12.5px] text-white/55 leading-snug">
               <span
                 className={`mt-1.5 h-1 w-1 shrink-0 rounded-full ${
-                  isXelis ? 'bg-[oklch(0.78_0.08_78)]' : 'bg-[oklch(0.82_0.115_215)]'
+                  isXelis ? 'bg-[oklch(0.78_0.08_78)]' : 'bg-[oklch(0.78_0.06_237)]'
                 }`}
               />
               {line}
@@ -235,7 +233,7 @@ function WorldPanel({ world, active, dimmed, onChoose, onSelect }: WorldPanelPro
           className={`mt-9 font-mono text-[10px] uppercase tracking-[0.34em] px-5 py-2.5 border transition-all duration-500 ${
             isXelis
               ? 'border-[oklch(0.72_0.09_75_/_0.4)] text-[oklch(0.85_0.07_78)]'
-              : 'border-[oklch(0.82_0.115_215_/_0.4)] text-[oklch(0.85_0.09_225)]'
+              : 'border-[oklch(0.78_0.06_237_/_0.4)] text-[oklch(0.83_0.06_237)]'
           } ${active ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
         >
           Enter {isXelis ? 'the Vault' : 'the Signal'}
@@ -331,9 +329,9 @@ export function SideGate() {
           className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 origin-center hidden md:block"
           style={{
             background:
-              'linear-gradient(180deg, oklch(0.72 0.09 75) 0%, oklch(0.82 0.115 215) 55%, oklch(0.72 0.15 290) 100%)',
+              'linear-gradient(180deg, oklch(0.72 0.09 75) 0%, oklch(0.78 0.06 237) 55%, oklch(0.62 0.08 306) 100%)',
             boxShadow:
-              '0 0 18px oklch(0.8 0.1 90 / 0.65), 0 0 46px oklch(0.82 0.115 215 / 0.5)',
+              '0 0 18px oklch(0.8 0.1 90 / 0.6), 0 0 46px oklch(0.78 0.06 237 / 0.45)',
           }}
           aria-hidden="true"
         />
@@ -345,7 +343,7 @@ export function SideGate() {
           className="absolute top-1/2 left-0 right-0 h-px -translate-y-1/2 origin-center md:hidden"
           style={{
             background:
-              'linear-gradient(90deg, oklch(0.72 0.09 75) 0%, oklch(0.82 0.115 215) 55%, oklch(0.72 0.15 290) 100%)',
+              'linear-gradient(90deg, oklch(0.72 0.09 75) 0%, oklch(0.78 0.06 237) 55%, oklch(0.62 0.08 306) 100%)',
           }}
           aria-hidden="true"
         />
@@ -368,7 +366,7 @@ export function SideGate() {
             animate={{ opacity: phase === 'choosing' ? 1 : 0 }}
             className="mt-2.5 font-mono text-[9px] sm:text-[10px] tracking-[0.22em] text-white/30"
           >
-            SELECT A WORLD — IT REMEMBERS FOR THIS SESSION
+            SELECT A WORLD · IT REMEMBERS FOR THIS SESSION
           </motion.div>
         </div>
 
@@ -428,7 +426,7 @@ export function SideGate() {
               exit={{ opacity: 0 }}
               transition={{ duration: 1.2, times: [0, 0.25, 1] }}
               className="absolute inset-0 z-30 flex items-center justify-center overflow-hidden"
-              style={{ background: 'radial-gradient(circle at center, oklch(0.14 0.05 265) 0%, oklch(0.1 0.06 275) 55%, oklch(0.045 0.015 270) 100%)' }}
+              style={{ background: 'radial-gradient(circle at center, oklch(0.14 0.03 260) 0%, oklch(0.11 0.04 265) 55%, oklch(0.045 0.015 270) 100%)' }}
             >
               {/* warp streaks */}
               {Array.from({ length: 18 }).map((_, i) => (
@@ -443,9 +441,9 @@ export function SideGate() {
                   transition={{ duration: 0.9, delay: 0.08 + (i % 6) * 0.05, ease: 'easeIn' }}
                   className="absolute w-24 h-0.5 rounded-full"
                   style={{
-                    background: i % 2 ? 'oklch(0.82 0.115 215 / 0.9)' : 'oklch(0.72 0.15 290 / 0.9)',
+                    background: i % 2 ? 'oklch(0.78 0.06 237 / 0.9)' : 'oklch(0.62 0.08 306 / 0.9)',
                     transform: `rotate(${(i / 18) * 360}deg)`,
-                    boxShadow: '0 0 12px oklch(0.82 0.115 215 / 0.8)',
+                    boxShadow: '0 0 12px oklch(0.78 0.06 237 / 0.7)',
                   }}
                 />
               ))}
@@ -455,8 +453,8 @@ export function SideGate() {
                 transition={{ duration: 1.1, ease: [0.22, 0.61, 0.36, 1] }}
                 className="relative flex flex-col items-center gap-5"
               >
-                <img src="/images/nerva/nerva-mark.png" alt="NERVA" className="w-24 h-24 drop-shadow-[0_0_30px_oklch(0.82_0.115_215_/_0.7)]" />
-                <div className="font-mono tracking-[0.5em] text-[oklch(0.85_0.1_230)] text-sm">
+                <img src="/images/nerva/nerva-mark.png" alt="NERVA" className="w-24 h-24 drop-shadow-[0_0_30px_oklch(0.78_0.06_237_/_0.6)]" />
+                <div className="font-mono tracking-[0.5em] text-[oklch(0.8_0.06_237)] text-sm">
                   ENTERING THE SIGNAL
                 </div>
               </motion.div>
