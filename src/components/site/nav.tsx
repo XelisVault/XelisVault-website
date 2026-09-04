@@ -7,6 +7,7 @@ import { useDemo } from '@/lib/demo-store'
 import { useCountdownState } from '@/lib/countdown'
 import { useLaunchStatus } from '@/components/app/launch-gate'
 import { SoundToggle } from '@/components/site/launch-audio'
+import { useSide } from '@/lib/side-store'
 
 const LINKS = [
   { label: 'Explorer', href: '/explorer', live: true },
@@ -65,6 +66,24 @@ const UTILITY_LINKS = [
   { label: 'Discord', href: 'https://discord.gg/UHpYAWbG' },
 ]
 
+/* The two-world switch — Xelis ⇄ Nerva, reopens the Choose Your Side gate */
+function SideSwitchPill() {
+  const openGate = useSide((s) => s.openGate)
+  return (
+    <button
+      onClick={openGate}
+      title="Switch protocol side — XELIS ⇄ NERVA"
+      aria-label="Switch protocol side"
+      className="inline-flex items-center gap-1.5 h-6 pl-1.5 pr-2.5 rounded-full border border-ink-foreground/15 hover:border-vault/50 bg-ink-foreground/4 hover:bg-vault/8 transition-all group"
+    >
+      <img src="/images/xelisvault-logo.png" alt="" className="w-3.5 h-3.5 rounded-[2px] ring-1 ring-white/25" />
+      <span className="font-mono text-[9px] tracking-[0.1em] text-ink-foreground/60 group-hover:text-ink-foreground transition-colors">⇄</span>
+      <img src="/images/nerva/nerva-mark.png" alt="" className="w-3.5 h-3.5 rounded-full ring-1 ring-white/25" />
+      <span className="hidden sm:inline font-mono text-[9px] uppercase tracking-[0.14em] text-ink-foreground/70 group-hover:text-vault transition-colors">Sides</span>
+    </button>
+  )
+}
+
 export function Nav() {
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
@@ -104,6 +123,8 @@ export function Nav() {
               <span className="hidden sm:inline">XELIS BlockDAG · 5s finality</span>
             </div>
             <nav className="flex items-center gap-4" aria-label="Utility">
+              <SideSwitchPill />
+              <span className="hidden sm:inline text-ink-foreground/20">|</span>
               {UTILITY_LINKS.map((l) => (
                 <a
                   key={l.label}

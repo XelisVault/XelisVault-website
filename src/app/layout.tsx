@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
-import { LaunchExperience } from "@/components/site/launch-experience";
-import { VaultDoorTransition } from "@/components/site/vault-door-transition";
+import { GlobalChrome } from "@/components/side/global-chrome";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -84,8 +83,7 @@ export default function RootLayout({
       >
         {children}
         <Toaster />
-        <LaunchExperience />
-        <VaultDoorTransition />
+        <GlobalChrome />
       </body>
     </html>
   );
