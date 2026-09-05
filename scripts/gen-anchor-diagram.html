@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: 1000px 340px; margin: 0; }
+  html, body { margin: 0; padding: 0; background: #f5f8fc; font-family: 'Helvetica Neue', Arial, sans-serif; }
+  .canvas { width: 1000px; height: 340px; position: relative; box-sizing: border-box; padding: 26px 30px; }
+  .flow { display: flex; flex-wrap: wrap; gap: 0; max-width: 100%; align-items: stretch; }
+  .node {
+    flex: 1 1 auto; min-width: 150px; max-width: 178px;
+    background: #e4ecf5; border: 2px solid #2d7ab3; border-radius: 8px;
+    padding: 16px 14px; box-sizing: border-box; text-align: center;
+  }
+  .node + .node::before { content: none; }
+  .arrow {
+    flex: 0 0 28px; display: flex; align-items: center; justify-content: center;
+    color: #2d7ab3; font-size: 26px; font-weight: bold;
+  }
+  .node .t { font-size: 26px; font-weight: 700; color: #142840; line-height: 1.25; }
+  .node .d { font-size: 19px; color: #5a7a96; line-height: 1.35; margin-top: 8px; }
+  .node.public { background: #1a4a7a; border-color: #1a4a7a; }
+  .node.public .t { color: #ffffff; }
+  .node.public .d { color: #c0d0e2; }
+  .bands { position: absolute; left: 30px; right: 30px; top: 236px; display: flex; gap: 20px; max-width: 100%; }
+  .band { flex: 1 1 auto; font-size: 19px; line-height: 1.4; padding: 10px 14px; border-radius: 6px; box-sizing: border-box; }
+  .band.private { background: #eef3fa; color: #5a7a96; border-left: 4px solid #7a9bb8; }
+  .band.publicband { background: #e4ecf5; color: #1a4a7a; border-left: 4px solid #1a4a7a; flex: 0 0 42%; }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="flow">
+    <div class="node">
+      <div class="t">Caisse</div>
+      <div class="d">encaissements<br>de la journée</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node">
+      <div class="t">Journal<br>chaîné</div>
+      <div class="d">chaque vente scellée<br>SHA-256, chaînée</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node">
+      <div class="t">Tête du jour</div>
+      <div class="d">un seul hash<br>résume tout</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node public">
+      <div class="t">Transaction<br>d'ancrage</div>
+      <div class="d">32 octets on-chain<br>ARCANE, 1 / jour</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node">
+      <div class="t">Vérification</div>
+      <div class="d">comptable, client,<br>fisc : même preuve</div>
+    </div>
+  </div>
+  <div class="bands">
+    <div class="band private"><b>Données privées</b> — montants, clients, produits : jamais sur la chaîne, jamais dans l'ancrage.</div>
+    <div class="band publicband"><b>Empreinte publique</b> — l'intégrité du journal, vérifiable par tous.</div>
+  </div>
+</div>
+</body>
+</html>
