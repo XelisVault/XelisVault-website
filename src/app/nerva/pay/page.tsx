@@ -5,7 +5,7 @@ import { PayPage } from '@/components/nerva/pay-page'
 export const metadata: Metadata = {
   title: 'NervaLink · Checkout',
   description:
-    'Pay in NERVA (XNV): scan the QR with your wallet, and this page watches the chain for your payment in real time. Stateless, keyless, private.',
+    'Pay in NERVA (XNV): scan the QR with your wallet, and this page watches the chain for your payment in real time. Come back to the link later and it still shows the paid state — kept privately in your browser, re-verified on-chain on every visit.',
 }
 
 export default function NervaPayPageRoute() {

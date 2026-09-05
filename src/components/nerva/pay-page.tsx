@@ -19,10 +19,11 @@ import {
 } from 'lucide-react'
 import {
   decodeInvoice, buildNervaUri, renderQrDataUrl, detectPayment,
-  invoicePhase, type NervaInvoice, type DetectionResult,
+  invoicePhase, loadPaymentCache, savePaymentCache, clearPaymentCache,
+  type NervaInvoice, type DetectionResult, type ScanProgress,
 } from '@/lib/nerva/nlink'
 import { atomicToDisplay } from '@/lib/nerva/nlink'
-import { getBlockCount, shortenHash, NERVA_LINKS, NERVA_CONSTANTS } from '@/lib/nerva/api'
+import { getBlockCount, shortenHash, formatTimestamp, NERVA_LINKS, NERVA_CONSTANTS } from '@/lib/nerva/api'
 import { copyText } from '@/lib/clipboard'
 
 /* ───────────── countdown ───────────── */
@@ -120,6 +121,16 @@ function StatusRing({ phase, confirmations }: { phase: Phase; confirmations: num
 
 /* ───────────── the checkout page ───────────── */
 
+const STATUS_RANK: Record<string, number> = { pending: 0, detected: 1, confirmed: 2, settled: 3, expired: 0 }
+
+/** never regress: once a payment is seen on-chain it stays seen */
+function mergeResults(prev: DetectionResult | null, r: DetectionResult): DetectionResult {
+  if (!prev) return r
+  if ((STATUS_RANK[r.status] ?? 0) > (STATUS_RANK[prev.status] ?? 0)) return r
+  if (r.status === prev.status && r.status !== 'pending') return r // fresher confirmations
+  return prev
+}
+
 export function PayPage() {
   const params = useSearchParams()
   const token = params.get('d') ?? ''
@@ -130,10 +141,43 @@ export function PayPage() {
   const [netHeight, setNetHeight] = useState<number>(0)
   const [copied, setCopied] = useState<string | null>(null)
   const [offline, setOffline] = useState(false)
+  const [scan, setScan] = useState<ScanProgress | null>(null)
+  const [verified, setVerified] = useState(false)
+  const [hasLocal, setHasLocal] = useState(false)
   const countdown = useCountdown(invoice ? invoice.exp * 1000 : 0)
+
   const busy = useRef(false)
+  const knownTx = useRef<string | undefined>(undefined)
+  const cursor = useRef<number>(-1)
+  const resultRef = useRef<DetectionResult | null>(null)
+  const verifiedRef = useRef(false)
 
   const uri = useMemo(() => (invoice ? buildNervaUri(invoice) : ''), [invoice])
+
+  /* a payment found earlier is remembered in THIS browser (the data never
+     leaves it): rehydrate it so a revisit shows the paid state instantly,
+     while the watcher below re-verifies it against the chain */
+  useEffect(() => {
+    if (!invoice) return
+    const cached = loadPaymentCache(invoice.pid)
+    if (cached) {
+      knownTx.current = cached.txHash
+      setHasLocal(true)
+      const provisional: DetectionResult = {
+        status: cached.status,
+        txHash: cached.txHash,
+        blockHeight: cached.blockHeight,
+        txTimestamp: cached.txTimestamp,
+        inPool: cached.inPool,
+        confirmations: cached.confirmations,
+        checkedTxs: 0,
+        scannedBlocks: 0,
+        networkHeight: cached.networkHeight,
+      }
+      resultRef.current = provisional
+      setResult(provisional)
+    }
+  }, [invoice])
 
   /* QR generated locally, never via a third-party service */
   useEffect(() => {
@@ -145,33 +189,44 @@ export function PayPage() {
     return () => { alive = false }
   }, [invoice])
 
-  /* the watcher loop: poll every 10s + jitter, stop when settled/expired */
+  /* the watcher: verify the known tx hash (instant, age-independent), then
+     scan the FULL history since link creation — paged, with progress — and
+     afterwards follow the mempool + each new block. A payment, once found,
+     is saved locally so refreshing or coming back days later still shows
+     the paid state with its receipt */
   const watch = useCallback(async () => {
     if (!invoice || busy.current) return
-    const phase0 = invoicePhase(invoice)
-    if (phase0 === 'expired') {
-      setResult((r) => r ?? { status: 'expired', confirmations: 0, checkedTxs: 0, scannedBlocks: 0, networkHeight: 0 })
-      return
-    }
-    if (result && (result.status === 'settled' || result.status === 'expired')) return
+    if (resultRef.current?.status === 'settled' && verifiedRef.current) return
     busy.current = true
     try {
       const tip = await getBlockCount()
       setNetHeight(tip)
-      const r = await detectPayment(invoice, tip)
+      const { result: r, scannedUpTo } = await detectPayment(invoice, tip, {
+        knownTxHash: knownTx.current,
+        scanFrom: cursor.current + 1,
+        onProgress: setScan,
+      })
+      if (scannedUpTo > cursor.current) cursor.current = scannedUpTo
+      if (r.status !== 'pending' && r.txHash) {
+        knownTx.current = r.txHash
+        savePaymentCache(invoice.pid, r)
+        setHasLocal(true)
+      }
       setResult((prev) => {
-        // never regress: settled stays settled, detected stays detected+
-        if (prev && (prev.status === 'settled')) return prev
-        if (prev && (prev.status === 'confirmed') && r.status === 'detected') return prev
-        return r
+        const merged = mergeResults(prev, r)
+        resultRef.current = merged
+        return merged
       })
       setOffline(false)
+      setVerified(true)
+      verifiedRef.current = true
     } catch {
       setOffline(true)
     } finally {
+      setScan(null)
       busy.current = false
     }
-  }, [invoice, result])
+  }, [invoice])
 
   useEffect(() => {
     if (!invoice) return
@@ -180,6 +235,13 @@ export function PayPage() {
     const id = setInterval(() => void watch(), jitter)
     return () => clearInterval(id)
   }, [invoice, watch])
+
+  const forgetLocal = () => {
+    if (!invoice) return
+    clearPaymentCache(invoice.pid)
+    knownTx.current = undefined
+    setHasLocal(false)
+  }
 
   /* invalid link screen */
   if (!invoice) {
@@ -204,12 +266,15 @@ export function PayPage() {
     )
   }
 
-  const phase: Phase = invoicePhase(invoice) === 'expired'
-    ? (result && result.status === 'settled' ? 'settled' : 'link-expired')
-    : (result?.status ?? 'pending')
+  /* a payment, once seen, always wins over the link's own expiry */
+  const paid = !!result && (result.status === 'detected' || result.status === 'confirmed' || result.status === 'settled')
+  const phase: Phase = paid
+    ? (result as DetectionResult).status
+    : invoicePhase(invoice) === 'expired' ? 'link-expired' : 'pending'
   const conf = PHASES[phase]
   const freeAmount = invoice.amt === '0'
   const showTx = result?.txHash
+  const settled = phase === 'settled'
 
   const copy = (text: string, key: string) => {
     void copyText(text).then((ok) => {
@@ -306,8 +371,29 @@ export function PayPage() {
             </div>
           </div>
 
+          {/* deep-scan progress: the page is actively searching the history */}
+          {phase === 'pending' && scan && scan.total > 2 && (
+            <div className="mt-5 pt-4 border-t border-white/8">
+              <div className="flex items-center justify-between font-mono text-[10px] text-[oklch(0.6_0.012_250)]">
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  {scan.phase === 'headers' ? 'searching the chain history' : 'inspecting blocks with transactions'}
+                </span>
+                <span className="tabular-nums">{scan.scanned}/{scan.total}</span>
+              </div>
+              <div className="mt-2.5 h-1 rounded-full bg-white/8 overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ background: conf.color }}
+                  animate={{ width: `${Math.max(3, Math.round((scan.scanned / scan.total) * 100))}%` }}
+                  transition={{ duration: 0.4, ease: 'easeOut' }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* countdown */}
-          {invoice.exp > 0 && phase !== 'settled' && phase !== 'link-expired' && (
+          {invoice.exp > 0 && !paid && (
             <div className="mt-5 pt-4 border-t border-white/8 flex items-center justify-between">
               <span className="font-mono text-[9.5px] uppercase tracking-[0.2em] text-[oklch(0.55_0.025_250)]">
                 Link expires in
@@ -318,6 +404,71 @@ export function PayPage() {
             </div>
           )}
         </motion.div>
+
+        {/* receipt: shown as soon as a payment is seen — and on every revisit */}
+        {paid && result && (
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-5 panel-nerva rounded-lg p-6 sm:p-7"
+          >
+            <div className="flex items-center justify-between gap-4 pb-4 mb-5 border-b border-white/8">
+              <div className="min-w-0">
+                <div className="font-semibold text-[14px] text-white">Payment receipt</div>
+                <div className="mt-0.5 font-mono text-[10px] text-[oklch(0.58_0.025_250)]">
+                  {offline ? 'connection lost · retrying…' : verified ? 'verified against the chain just now' : 're-verifying on the chain…'}
+                </div>
+              </div>
+              <span
+                className={`shrink-0 inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] ${
+                  settled
+                    ? 'border-[oklch(0.72_0.12_160)]/30 text-[oklch(0.72_0.12_160)]'
+                    : 'border-[oklch(0.78_0.06_237)]/30 text-[oklch(0.78_0.06_237)]'
+                }`}
+              >
+                {settled ? 'spendable' : phase === 'confirmed' ? 'confirming' : 'in mempool'}
+              </span>
+            </div>
+            <div className="space-y-2">
+              <button
+                onClick={() => result.txHash && copy(result.txHash, 'tx')}
+                className="w-full min-w-0 flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.02] px-3.5 py-2.5 hover:border-[oklch(0.78_0.06_237)]/35 transition-colors group"
+                title="Click to copy the transaction hash"
+              >
+                <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[oklch(0.5_0.01_250)] shrink-0">Transaction</span>
+                <span className="font-mono text-[10px] text-white/65 truncate min-w-0">{shortenHash(result.txHash ?? '', 10, 6)}</span>
+                {copied === 'tx' ? <Check className="w-3.5 h-3.5 text-[oklch(0.72_0.12_160)] shrink-0" /> : <Copy className="w-3.5 h-3.5 text-white/30 group-hover:text-white/60 shrink-0" />}
+              </button>
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.02] px-3.5 py-2.5">
+                <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[oklch(0.5_0.01_250)] shrink-0">Block</span>
+                <span className="font-mono text-[10px] text-white/65">
+                  {result.inPool ? 'mempool · waiting for its first block' : result.blockHeight ? `#${result.blockHeight.toLocaleString()}` : '—'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.02] px-3.5 py-2.5">
+                <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[oklch(0.5_0.01_250)] shrink-0">Paid at</span>
+                <span className="font-mono text-[10px] text-white/65">
+                  {result.txTimestamp ? formatTimestamp(result.txTimestamp) : result.inPool ? 'pending' : '—'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.02] px-3.5 py-2.5">
+                <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[oklch(0.5_0.01_250)] shrink-0">Confirmations</span>
+                <span className="font-mono text-[10px] text-white/65 tabular-nums">
+                  {result.confirmations} / {NERVA_CONSTANTS.spendableAge}
+                  {settled && <span className="text-[oklch(0.72_0.12_160)]"> · spendable</span>}
+                </span>
+              </div>
+            </div>
+            <a
+              href={`${NERVA_LINKS.explorer}/?hash=${result.txHash}#tx`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-4 inline-flex items-center gap-1.5 font-mono text-[11px] text-[oklch(0.78_0.06_237)] hover:text-[oklch(0.9_0.1_215)] transition-colors"
+            >
+              view the transaction on the explorer <ExternalLink className="w-3 h-3" />
+            </a>
+          </motion.div>
+        )}
 
         {/* QR card, only while waiting */}
         {phase === 'pending' && (
@@ -391,14 +542,27 @@ export function PayPage() {
         {/* honesty note */}
         <div className="mt-6 flex items-start gap-3 rounded-md border border-white/8 bg-white/[0.02] p-4">
           <ShieldCheck className="w-4 h-4 text-[oklch(0.78_0.06_237)] shrink-0 mt-0.5" />
-          <p className="text-[11.5px] leading-relaxed text-[oklch(0.64_0.012_250)]">
-            This checkout runs entirely in your browser against the public explorer
-            API. It confirms that <span className="text-white/80">this reference</span> appeared
-            on-chain with enough confirmations. RingCT keeps the amount itself
-            encrypted, so the receiver verifies the exact sum in their wallet. If
-            your wallet refuses the long payment id, send manually to the address
-            above: detection works either way.
-          </p>
+          <div className="min-w-0">
+            <p className="text-[11.5px] leading-relaxed text-[oklch(0.64_0.012_250)]">
+              This checkout runs entirely in your browser against the public explorer
+              API — no server ever stores anything. When a payment is found, a private
+              copy of the result is kept in this browser only, so coming back to the
+              link later still shows the paid state; the chain stays the source of truth
+              and every visit re-verifies it. RingCT keeps the amount itself encrypted,
+              so the receiver verifies the exact sum in their wallet. If your wallet
+              refuses the long payment id, send manually to the address above: detection
+              works either way.
+            </p>
+            {hasLocal && (
+              <button
+                onClick={forgetLocal}
+                className="mt-2.5 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white/35 hover:text-[oklch(0.78_0.06_237)] transition-colors"
+                title="Remove the local copy of this payment from this browser"
+              >
+                <EyeOff className="w-3 h-3" /> clear the local record
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="mt-8 text-center">

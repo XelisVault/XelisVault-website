@@ -177,11 +177,12 @@ export async function getBlockHeaderByHash(hash: string): Promise<NervaBlockHead
  * Range of headers, max ~100-120 per call. Returns [] when the range is empty.
  * Defensive: the API rejects end-heights beyond the mined tip
  * ("Invalid start/end heights") — we retry once with end-1, then give up.
+ * Historical headers are immutable → cached 60s so repeat polls are cheap.
  */
 export async function getBlockHeadersRange(start: number, end: number): Promise<NervaBlockHeader[]> {
   if (end < start) return []
   const fetchRange = (s: number, e: number) =>
-    nervaFetch('get_block_headers_range', { start: String(s), end: String(e) })
+    nervaFetch('get_block_headers_range', { start: String(s), end: String(e) }, 60_000)
   let d = await fetchRange(start, end)
   if (d?.error && end > start) {
     d = await fetchRange(start, end - 1)
@@ -189,13 +190,18 @@ export async function getBlockHeadersRange(start: number, end: number): Promise<
   return Array.isArray(d?.headers) ? d.headers : []
 }
 
+/** A mined block never changes → cached 10 min. */
 export async function getBlock(hash: string): Promise<NervaBlock> {
-  return nervaFetch('get_block', { hash })
+  return nervaFetch('get_block', { hash }, 600_000)
 }
 
-export async function getTransactions(hashes: string[]): Promise<NervaTransaction[]> {
+/**
+ * Transactions by hash. Mined txs are immutable, but the same call is also
+ * used on mempool hashes → default uncached; pass a TTL for history scans.
+ */
+export async function getTransactions(hashes: string[], ttlMs = 0): Promise<NervaTransaction[]> {
   if (hashes.length === 0) return []
-  const d = await nervaFetch('get_transactions', { 'hash[]': hashes })
+  const d = await nervaFetch('get_transactions', { 'hash[]': hashes }, ttlMs)
   // response is a plain array at the root (verified live)
   return Array.isArray(d) ? d : (d?.transactions ?? [])
 }
