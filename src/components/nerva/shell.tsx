@@ -13,13 +13,15 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Menu, X, ArrowUpRight, Radio, Cpu, Link2, Radar, BookOpen, Globe, Github, MessageSquare, Map as MapIcon, KeyRound, Eye } from 'lucide-react'
+import { Menu, X, ArrowUpRight, Radio, Cpu, Link2, Radar, BookOpen, Globe, Github, MessageSquare, Map as MapIcon, KeyRound, Eye, Store as StoreIcon, Tag } from 'lucide-react'
 import { useSide } from '@/lib/side-store'
 import { useLiveInfo } from '@/components/nerva/live-info'
 
 const NAV_LINKS = [
   { label: 'Overview', href: '/nerva', icon: Radio },
   { label: 'Explorer', href: '/nerva/explorer', icon: Radar, live: true },
+  { label: 'Caisse', href: '/nerva/caisse', icon: StoreIcon, highlight: true },
+  { label: 'Tickets prix', href: '/nerva/tickets', icon: Tag },
   { label: 'Payment Links', href: '/nerva/link', icon: Link2 },
   { label: 'Paper Wallet', href: '/nerva/paper-wallet', icon: KeyRound },
   { label: 'Mining', href: '/nerva/mining', icon: Cpu },
@@ -169,6 +171,11 @@ export function NervaShell({ children }: { children: React.ReactNode }) {
                       </span>
                     )}
                     {l.label}
+                    {l.highlight && (
+                      <span className="font-mono text-[8px] font-bold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded bg-[oklch(0.78_0.06_237)]/18 text-[oklch(0.83_0.055_237)] leading-none">
+                        new
+                      </span>
+                    )}
                   </Link>
                 )
               })}

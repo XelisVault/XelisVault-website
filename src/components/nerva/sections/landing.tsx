@@ -16,7 +16,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import {
   Radar, Link2, Cpu, Shield, EyeOff, Users, Lock, Fingerprint,
   ArrowUpRight, ArrowRight, BookOpen, Globe, Github, MessageSquare,
-  Map as MapIcon, Radio, Layers, Server, Zap, KeyRound, Eye,
+  Map as MapIcon, Radio, Layers, Server, Zap, KeyRound, Eye, Store, Tag,
 } from 'lucide-react'
 import { Reveal, RevealStagger, RevealItem, SectionLabel } from '@/components/site/reveal'
 import { useLiveInfo } from '@/components/nerva/live-info'
@@ -611,6 +611,24 @@ function HowItWorks() {
         {/* in-house tools */}
         <RevealStagger className="mt-14 grid sm:grid-cols-3 gap-4">
           {[
+            {
+              href: '/nerva/caisse',
+              icon: Store,
+              title: 'Caisse NERVA',
+              desc: 'The point-of-sale terminal: type the amount, the customer scans, the chain confirms. Receipts print as PDF, every sale is sealed in a SHA-256 chained journal.',
+            },
+            {
+              href: '/nerva/tickets',
+              icon: Tag,
+              title: 'Price tags',
+              desc: 'Printable shelf labels with a wallet-native payment QR: address, exact amount and a unique reference, one A4 sheet = 10 tags.',
+            },
+            {
+              href: '/nerva/link',
+              icon: Link2,
+              title: 'Payment links',
+              desc: 'A mini Stripe-style checkout with zero infrastructure — the invoice lives entirely inside its URL.',
+            },
             {
               href: '/nerva/paper-wallet',
               icon: KeyRound,

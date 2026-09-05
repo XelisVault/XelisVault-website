@@ -33,6 +33,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const nerva: MetadataRoute.Sitemap = [
     { path: '/nerva', priority: 0.9, freq: 'daily' },
     { path: '/nerva/explorer', priority: 0.8, freq: 'daily' },
+    { path: '/nerva/caisse', priority: 0.9, freq: 'monthly' },
+    { path: '/nerva/tickets', priority: 0.8, freq: 'monthly' },
     { path: '/nerva/link', priority: 0.8, freq: 'monthly' },
     { path: '/nerva/paper-wallet', priority: 0.7, freq: 'monthly' },
     { path: '/nerva/mining', priority: 0.7, freq: 'daily' },

@@ -25,6 +25,8 @@ import {
 import { atomicToDisplay } from '@/lib/nerva/nlink'
 import { getBlockCount, shortenHash, formatTimestamp, NERVA_LINKS, NERVA_CONSTANTS } from '@/lib/nerva/api'
 import { copyText } from '@/lib/clipboard'
+import { buildReceiptPdf, downloadPdf, printPdf } from '@/lib/nerva/pdf'
+import { Printer, Download } from 'lucide-react'
 
 /* ───────────── countdown ───────────── */
 
@@ -144,6 +146,7 @@ export function PayPage() {
   const [scan, setScan] = useState<ScanProgress | null>(null)
   const [verified, setVerified] = useState(false)
   const [hasLocal, setHasLocal] = useState(false)
+  const [pdfBusy, setPdfBusy] = useState(false)
   const countdown = useCountdown(invoice ? invoice.exp * 1000 : 0)
 
   const busy = useRef(false)
@@ -241,6 +244,19 @@ export function PayPage() {
     clearPaymentCache(invoice.pid)
     knownTx.current = undefined
     setHasLocal(false)
+  }
+
+  /* the paper receipt: built locally, printed or saved as PDF */
+  const makeReceipt = async (mode: 'print' | 'download') => {
+    if (!invoice || pdfBusy) return
+    setPdfBusy(true)
+    try {
+      const bytes = await buildReceiptPdf(invoice, result, { verifyUrl: window.location.href })
+      if (mode === 'print') printPdf(bytes)
+      else downloadPdf(bytes, `recu-${invoice.pid.slice(0, 12)}.pdf`)
+    } finally {
+      setPdfBusy(false)
+    }
   }
 
   /* invalid link screen */
@@ -467,6 +483,28 @@ export function PayPage() {
             >
               view the transaction on the explorer <ExternalLink className="w-3 h-3" />
             </a>
+
+            {/* printable receipt */}
+            <div className="mt-5 pt-4 border-t border-white/8 grid grid-cols-2 gap-2.5">
+              <button
+                onClick={() => void makeReceipt('print')}
+                disabled={pdfBusy}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-md text-[13px] font-semibold bg-[oklch(0.66_0.083_233)] text-[oklch(0.13_0.02_255)] hover:bg-[oklch(0.7_0.08_236)] transition-colors disabled:opacity-60"
+              >
+                {pdfBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
+                Print the receipt
+              </button>
+              <button
+                onClick={() => void makeReceipt('download')}
+                disabled={pdfBusy}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-md text-[13px] font-medium border border-white/12 bg-white/[0.03] hover:bg-white/8 text-white/80 transition-colors disabled:opacity-60"
+              >
+                <Download className="w-4 h-4" /> Receipt PDF
+              </button>
+            </div>
+            <div className="mt-2.5 font-mono text-[9.5px] text-[oklch(0.5_0.01_250)]">
+              generated locally in your browser · SHA-256 seal · re-scan the QR to re-verify on-chain
+            </div>
           </motion.div>
         )}
 

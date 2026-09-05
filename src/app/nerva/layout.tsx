@@ -74,6 +74,8 @@ export default function NervaLayout({ children }: { children: React.ReactNode })
         offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
         featureList: [
           "Stateless NERVA payment links with on-chain detection",
+          "Caisse: a merchant point-of-sale terminal with printable PDF receipts and a SHA-256 chained sales journal",
+          "Printable XNV price tags with wallet-native payment QR",
           "Live block explorer and mempool telemetry",
           "QR checkout pages shareable as a single URL",
         ],
