@@ -13,7 +13,7 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Menu, X, ArrowUpRight, Radio, Cpu, Link2, Radar, BookOpen, Globe, Github, MessageSquare, Map as MapIcon } from 'lucide-react'
+import { Menu, X, ArrowUpRight, Radio, Cpu, Link2, Radar, BookOpen, Globe, Github, MessageSquare, Map as MapIcon, KeyRound, Eye } from 'lucide-react'
 import { useSide } from '@/lib/side-store'
 import { useLiveInfo } from '@/components/nerva/live-info'
 
@@ -21,6 +21,9 @@ const NAV_LINKS = [
   { label: 'Overview', href: '/nerva', icon: Radio },
   { label: 'Explorer', href: '/nerva/explorer', icon: Radar, live: true },
   { label: 'Payment Links', href: '/nerva/link', icon: Link2 },
+  { label: 'Paper Wallet', href: '/nerva/paper-wallet', icon: KeyRound },
+  { label: 'Mining', href: '/nerva/mining', icon: Cpu },
+  { label: 'Watch-Only', href: '/nerva/watch', icon: Eye },
 ]
 
 const ECOSYSTEM = [

@@ -16,7 +16,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import {
   Radar, Link2, Cpu, Shield, EyeOff, Users, Lock, Fingerprint,
   ArrowUpRight, ArrowRight, BookOpen, Globe, Github, MessageSquare,
-  Map as MapIcon, Radio, Layers, Server, Zap,
+  Map as MapIcon, Radio, Layers, Server, Zap, KeyRound, Eye,
 } from 'lucide-react'
 import { Reveal, RevealStagger, RevealItem, SectionLabel } from '@/components/site/reveal'
 import { useLiveInfo } from '@/components/nerva/live-info'
@@ -477,6 +477,18 @@ function MiningSection() {
                 Mining runs through the official CLI or NervaOne; this interface itself
                 only reads the chain.
               </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link href="/nerva/mining" className={BTN_PRIMARY}>
+                  <Radar className="w-4 h-4" /> Open the mining center
+                </Link>
+                <a
+                  href="https://docs.nerva.one/overview/mining/"
+                  target="_blank" rel="noreferrer"
+                  className={BTN_SECONDARY}
+                >
+                  Official mining guide <ArrowUpRight className="w-4 h-4" />
+                </a>
+              </div>
             </Reveal>
           </div>
         </div>
@@ -595,6 +607,44 @@ function HowItWorks() {
             </Reveal>
           </div>
         </div>
+
+        {/* in-house tools */}
+        <RevealStagger className="mt-14 grid sm:grid-cols-3 gap-4">
+          {[
+            {
+              href: '/nerva/paper-wallet',
+              icon: KeyRound,
+              title: 'Paper wallet generator',
+              desc: 'Fresh keys, address and 25-word mnemonic minted by your browser — printable, offline-capable.',
+            },
+            {
+              href: '/nerva/watch',
+              icon: Eye,
+              title: 'Watch-only tracker',
+              desc: 'Address + view key: see payments arrive in real time, without ever exposing a spend key.',
+            },
+            {
+              href: '/nerva/mining',
+              icon: Radar,
+              title: 'Mining center',
+              desc: 'Live hashrate, difficulty and an honest solo-mining calculator — the real odds of your CPU.',
+            },
+          ].map((t) => (
+            <RevealItem key={t.href}>
+              <Link
+                href={t.href}
+                className="group block h-full border border-[oklch(0.92_0.008_250/0.12)] rounded-md bg-[oklch(0.17_0.02_252)] p-5 hover:border-[oklch(0.78_0.06_237/0.45)] transition-colors"
+              >
+                <t.icon className="w-4.5 h-4.5 text-[oklch(0.78_0.06_237)]" />
+                <div className="mt-3 font-semibold text-[14.5px] text-white/90 group-hover:text-white transition-colors">{t.title}</div>
+                <p className="mt-2 text-[12.5px] leading-relaxed text-[oklch(0.68_0.012_250)]">{t.desc}</p>
+                <span className="mt-3.5 inline-flex items-center gap-1.5 font-mono text-[9.5px] uppercase tracking-[0.14em] text-[oklch(0.78_0.06_237/0.85)] group-hover:text-[oklch(0.78_0.06_237)] transition-colors">
+                  Open tool <ArrowRight className="w-3 h-3" />
+                </span>
+              </Link>
+            </RevealItem>
+          ))}
+        </RevealStagger>
       </div>
     </section>
   )
