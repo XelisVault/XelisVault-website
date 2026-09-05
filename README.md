@@ -5,7 +5,7 @@ gateway for the **XELIS** and **NERVA (XNV)** privacy networks — live
 network telemetry, explorers, a merchant toolkit, and cold-storage tools.
 No accounts, no tracking, no keys held by anyone but you.
 
-- Site: https://xelisvault.network
+- Site: https://xelisvault.xyz
 - XELIS world: `/` (vault simulator, mixer, oracle, contracts explorer)
 - NERVA world: `/nerva` (explorer, merchant toolkit, paper wallet, mining)
 
