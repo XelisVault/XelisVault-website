@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 
-const SITE = 'https://xelisvault.network'
+const SITE = 'https://xelisvault.xyz'
 
 /**
  * Sitemap for both worlds of XelisVault.

@@ -4,9 +4,17 @@
  * NervaLink checkout: the payment page.
  *
  * The invoice is decoded from the URL (stateless), a QR of the `nerva:` URI
- * is rendered locally, and the page polls the public explorer API every
- * ~10s (with jitter) to follow the payment: mempool → 1 confirmation →
- * 10 confirmations (spendable). No third-party script, no storage.
+ * is rendered locally (v2: an INTEGRATED address carrying an 8-byte payment
+ * id — every default NERVA wallet encrypts and includes it automatically),
+ * and the page polls the public explorer API every ~10s (with jitter).
+ *
+ * Detection honesty: v2 payment references are ENCRYPTED (NERVA privacy).
+ * This payer-side page therefore follows the chain passively (mempool +
+ * known tx) and offers "I paid — declare the transaction": the tx hash gives
+ * an instant declared state + receipt, and the optional transaction secret
+ * key (wallet `get_tx_key`) yields a full cryptographic proof against the
+ * integrated payment id. The merchant's side (caisse + view key) confirms
+ * definitively. No third-party script, no storage beyond this browser.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -15,10 +23,11 @@ import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Copy, Check, Wallet, Radar, Clock, ShieldCheck, ExternalLink,
-  AlertTriangle, CheckCircle2, Loader2, LinkIcon, EyeOff,
+  AlertTriangle, CheckCircle2, Loader2, LinkIcon, EyeOff, ClipboardCheck, BadgeCheck,
 } from 'lucide-react'
 import {
-  decodeInvoice, buildNervaUri, renderQrDataUrl, detectPayment,
+  decodeInvoice, buildNervaUri, buildIntegratedAddress, renderQrDataUrl,
+  detectPayment, verifyDeclaredPayment, invoiceCacheKey,
   invoicePhase, loadPaymentCache, savePaymentCache, clearPaymentCache,
   type NervaInvoice, type DetectionResult, type ScanProgress,
 } from '@/lib/nerva/nlink'
@@ -26,7 +35,7 @@ import { atomicToDisplay } from '@/lib/nerva/nlink'
 import { getBlockCount, shortenHash, formatTimestamp, NERVA_LINKS, NERVA_CONSTANTS } from '@/lib/nerva/api'
 import { copyText } from '@/lib/clipboard'
 import { buildReceiptPdf, downloadPdf, printPdf } from '@/lib/nerva/pdf'
-import { useNervaPrice, xnvAtomicToEur as xnvAtomicToEurLive } from '@/lib/nerva/price'
+import { useNervaPrice, xnvAtomicToUsd, xnvAtomicToEur } from '@/lib/nerva/price'
 import { Printer, Download } from 'lucide-react'
 
 /* ───────────── countdown ───────────── */
@@ -54,9 +63,15 @@ type PhaseIcon = React.ComponentType<{ className?: string; style?: React.CSSProp
 const PHASES: Record<Phase, { label: string; sub: string; color: string; icon: PhaseIcon }> = {
   pending: {
     label: 'Listening for your payment',
-    sub: 'Scanning the mempool and every new block · every 10 seconds',
+    sub: 'Following the mempool and every new block · every 10 seconds',
     color: 'oklch(0.78 0.06 237)',
     icon: Radar,
+  },
+  declared: {
+    label: 'Payment declared',
+    sub: 'You reported the transaction — the merchant can now match it in their wallet',
+    color: 'oklch(0.78 0.1 75)',
+    icon: ClipboardCheck,
   },
   detected: {
     label: 'Payment seen',
@@ -124,7 +139,7 @@ function StatusRing({ phase, confirmations }: { phase: Phase; confirmations: num
 
 /* ───────────── the checkout page ───────────── */
 
-const STATUS_RANK: Record<string, number> = { pending: 0, detected: 1, confirmed: 2, settled: 3, expired: 0 }
+const STATUS_RANK: Record<string, number> = { pending: 0, declared: 1, detected: 2, confirmed: 3, settled: 4, expired: 0 }
 
 /** never regress: once a payment is seen on-chain it stays seen */
 function mergeResults(prev: DetectionResult | null, r: DetectionResult): DetectionResult {
@@ -149,24 +164,36 @@ export function PayPage() {
   const [verified, setVerified] = useState(false)
   const [hasLocal, setHasLocal] = useState(false)
   const [pdfBusy, setPdfBusy] = useState(false)
+  /* payer declaration form */
+  const [declTxHash, setDeclTxHash] = useState('')
+  const [declTxKey, setDeclTxKey] = useState('')
+  const [showTxKey, setShowTxKey] = useState(false)
+  const [declaring, setDeclaring] = useState(false)
+  const [declError, setDeclError] = useState<string | null>(null)
+  const [declJustProved, setDeclJustProved] = useState(false)
   const countdown = useCountdown(invoice ? invoice.exp * 1000 : 0)
 
   const busy = useRef(false)
   const knownTx = useRef<string | undefined>(undefined)
+  const knownTxKey = useRef<string | undefined>(undefined)
   const cursor = useRef<number>(-1)
   const resultRef = useRef<DetectionResult | null>(null)
   const verifiedRef = useRef(false)
 
   const uri = useMemo(() => (invoice ? buildNervaUri(invoice) : ''), [invoice])
+  /** v2: the integrated address the payer actually pays (pid embedded) */
+  const integrated = useMemo(() => (invoice && invoice.v === 2 ? buildIntegratedAddress(invoice) : null), [invoice])
+  const payTarget = integrated ?? invoice?.a ?? ''
 
   /* a payment found earlier is remembered in THIS browser (the data never
      leaves it): rehydrate it so a revisit shows the paid state instantly,
      while the watcher below re-verifies it against the chain */
   useEffect(() => {
     if (!invoice) return
-    const cached = loadPaymentCache(invoice.pid)
+    const cached = loadPaymentCache(invoiceCacheKey(invoice))
     if (cached) {
       knownTx.current = cached.txHash
+      knownTxKey.current = cached.txKey
       setHasLocal(true)
       const provisional: DetectionResult = {
         status: cached.status,
@@ -178,6 +205,7 @@ export function PayPage() {
         checkedTxs: 0,
         scannedBlocks: 0,
         networkHeight: cached.networkHeight,
+        match: cached.match,
       }
       resultRef.current = provisional
       setResult(provisional)
@@ -214,7 +242,7 @@ export function PayPage() {
       if (scannedUpTo > cursor.current) cursor.current = scannedUpTo
       if (r.status !== 'pending' && r.txHash) {
         knownTx.current = r.txHash
-        savePaymentCache(invoice.pid, r)
+        savePaymentCache(invoiceCacheKey(invoice), r, knownTxKey.current)
         setHasLocal(true)
       }
       setResult((prev) => {
@@ -243,9 +271,49 @@ export function PayPage() {
 
   const forgetLocal = () => {
     if (!invoice) return
-    clearPaymentCache(invoice.pid)
+    clearPaymentCache(invoiceCacheKey(invoice))
     knownTx.current = undefined
+    knownTxKey.current = undefined
     setHasLocal(false)
+    setDeclTxHash('')
+    setDeclTxKey('')
+  }
+
+  /* the payer declaration: "I paid, here is my transaction" — instant
+     declared state + receipt; the optional tx secret key upgrades it to a
+     full cryptographic proof against the integrated payment id */
+  const declarePayment = async () => {
+    if (!invoice || declaring) return
+    setDeclaring(true)
+    setDeclError(null)
+    setDeclJustProved(false)
+    try {
+      const tip = netHeight > 0 ? netHeight : await getBlockCount().catch(() => 0)
+      const v = await verifyDeclaredPayment(invoice, declTxHash, {
+        txKey: declTxKey.trim() || undefined,
+        tipHeight: tip,
+      })
+      if (!v.ok || !v.result) {
+        setDeclError(v.reason ?? 'Verification failed')
+        return
+      }
+      knownTx.current = v.result.txHash
+      if (v.result.match === 'pid8-txkey') {
+        knownTxKey.current = declTxKey.trim().toLowerCase()
+        setDeclJustProved(true)
+      }
+      savePaymentCache(invoiceCacheKey(invoice), v.result, knownTxKey.current)
+      setHasLocal(true)
+      setResult((prev) => {
+        const merged = mergeResults(prev, v.result!)
+        resultRef.current = merged
+        return merged
+      })
+    } catch {
+      setDeclError('The explorer is unreachable right now — try again in a moment')
+    } finally {
+      setDeclaring(false)
+    }
   }
 
   /* the paper receipt: built locally, printed or saved as PDF */
@@ -255,7 +323,7 @@ export function PayPage() {
     try {
       const bytes = await buildReceiptPdf(invoice, result, { verifyUrl: window.location.href })
       if (mode === 'print') printPdf(bytes)
-      else downloadPdf(bytes, `receipt-${invoice.pid.slice(0, 12)}.pdf`)
+      else downloadPdf(bytes, `receipt-${(invoice.v === 2 ? invoice.pid8 : invoice.pid)?.slice(0, 12)}.pdf`)
     } finally {
       setPdfBusy(false)
     }
@@ -284,8 +352,8 @@ export function PayPage() {
     )
   }
 
-  /* a payment, once seen, always wins over the link's own expiry */
-  const paid = !!result && (result.status === 'detected' || result.status === 'confirmed' || result.status === 'settled')
+  /* a payment, once seen (or declared), always wins over the link's own expiry */
+  const paid = !!result && (result.status === 'declared' || result.status === 'detected' || result.status === 'confirmed' || result.status === 'settled')
   const phase: Phase = paid
     ? (result as DetectionResult).status
     : invoicePhase(invoice) === 'expired' ? 'link-expired' : 'pending'
@@ -293,6 +361,7 @@ export function PayPage() {
   const freeAmount = invoice.amt === '0'
   const showTx = result?.txHash
   const settled = phase === 'settled'
+  const declaredOnly = phase === 'declared'
 
   const copy = (text: string, key: string) => {
     void copyText(text).then((ok) => {
@@ -343,7 +412,10 @@ export function PayPage() {
           </div>
           {!freeAmount && price && (
             <div className="mt-2.5 font-mono text-[12px] text-[oklch(0.6_0.012_250)]">
-              ≈ €{xnvAtomicToEurLive(invoice.amt, price.eur) ?? '—'}
+              ≈ ${xnvAtomicToUsd(invoice.amt, price.usd) ?? '—'}
+              {price.eur && (
+                <span className="ml-1.5">· €{xnvAtomicToEur(invoice.amt, price.eur!)}</span>
+              )}
               <span className="text-[9px] ml-1.5 text-[oklch(0.5_0.01_250)]">live rate · {price.source}</span>
             </div>
           )}
@@ -389,6 +461,16 @@ export function PayPage() {
                     >
                       tx {shortenHash(result.txHash!, 10, 6)} <ExternalLink className="w-3 h-3" />
                     </a>
+                  )}
+                  {declaredOnly && !declJustProved && (
+                    <div className="mt-2.5 font-mono text-[10px] text-[oklch(0.65_0.08_75)]">
+                      payer-reported · proven once the merchant matches it in their wallet
+                    </div>
+                  )}
+                  {declJustProved && (
+                    <div className="mt-2.5 inline-flex items-center gap-1.5 font-mono text-[10px] text-[oklch(0.72_0.12_160)]">
+                      <BadgeCheck className="w-3.5 h-3.5" /> cryptographic proof: reference matches this invoice
+                    </div>
                   )}
                 </motion.div>
               </AnimatePresence>
@@ -447,10 +529,12 @@ export function PayPage() {
                 className={`shrink-0 inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] ${
                   settled
                     ? 'border-[oklch(0.72_0.12_160)]/30 text-[oklch(0.72_0.12_160)]'
-                    : 'border-[oklch(0.78_0.06_237)]/30 text-[oklch(0.78_0.06_237)]'
+                    : declaredOnly
+                      ? 'border-[oklch(0.78_0.1_75)]/30 text-[oklch(0.78_0.1_75)]'
+                      : 'border-[oklch(0.78_0.06_237)]/30 text-[oklch(0.78_0.06_237)]'
                 }`}
               >
-                {settled ? 'spendable' : phase === 'confirmed' ? 'confirming' : 'in mempool'}
+                {settled ? 'spendable' : declaredOnly ? 'payer-reported' : phase === 'confirmed' ? 'confirming' : 'in mempool'}
               </span>
             </div>
             <div className="space-y-2">
@@ -480,6 +564,7 @@ export function PayPage() {
                 <span className="font-mono text-[10px] text-white/65 tabular-nums">
                   {result.confirmations} / {NERVA_CONSTANTS.spendableAge}
                   {settled && <span className="text-[oklch(0.72_0.12_160)]"> · spendable</span>}
+                  {declaredOnly && <span className="text-[oklch(0.78_0.1_75)]"> · merchant wallet gives the final word</span>}
                 </span>
               </div>
             </div>
@@ -547,8 +632,9 @@ export function PayPage() {
               </div>
             )}
             <p className="mt-4 text-[12px] text-[oklch(0.62_0.012_250)] text-center max-w-xs leading-relaxed">
-              Address{freeAmount ? '' : ', amount'} and reference are pre-filled
-              by the code{freeAmount ? '; you choose how much to send' : ''}.
+              {invoice.v === 2
+                ? 'This code pays an integrated address — the payment reference rides encrypted inside it, every NERVA wallet handles it automatically.'
+                : `Address${freeAmount ? '' : ', amount'} and reference are pre-filled by the code${freeAmount ? '; you choose how much to send' : ''}.`}
             </p>
             <a
               href={uri}
@@ -563,23 +649,104 @@ export function PayPage() {
               </div>
               <div className="space-y-2">
               <button
-                onClick={() => copy(invoice.a, 'addr')}
+                onClick={() => copy(payTarget, 'addr')}
                 className="w-full min-w-0 flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.02] px-3.5 py-2.5 hover:border-[oklch(0.78_0.06_237)]/35 transition-colors group"
                 title="Click to copy"
               >
-                <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[oklch(0.5_0.01_250)] shrink-0">Address</span>
-                <span className="font-mono text-[10px] text-white/65 truncate min-w-0">{invoice.a}</span>
+                <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[oklch(0.5_0.01_250)] shrink-0">{invoice.v === 2 ? 'Integrated address' : 'Address'}</span>
+                <span className="font-mono text-[10px] text-white/65 truncate min-w-0">{payTarget}</span>
                 {copied === 'addr' ? <Check className="w-3.5 h-3.5 text-[oklch(0.72_0.12_160)] shrink-0" /> : <Copy className="w-3.5 h-3.5 text-white/30 group-hover:text-white/60 shrink-0" />}
               </button>
-              <button
-                onClick={() => copy(invoice.pid, 'pid')}
-                className="w-full min-w-0 flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.02] px-3.5 py-2.5 hover:border-[oklch(0.78_0.06_237)]/35 transition-colors group"
-                title="Click to copy"
-              >
-                <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[oklch(0.5_0.01_250)] shrink-0">Reference</span>
-                <span className="font-mono text-[10px] text-[oklch(0.8_0.13_290)]/80 truncate min-w-0">{invoice.pid}</span>
-                {copied === 'pid' ? <Check className="w-3.5 h-3.5 text-[oklch(0.72_0.12_160)] shrink-0" /> : <Copy className="w-3.5 h-3.5 text-white/30 group-hover:text-white/60 shrink-0" />}
-              </button>
+              {invoice.v === 1 && invoice.pid && (
+                <button
+                  onClick={() => copy(invoice.pid!, 'pid')}
+                  className="w-full min-w-0 flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.02] px-3.5 py-2.5 hover:border-[oklch(0.78_0.06_237)]/35 transition-colors group"
+                  title="Click to copy"
+                >
+                  <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[oklch(0.5_0.01_250)] shrink-0">Reference</span>
+                  <span className="font-mono text-[10px] text-[oklch(0.8_0.13_290)]/80 truncate min-w-0">{invoice.pid}</span>
+                  {copied === 'pid' ? <Check className="w-3.5 h-3.5 text-[oklch(0.72_0.12_160)] shrink-0" /> : <Copy className="w-3.5 h-3.5 text-white/30 group-hover:text-white/60 shrink-0" />}
+                </button>
+              )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* payer declaration — v2: encrypted references need the payer's
+            pointer (or tx key) since the page holds no secrets */}
+        {invoice.v === 2 && (phase === 'pending' || phase === 'declared') && (
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-5 panel-nerva rounded-lg p-6 sm:p-7"
+          >
+            <div className="pb-4 mb-4 border-b border-white/8 flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="font-semibold text-[14px] text-white flex items-center gap-2">
+                  <ClipboardCheck className="w-4 h-4 text-[oklch(0.78_0.1_75)]" />
+                  Already paid? Point to your transaction
+                </div>
+                <div className="mt-1 text-[11.5px] leading-relaxed text-[oklch(0.6_0.025_250)]">
+                  NERVA encrypts payment references — only the merchant's wallet can
+                  match them silently. Paste your transaction hash to get an instant
+                  receipt; add its secret key for a cryptographic proof.
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2.5">
+              <div>
+                <label htmlFor="decl-hash" className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-[oklch(0.55_0.025_250)]">
+                  Transaction hash — in your wallet's history after sending
+                </label>
+                <input
+                  id="decl-hash"
+                  value={declTxHash}
+                  onChange={(e) => { setDeclTxHash(e.target.value.trim()); setDeclError(null) }}
+                  placeholder="e.g. 9f86d081884c7d659a2feaa0c55ad015…"
+                  spellCheck={false}
+                  autoComplete="off"
+                  className="mt-2 w-full rounded-md border border-white/10 bg-white/[0.03] px-3.5 py-3 font-mono text-[11.5px] text-white/85 placeholder:text-white/25 outline-none focus:border-[oklch(0.78_0.06_237)]/50 transition-colors"
+                />
+              </div>
+              {showTxKey && (
+                <div>
+                  <label htmlFor="decl-key" className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-[oklch(0.55_0.025_250)]">
+                    Transaction secret key — optional, `get_tx_key` in the wallet
+                  </label>
+                  <input
+                    id="decl-key"
+                    value={declTxKey}
+                    onChange={(e) => { setDeclTxKey(e.target.value.trim()); setDeclError(null) }}
+                    placeholder="64 hex characters — proves the payment, stays in this browser"
+                    spellCheck={false}
+                    autoComplete="off"
+                    className="mt-2 w-full rounded-md border border-white/10 bg-white/[0.03] px-3.5 py-3 font-mono text-[11.5px] text-white/85 placeholder:text-white/25 outline-none focus:border-[oklch(0.78_0.06_237)]/50 transition-colors"
+                  />
+                </div>
+              )}
+              {declError && (
+                <div className="flex items-start gap-2 rounded-md border border-[oklch(0.7_0.14_25)]/30 bg-[oklch(0.7_0.14_25)]/8 px-3 py-2.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-[oklch(0.7_0.14_25)] shrink-0 mt-0.5" />
+                  <span className="text-[11.5px] leading-relaxed text-[oklch(0.75_0.1_25)]">{declError}</span>
+                </div>
+              )}
+              <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
+                <button
+                  onClick={() => void declarePayment()}
+                  disabled={declaring || declTxHash.trim().length < 64}
+                  className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-md text-[13px] font-semibold bg-[oklch(0.66_0.083_233)] text-[oklch(0.13_0.02_255)] hover:bg-[oklch(0.7_0.08_236)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {declaring ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardCheck className="w-4 h-4" />}
+                  {declaring ? 'Verifying…' : 'Mark this invoice paid'}
+                </button>
+                <button
+                  onClick={() => setShowTxKey((s) => !s)}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-md px-4 text-[12px] font-medium border border-white/12 bg-white/[0.03] hover:bg-white/8 text-white/70 transition-colors"
+                >
+                  <BadgeCheck className="w-4 h-4" />
+                  {showTxKey ? 'Hide the proof key' : 'Add the proof key'}
+                </button>
               </div>
             </div>
           </motion.div>
@@ -594,10 +761,10 @@ export function PayPage() {
               API — no server ever stores anything. When a payment is found, a private
               copy of the result is kept in this browser only, so coming back to the
               link later still shows the paid state; the chain stays the source of truth
-              and every visit re-verifies it. RingCT keeps the amount itself encrypted,
-              so the receiver verifies the exact sum in their wallet. If your wallet
-              refuses the long payment id, send manually to the address above: detection
-              works either way.
+              and every visit re-verifies it. RingCT keeps the amounts encrypted and the
+              payment references travel encrypted too — that is NERVA's privacy at work:
+              only the receiving wallet can match them silently, which is why this page
+              asks for your transaction hash instead of pretending to read the chain.
             </p>
             {hasLocal && (
               <button

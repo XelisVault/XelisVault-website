@@ -4,9 +4,9 @@ import { NextResponse } from 'next/server'
  * GET /api/nerva/price — live XNV market price, aggregated server-side.
  *
  * Sources, in order:
- *   1. CoinGecko   — direct EUR/USD/BTC quotes for "nerva"
- *   2. CoinPaprika — USD quote, converted to EUR with the ECB reference
- *                    rate (frankfurter.dev, no key, no tracking)
+ *   1. CoinGecko   — direct USD/EUR/BTC quotes for "nerva" (USD = reference)
+ *   2. CoinPaprika — USD quote; EUR via the ECB reference rate
+ *                    (frankfurter.dev, no key, no tracking)
  *
  * The result is cached in module memory for 60 s and served stale (up to
  * 30 min, flagged `stale: true`) when every source is unreachable — a POS
@@ -17,8 +17,9 @@ export const dynamic = 'force-dynamic'
 
 interface PriceBody {
   source: string
-  eur: number
-  usd: number | null
+  /** USD per 1 XNV — the reference quote */
+  usd: number
+  eur: number | null
   btc: number | null
   updatedAt: number
   stale: boolean
@@ -36,7 +37,7 @@ async function fetchJson(url: string, timeoutMs = 5_000): Promise<Record<string,
   try {
     const res = await fetch(url, {
       signal: ctrl.signal,
-      headers: { accept: 'application/json', 'user-agent': 'XelisVault/1.0 (+https://xelisvault.network)' },
+      headers: { accept: 'application/json', 'user-agent': 'XelisVault/1.0 (+https://xelisvault.xyz)' },
       cache: 'no-store',
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -48,17 +49,17 @@ async function fetchJson(url: string, timeoutMs = 5_000): Promise<Record<string,
 
 async function fromCoinGecko(): Promise<PriceBody> {
   const j = await fetchJson(
-    'https://api.coingecko.com/api/v3/simple/price?ids=nerva&vs_currencies=eur,usd,btc',
+    'https://api.coingecko.com/api/v3/simple/price?ids=nerva&vs_currencies=usd,eur,btc',
   )
   const nerva = j.nerva as Record<string, unknown> | undefined
-  const eur = Number(nerva?.eur)
-  if (!Number.isFinite(eur) || eur <= 0) throw new Error('coingecko: no eur quote')
   const usd = Number(nerva?.usd)
+  if (!Number.isFinite(usd) || usd <= 0) throw new Error('coingecko: no usd quote')
+  const eur = Number(nerva?.eur)
   const btc = Number(nerva?.btc)
   return {
     source: 'CoinGecko',
-    eur,
-    usd: Number.isFinite(usd) && usd > 0 ? usd : null,
+    usd,
+    eur: Number.isFinite(eur) && eur > 0 ? eur : null,
     btc: Number.isFinite(btc) && btc > 0 ? btc : null,
     updatedAt: Date.now(),
     stale: false,
@@ -73,11 +74,11 @@ async function fromCoinPaprika(): Promise<PriceBody> {
   const usd = Number((ticker.quotes as Record<string, Record<string, unknown>> | undefined)?.USD?.price)
   const eurRate = Number((fx.rates as Record<string, unknown> | undefined)?.EUR)
   if (!Number.isFinite(usd) || usd <= 0) throw new Error('coinpaprika: no usd quote')
-  if (!Number.isFinite(eurRate) || eurRate <= 0) throw new Error('no usd/eur fx rate')
+  const eur = Number.isFinite(eurRate) && eurRate > 0 ? usd * eurRate : null
   return {
     source: 'CoinPaprika · ECB rate',
-    eur: usd * eurRate,
     usd,
+    eur,
     btc: null,
     updatedAt: Date.now(),
     stale: false,

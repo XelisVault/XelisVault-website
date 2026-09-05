@@ -10,11 +10,17 @@
  * sealed (SHA-256) and chained into a local journal, and a thermal-style
  * PDF receipt is one click away.
  *
- * The XNV/EUR conversion is LIVE by default (CoinGecko → CoinPaprika via
- * /api/nerva/price); a manual override is available in settings.
+ * Sales are v2 invoices: the QR pays an INTEGRATED address (8-byte payment
+ * id embedded) so every default NERVA wallet attaches the reference
+ * automatically. With the optional secret VIEW KEY in settings, the
+ * terminal detects payments in real time by decrypting the integrated id
+ * — the same math an official wallet runs, in this browser. Without it,
+ * the customer declares the tx hash on the checkout page.
  *
- * Everything is local: config, journal and receipts never leave the
- * browser. No account, no server, no keys.
+ * The XNV/USD conversion is LIVE by default (CoinGecko → CoinPaprika via
+ * /api/nerva/price, USD reference + EUR secondary); a manual override is
+ * available in settings. Config, journal and receipts never leave the
+ * browser. No account, no server, no spend keys.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -26,16 +32,17 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import {
-  encodeInvoice, generatePaymentId, buildNervaUri, renderQrDataUrl,
-  atomicToDisplay, detectPayment, savePaymentCache,
+  encodeInvoice, generatePaymentId8, buildNervaUri, renderQrDataUrl,
+  atomicToDisplay, detectPayment, savePaymentCache, invoiceCacheKey,
   type NervaInvoice, type DetectionResult,
 } from '@/lib/nerva/nlink'
 import { parseXnv, formatXnv, getBlockCount, NERVA_CONSTANTS } from '@/lib/nerva/api'
 import {
   loadMerchantConfig, saveMerchantConfig, configReady,
+  parsedViewKey, validateViewKey,
   type MerchantConfig,
 } from '@/lib/nerva/merchant'
-import { useNervaPrice, xnvAtomicToEur as xnvAtomicToEurLive, priceCaption } from '@/lib/nerva/price'
+import { useNervaPrice, xnvAtomicToUsd as xnvAtomicToUsdLive, xnvAtomicToEur as xnvAtomicToEurLive, priceCaption } from '@/lib/nerva/price'
 import {
   loadJournal, appendJournal, buildJournalEntry, verifyJournal, clearJournal,
   exportJournalJson, type JournalEntry,
@@ -78,6 +85,7 @@ function ConfigForm({ initial, onSave, onBack }: {
   const [touched, setTouched] = useState(false)
   const { price } = useNervaPrice()
   const addrOk = useMemo(() => configReady({ ...c }), [c])
+  const keyCheck = useMemo(() => (c.viewKey ? validateViewKey(c) : { ok: true }), [c])
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
@@ -97,7 +105,7 @@ function ConfigForm({ initial, onSave, onBack }: {
           <div className="mt-2">
             <input
               value={c.address}
-              onChange={(e) => setC({ ...c, address: e.target.value })}
+              onChange={(e) => setC({ ...c, address: e.target.value.trim() })}
               placeholder="NV…"
               className={inputCls}
               spellCheck={false} autoComplete="off"
@@ -106,6 +114,30 @@ function ConfigForm({ initial, onSave, onBack }: {
           {touched && !addrOk && (
             <div className="mt-1.5 font-mono text-[10px] text-[oklch(0.75_0.13_25)]">
               invalid address (must start with NV, ~95 characters)
+            </div>
+          )}
+        </div>
+        <div>
+          <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.62_0.025_250)]">
+            Secret view key — optional, unlocks auto-detection
+          </label>
+          <div className="mt-2">
+            <input
+              value={c.viewKey}
+              onChange={(e) => setC({ ...c, viewKey: e.target.value.trim() })}
+              placeholder="64 hex chars (wallet → view_key) — leave empty for manual mode"
+              className={`${inputCls} ${touched && c.viewKey && !keyCheck.ok ? 'border-[oklch(0.75_0.13_25)]/60' : ''}`}
+              spellCheck={false} autoComplete="off"
+            />
+          </div>
+          {touched && c.viewKey && !keyCheck.ok && (
+            <div className="mt-1.5 font-mono text-[10px] text-[oklch(0.75_0.13_25)]">
+              {keyCheck.reason}
+            </div>
+          )}
+          {c.viewKey && keyCheck.ok && (
+            <div className="mt-1.5 font-mono text-[9.5px] text-[oklch(0.72_0.12_160)]">
+              matches the address — payments auto-detected in real time. It is a view key: it can see, never spend, never leaves this browser.
             </div>
           )}
         </div>
@@ -125,18 +157,18 @@ function ConfigForm({ initial, onSave, onBack }: {
           </div>
           <div>
             <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.62_0.025_250)]">
-              EUR / XNV rate override
+              USD / XNV rate override
             </label>
             <div className="mt-2">
               <input
-                value={c.eurRate}
-                onChange={(e) => setC({ ...c, eurRate: e.target.value.replace(',', '.') })}
+                value={c.usdRate}
+                onChange={(e) => setC({ ...c, usdRate: e.target.value.replace(',', '.') })}
                 placeholder="leave empty = live rate"
                 className={inputCls} inputMode="decimal"
               />
             </div>
             <div className="mt-1.5 font-mono text-[9.5px] text-[oklch(0.5_0.01_250)]">
-              {price ? `live: 1 XNV = €${price.eur.toFixed(4)} · ${price.source}` : 'live EUR rate loads automatically'}
+              {price ? `live: 1 XNV = $${price.usd.toFixed(4)} · ${price.source}` : 'live USD rate loads automatically'}
             </div>
           </div>
         </div>
@@ -191,8 +223,8 @@ export function Caisse() {
   const [view, setView] = useState<View>('keypad')
   const [editConfig, setEditConfig] = useState(false)
 
-  const [amount, setAmount] = useState('') // keypad string, XNV
-  const [curInput, setCurInput] = useState<'xnv' | 'eur'>('xnv')
+  const [amount, setAmount] = useState('') // keypad string, XNV or USD
+  const [curInput, setCurInput] = useState<'xnv' | 'usd'>('xnv')
   const [desc, setDesc] = useState('')
 
   const [sale, setSale] = useState<Sale | null>(null)
@@ -212,7 +244,7 @@ export function Caisse() {
   const knownTx = useRef<string | undefined>(undefined)
   const landedRef = useRef(false)
 
-  /* live XNV/EUR rate, shared singleton */
+  /* live XNV rate, shared singleton (USD = reference, EUR = secondary) */
   const { price, refresh } = useNervaPrice()
 
   /* boot: load config + journal */
@@ -221,31 +253,44 @@ export function Caisse() {
     setJournal(loadJournal())
   }, [])
 
-  /* effective EUR/XNV rate: manual override wins, otherwise live */
-  const manualRate = Number((config?.eurRate ?? '').replace(',', '.'))
+  /* effective USD/XNV rate: manual override wins, otherwise live */
+  const manualRate = Number((config?.usdRate ?? '').replace(',', '.'))
   const hasManual = Number.isFinite(manualRate) && manualRate > 0
-  const liveRate = price?.eur ?? 0
+  const liveRate = price?.usd ?? 0
   const rate = hasManual ? manualRate : liveRate
   const hasRate = rate > 0
 
-  /* atomic → EUR string with the effective rate (manual or live), integer math */
-  const atomicToEur = useCallback((atomic: string | bigint): string | null => {
+  /** merchant view key (parsed + validated) — null in manual mode */
+  const viewKeyBytes = useMemo(() => (config ? parsedViewKey(config) : null), [config])
+
+  /* atomic → USD string with the effective rate (manual or live), integer math */
+  const atomicToUsd = useCallback((atomic: string | bigint): string | null => {
     if (!hasRate) return null
-    return xnvAtomicToEurLive(atomic, rate)
+    return xnvAtomicToUsdLive(atomic, rate)
   }, [hasRate, rate])
+
+  /* atomic → EUR (live only, secondary display) */
+  const atomicToEur = useCallback((atomic: string | bigint): string | null => {
+    if (!price?.eur) return null
+    return xnvAtomicToEurLive(atomic, price.eur)
+  }, [price?.eur])
 
   /* derived: the amount as atomic, from the active input mode */
   const atomic = useMemo(() => {
     if (!amount) return null
-    if (curInput === 'eur') {
+    if (curInput === 'usd') {
       if (!hasRate) return null
-      const eur = Number(amount.replace(',', '.'))
-      if (!Number.isFinite(eur)) return null
-      return BigInt(Math.round(eur / rate * 10 ** NERVA_CONSTANTS.unitPlaces))
+      const usd = Number(amount.replace(',', '.'))
+      if (!Number.isFinite(usd)) return null
+      // usd / rate × 1e12 — micro-USD to stay integral
+      const usdMicro = BigInt(Math.round(usd * 1e6))
+      const rateScaled = BigInt(Math.round(rate * 1e6))
+      return (usdMicro * 10n ** 12n) / (rateScaled * 10n ** 6n)
     }
     return parseXnv(amount)
   }, [amount, curInput, hasRate, rate])
 
+  const usdEquiv = atomic !== null && atomic > 0n ? atomicToUsd(atomic) : null
   const eurEquiv = atomic !== null && atomic > 0n ? atomicToEur(atomic) : null
 
   /* ── keypad actions ── */
@@ -268,12 +313,12 @@ export function Caisse() {
       let height = 0
       try { height = await getBlockCount() } catch { height = 0 }
       const inv: NervaInvoice = {
-        v: 1,
+        v: 2,
         a: config.address,
         amt: atomic.toString(),
         d: desc.trim() || undefined,
         n: config.name.trim() || undefined,
-        pid: generatePaymentId(),
+        pid8: generatePaymentId8(),
         h: height,
         exp: Math.floor(Date.now() / 1000) + SALE_TTL,
       }
@@ -293,7 +338,11 @@ export function Caisse() {
     }
   }
 
-  /* ── the watcher: mempool + new blocks for THIS sale ── */
+  /* ── the watcher: mempool + new blocks for THIS sale ──
+     with the merchant view key: every integrated payment id is decrypted
+     and matched — real auto-detection, exactly like the official wallet.
+     without it: the customer declares the tx hash on the checkout page,
+     and this screen picks it up here once found (known tx path). */
   const watch = useCallback(async () => {
     if (!sale || busyRef.current) return
     if (landedRef.current && result?.status === 'settled') return
@@ -304,12 +353,13 @@ export function Caisse() {
       const { result: r } = await detectPayment(sale.inv, tip, {
         knownTxHash: knownTx.current,
         scanFrom: Math.max(cursor.current + 1, sale.inv.h),
+        viewKey: viewKeyBytes,
       })
       if (r.scannedBlocks > 0) cursor.current = Math.max(cursor.current, tip)
       if (r.status !== 'pending' && r.txHash) {
         knownTx.current = r.txHash
-        savePaymentCache(sale.inv.pid, r)
-        if (!landedRef.current) {
+        savePaymentCache(invoiceCacheKey(sale.inv), r)
+        if (!landedRef.current && r.status !== 'declared') {
           // first landing: freeze the sale record, chain it, ring
           landedRef.current = true
           const ts = Date.now()
@@ -327,7 +377,7 @@ export function Caisse() {
     } catch { /* explorer unreachable: keep the screen, retry next tick */ } finally {
       busyRef.current = false
     }
-  }, [sale, config?.sound, result?.status])
+  }, [sale, viewKeyBytes, config?.sound, result?.status])
 
   /* polling loop, only while a sale is in flight */
   useEffect(() => {
@@ -357,17 +407,19 @@ export function Caisse() {
     return buildReceiptPdf(sale.inv, frozen, {
       verifyUrl: sale.verifyUrl,
       generatedAt: entry?.ts,
+      usd: atomicToUsd(sale.inv.amt) ?? undefined,
       eur: atomicToEur(sale.inv.amt) ?? undefined,
     })
-  }, [sale, frozen, entry?.ts, atomicToEur])
+  }, [sale, frozen, entry?.ts, atomicToUsd, atomicToEur])
 
   const printReceipt = async () => {
     const bytes = await receiptBytes()
     if (bytes) printPdf(bytes)
   }
   const downloadReceipt = async () => {
+    const ref = sale?.inv.v === 2 ? sale.inv.pid8 : sale?.inv.pid
     const bytes = await receiptBytes()
-    if (bytes) downloadPdf(bytes, `receipt-${sale?.inv.pid.slice(0, 12)}.pdf`)
+    if (bytes) downloadPdf(bytes, `receipt-${(ref ?? 'sale').slice(0, 12)}.pdf`)
   }
 
   /* ── journal: verify / export / clear ── */
@@ -486,12 +538,12 @@ export function Caisse() {
                   <div className="font-mono font-bold tabular-nums text-[44px] leading-none text-gradient-nerva">
                     {amount === '' ? <span className="text-white/20">0</span> : amount}
                     <span className="text-[18px] ml-2 text-[oklch(0.7_0.08_220)]">
-                      {curInput === 'xnv' ? 'XNV' : 'EUR'}
+                      {curInput === 'xnv' ? 'XNV' : 'USD'}
                     </span>
                   </div>
                   <div className="mt-2 font-mono text-[11px] text-[oklch(0.6_0.012_250)]">
-                    {atomic !== null && atomic > 0n && curInput === 'eur' && `≈ ${formatXnv(atomic, 4)} XNV`}
-                    {atomic !== null && atomic > 0n && curInput === 'xnv' && eurEquiv && `≈ €${eurEquiv}`}
+                    {atomic !== null && atomic > 0n && curInput === 'usd' && `≈ ${formatXnv(atomic, 4)} XNV`}
+                    {atomic !== null && atomic > 0n && curInput === 'xnv' && usdEquiv && `≈ $${usdEquiv}${eurEquiv ? ` · €${eurEquiv}` : ''}`}
                   </div>
                 </div>
 
@@ -499,12 +551,12 @@ export function Caisse() {
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   {hasRate && (
                     <div className="flex rounded-md border border-white/10 bg-[oklch(0.12_0.018_255)] p-0.5 w-fit">
-                      {(['xnv', 'eur'] as const).map((m) => (
+                      {(['xnv', 'usd'] as const).map((m) => (
                         <button key={m} onClick={() => { setCurInput(m); setAmount('') }}
                           className={`inline-flex h-8 items-center gap-1.5 rounded-[5px] px-4 font-mono text-[10.5px] uppercase tracking-[0.1em] transition-all ${
                             curInput === m ? 'bg-[oklch(0.78_0.06_237)]/18 text-[oklch(0.83_0.055_237)]' : 'text-white/45 hover:text-white/70'
                           }`}>
-                          {m === 'xnv' ? 'XNV' : 'EUR'}
+                          {m === 'xnv' ? 'XNV' : 'USD'}
                         </button>
                       ))}
                     </div>
@@ -516,11 +568,11 @@ export function Caisse() {
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-2 font-mono text-[10px] text-[oklch(0.6_0.012_250)]">
-                      <Loader2 className="w-3 h-3 animate-spin" /> fetching live XNV/EUR rate…
+                      <Loader2 className="w-3 h-3 animate-spin" /> fetching live XNV/USD rate…
                     </span>
                   )}
                   {hasManual && (
-                    <span className="font-mono text-[10px] text-[oklch(0.75_0.13_25)]">manual override: 1 XNV = €{manualRate}</span>
+                    <span className="font-mono text-[10px] text-[oklch(0.75_0.13_25)]">manual override: 1 XNV = ${manualRate}</span>
                   )}
                   <button
                     onClick={refresh}
@@ -572,7 +624,7 @@ export function Caisse() {
                   className="mt-8 w-full inline-flex h-14 items-center justify-center gap-3 rounded-md text-[15px] font-semibold bg-[oklch(0.66_0.083_233)] text-[oklch(0.13_0.02_255)] hover:bg-[oklch(0.7_0.08_236)] transition-colors disabled:opacity-50"
                 >
                   {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
-                  Charge {atomic !== null && atomic > 0n ? `${curInput === 'xnv' ? formatXnv(atomic) + ' XNV' : amount + ' EUR'}` : ''}
+                  Charge {atomic !== null && atomic > 0n ? `${curInput === 'xnv' ? formatXnv(atomic) + ' XNV' : amount + ' USD'}` : ''}
                 </button>
               </div>
 
@@ -584,9 +636,9 @@ export function Caisse() {
                   </div>
                   <ol className="mt-4 space-y-3">
                     {[
-                      ['1 · Amount', 'type the sum, XNV or EUR at the live rate'],
+                      ['1 · Amount', 'type the sum, XNV or USD at the live rate'],
                       ['2 · Customer QR', 'the customer scans with their NERVA wallet or phone'],
-                      ['3 · Paid', 'live detection, printable PDF receipt, sale sealed into the journal'],
+                      ['3 · Paid', 'auto-detected with your view key (or customer-declared), printable PDF receipt, sale sealed into the journal'],
                     ].map(([k, v]) => (
                       <li key={k} className="flex items-start gap-2.5">
                         <Check className="w-3.5 h-3.5 text-[oklch(0.72_0.12_160)] shrink-0 mt-0.5" />
@@ -637,8 +689,8 @@ export function Caisse() {
                     {atomicToDisplay(sale.inv.amt)}
                     <span className="text-[20px] ml-2 text-[oklch(0.7_0.08_220)]">XNV</span>
                   </div>
-                  {eurEquiv && (
-                    <div className="mt-1.5 font-mono text-[12px] text-[oklch(0.6_0.012_250)]">≈ €{eurEquiv}</div>
+                  {usdEquiv && (
+                    <div className="mt-1.5 font-mono text-[12px] text-[oklch(0.6_0.012_250)]">≈ ${usdEquiv}{eurEquiv ? ` · €${eurEquiv}` : ''}</div>
                   )}
                 </div>
 
@@ -664,7 +716,7 @@ export function Caisse() {
 
                 <p className="mt-4 text-[12px] text-[oklch(0.62_0.012_250)] text-center max-w-xs leading-relaxed">
                   {qrMode === 'wallet'
-                    ? 'The customer scans with NervaOne or any NERVA wallet: address, amount and reference are pre-filled.'
+                    ? 'The customer scans with NervaOne or any NERVA wallet — this QR pays an integrated address, the reference rides encrypted and every wallet handles it automatically.'
                     : 'The customer scans with any camera app: the checkout page opens with a wallet QR included.'}
                 </p>
 
@@ -712,10 +764,9 @@ export function Caisse() {
                 </div>
                 <div className="mt-6 rounded-md border border-white/8 bg-white/[0.02] p-4">
                   <p className="text-[11.5px] leading-relaxed text-[oklch(0.64_0.012_250)]">
-                    Detection runs in this browser against the public explorer
-                    API. RingCT encrypts amounts on-chain: your wallet is
-                    what will match the displayed reference to the exact
-                    amount.
+                    {viewKeyBytes
+                      ? 'Auto-detection is ON: this terminal decrypts every integrated payment reference with your view key — exactly what an official wallet does, in this browser. It can see, never spend.'
+                      : 'Manual mode: payments flow fine, but NERVA encrypts references — the customer declares the tx hash on the checkout page, and you can add your view key in settings for full auto-detection.'}
                   </p>
                 </div>
               </div>
@@ -737,7 +788,7 @@ export function Caisse() {
                 <div className="relative mt-2 font-mono font-bold tabular-nums text-[30px] text-gradient-nerva">
                   {atomicToDisplay(sale.inv.amt)} <span className="text-[16px] text-[oklch(0.7_0.08_220)]">XNV</span>
                 </div>
-                {eurEquiv && <div className="relative mt-1 font-mono text-[12px] text-[oklch(0.6_0.012_250)]">≈ €{eurEquiv}</div>}
+                {usdEquiv && <div className="relative mt-1 font-mono text-[12px] text-[oklch(0.6_0.012_250)]">≈ ${usdEquiv}{eurEquiv ? ` · €${eurEquiv}` : ''}</div>}
                 <div className="relative mt-3 font-mono text-[10.5px] text-[oklch(0.58_0.025_250)]">
                   sale sealed · seal {entry.seal.slice(0, 14)}…
                   {result && ` · ${result.confirmations}/${NERVA_CONSTANTS.spendableAge} confirmations`}
@@ -812,10 +863,10 @@ export function Caisse() {
                   {hasRate && (
                     <div>
                       <div className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-[oklch(0.55_0.01_250)]">
-                        ≈ EUR · {hasManual ? 'manual rate' : 'live rate'}
+                        ≈ USD · {hasManual ? 'manual rate' : 'live rate'}
                       </div>
                       <div className="mt-1 font-mono font-bold tabular-nums text-[22px] text-white/70">
-                        {atomicToEur(journal.filter(isToday).reduce((s, e) => s + BigInt(e.amountAtomic), 0n)) ?? '—'}
+                        {atomicToUsd(journal.filter(isToday).reduce((s, e) => s + BigInt(e.amountAtomic), 0n)) ?? '—'}
                       </div>
                     </div>
                   )}
@@ -886,10 +937,11 @@ function ReprintButton({ entry }: { entry: JournalEntry }) {
   const reprint = async () => {
     setBusy(true)
     try {
-      const inv: NervaInvoice = {
-        v: 1, a: entry.address, amt: entry.amountAtomic, d: entry.desc,
-        n: entry.merchantName, pid: entry.pid, h: 0, exp: Math.floor(entry.ts / 1000),
-      }
+      // v2 entries carry a 16-hex pid8; legacy entries the 64-hex long pid
+      const isV2 = /^[0-9a-f]{16}$/.test(entry.pid)
+      const inv: NervaInvoice = isV2
+        ? { v: 2, a: entry.address, amt: entry.amountAtomic, d: entry.desc, n: entry.merchantName, pid8: entry.pid, h: 0, exp: Math.floor(entry.ts / 1000) }
+        : { v: 1, a: entry.address, amt: entry.amountAtomic, d: entry.desc, n: entry.merchantName, pid: entry.pid, h: 0, exp: Math.floor(entry.ts / 1000) }
       const r: DetectionResult | null = entry.txHash ? {
         status: entry.status === 'settled' ? 'settled' : 'confirmed',
         txHash: entry.txHash, blockHeight: entry.blockHeight, txTimestamp: Math.floor(entry.ts / 1000),

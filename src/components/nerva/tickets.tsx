@@ -4,12 +4,12 @@
  * NERVA price tags — printable shelf labels.
  *
  * Each tag carries a checkout URL QR: any phone camera opens the NervaLink
- * payment page with the product, the exact XNV price and live payment
- * detection — NERVA wallets then scan the wallet-native QR from that page.
- * One A4 sheet = 10 tags with dashed crop lines; the PDF is generated
- * fully client-side.
+ * payment page with the product, the exact XNV price and payment
+ * confirmation — NERVA wallets then scan the wallet-native QR (integrated
+ * address) from that page. One A4 sheet = 10 tags with dashed crop lines;
+ * the PDF is generated fully client-side.
  *
- * EUR equivalents and EUR-priced items use the live XNV/EUR rate
+ * USD equivalents and USD-priced items use the live XNV/USD rate
  * (CoinGecko → CoinPaprika fallback via /api/nerva/price) unless the
  * merchant sets a manual override in the shop settings.
  */
@@ -22,7 +22,7 @@ import {
   Check, QrCode, AlertTriangle, ArrowRight, RefreshCw,
 } from 'lucide-react'
 import {
-  generatePaymentId, encodeInvoice, renderQrDataUrl,
+  generatePaymentId8, encodeInvoice, renderQrDataUrl,
   type NervaInvoice,
 } from '@/lib/nerva/nlink'
 import { parseXnv, formatXnv, getBlockCount, NERVA_CONSTANTS } from '@/lib/nerva/api'
@@ -30,7 +30,7 @@ import {
   loadMerchantConfig, saveMerchantConfig, configReady,
   type MerchantConfig,
 } from '@/lib/nerva/merchant'
-import { useNervaPrice, xnvAtomicToEur as xnvAtomicToEurLive, priceCaption } from '@/lib/nerva/price'
+import { useNervaPrice, xnvAtomicToUsd as xnvAtomicToUsdLive, xnvAtomicToEur as xnvAtomicToEurLive, priceCaption } from '@/lib/nerva/price'
 import { buildTagsPdf, downloadPdf, printPdf, type TagSpec } from '@/lib/nerva/pdf'
 
 /* ─────────────── an item on the sheet ─────────────── */
@@ -39,7 +39,7 @@ interface Item {
   id: string
   name: string
   priceInput: string   // in the active currency
-  currency: 'xnv' | 'eur'
+  currency: 'xnv' | 'usd'
   qty: number
 }
 
@@ -60,20 +60,20 @@ export function Tickets() {
   const [netHeight, setNetHeight] = useState(0)
   const [previewQrs, setPreviewQrs] = useState<Record<string, string>>({})
 
-  /* live XNV/EUR rate, shared singleton */
+  /* live XNV/USD rate, shared singleton */
   const { price, refresh } = useNervaPrice()
 
   /* form */
   const [name, setName] = useState('')
   const [priceInput, setPriceInput] = useState('')
-  const [currency, setCurrency] = useState<'xnv' | 'eur'>('xnv')
+  const [currency, setCurrency] = useState<'xnv' | 'usd'>('xnv')
   const [qty, setQty] = useState(1)
 
   /* stable per-item preview payment ids (the printed sheet mints fresh
-     unique pids per tag at generation time) */
+     unique pid8s per tag at generation time) */
   const previewPids = useRef<Map<string, string>>(new Map())
   const previewPid = (id: string) => {
-    if (!previewPids.current.has(id)) previewPids.current.set(id, generatePaymentId())
+    if (!previewPids.current.has(id)) previewPids.current.set(id, generatePaymentId8())
     return previewPids.current.get(id)!
   }
 
@@ -93,10 +93,10 @@ export function Tickets() {
     try { localStorage.setItem(ITEMS_KEY, JSON.stringify(items)) } catch { /* ignore */ }
   }, [items])
 
-  /* effective EUR/XNV rate: manual override wins, otherwise live */
-  const manualRate = Number((config?.eurRate ?? '').replace(',', '.'))
+  /* effective USD/XNV rate: manual override wins, otherwise live */
+  const manualRate = Number((config?.usdRate ?? '').replace(',', '.'))
   const hasManual = Number.isFinite(manualRate) && manualRate > 0
-  const liveRate = price?.eur ?? 0
+  const liveRate = price?.usd ?? 0
   const rate = hasManual ? manualRate : liveRate
   const hasRate = rate > 0
 
@@ -104,20 +104,29 @@ export function Tickets() {
   const priceAtomic = (item: Item): string | null => {
     const val = item.priceInput.trim()
     if (!val) return null
-    if (item.currency === 'eur') {
+    if (item.currency === 'usd') {
       if (!hasRate) return null
-      const eur = Number(val.replace(',', '.'))
-      if (!Number.isFinite(eur) || eur <= 0) return null
-      return String(BigInt(Math.round(eur / rate * 10 ** NERVA_CONSTANTS.unitPlaces)))
+      const usd = Number(val.replace(',', '.'))
+      if (!Number.isFinite(usd) || usd <= 0) return null
+      // usd / rate × 1e12 — micro-USD to stay integral
+      const usdMicro = BigInt(Math.round(usd * 1e6))
+      const rateScaled = BigInt(Math.round(rate * 1e6))
+      return String((usdMicro * 10n ** 12n) / (rateScaled * 10n ** 6n))
     }
     const atomic = parseXnv(val)
     return atomic !== null && atomic > 0n ? atomic.toString() : null
   }
 
-  /* atomic → EUR string with the effective rate (manual or live), integer math */
-  const atomicToEur = (atomic: string | bigint): string | null => {
+  /* atomic → USD string with the effective rate (manual or live), integer math */
+  const atomicToUsd = (atomic: string | bigint): string | null => {
     if (!hasRate) return null
-    return xnvAtomicToEurLive(atomic, rate)
+    return xnvAtomicToUsdLive(atomic, rate)
+  }
+
+  /* atomic → EUR, live only (secondary display) */
+  const atomicToEur = (atomic: string | bigint): string | null => {
+    if (!price?.eur) return null
+    return xnvAtomicToEurLive(atomic, price.eur)
   }
 
   const tagCount = items.reduce((s, i) => s + Math.max(1, Math.min(50, i.qty)), 0)
@@ -142,13 +151,13 @@ export function Tickets() {
      (unique reference per tag, no expiry — a shelf tag lives indefinitely).
      Deliberately compact: no merchant name (already printed on the tag),
      so the QR stays phone-friendly (fewer modules = bigger dots). */
-  const tagLink = (address: string, item: { name: string }, pid: string, atomic: string): string => {
+  const tagLink = (address: string, item: { name: string }, pid8: string, atomic: string): string => {
     const inv: NervaInvoice = {
-      v: 1,
+      v: 2,
       a: address,
       amt: atomic,
       d: item.name.slice(0, 140),
-      pid,
+      pid8,
       h: netHeight,
       exp: 0,
     }
@@ -163,10 +172,11 @@ export function Tickets() {
       const atomic = priceAtomic(item) ?? '0'
       const n = Math.max(1, Math.min(50, item.qty))
       for (let k = 0; k < n; k++) {
-        const pid = generatePaymentId()
+        const pid = generatePaymentId8()
         specs.push({
           name: item.name,
           amountAtomic: atomic,
+          usd: atomicToUsd(atomic) ?? undefined,
           eur: atomicToEur(atomic) ?? undefined,
           pid,
           address: config!.address,
@@ -262,17 +272,17 @@ export function Tickets() {
                 </div>
                 <div>
                   <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.62_0.025_250)]">
-                    EUR / XNV rate override
+                    USD / XNV rate override
                   </label>
                   <div className="mt-2">
                     <input
-                      value={config.eurRate}
-                      onChange={(e) => setConfig({ ...config, eurRate: e.target.value.replace(',', '.') })}
+                      value={config.usdRate}
+                      onChange={(e) => setConfig({ ...config, usdRate: e.target.value.replace(',', '.') })}
                       placeholder="leave empty = live rate" className={inputCls} inputMode="decimal"
                     />
                   </div>
                   <div className="mt-1.5 font-mono text-[9.5px] text-[oklch(0.5_0.01_250)]">
-                    {price ? `live: 1 XNV = €${price.eur.toFixed(4)}` : 'live rate loads automatically'}
+                    {price ? `live: 1 XNV = $${price.usd.toFixed(4)}` : 'live rate loads automatically'}
                   </div>
                 </div>
               </div>
@@ -356,7 +366,7 @@ export function Tickets() {
                     className={inputCls} inputMode="decimal"
                   />
                   <div className="flex rounded-lg border border-white/10 bg-[oklch(0.12_0.018_255)] p-0.5 shrink-0">
-                    {(['xnv', 'eur'] as const).map((c) => (
+                    {(['xnv', 'usd'] as const).map((c) => (
                       <button key={c} onClick={() => setCurrency(c)}
                         className={`inline-flex h-9 items-center rounded-[5px] px-3 font-mono text-[10.5px] uppercase transition-all ${
                           currency === c ? 'bg-[oklch(0.78_0.06_237)]/18 text-[oklch(0.83_0.055_237)]' : 'text-white/45 hover:text-white/70'
@@ -366,9 +376,9 @@ export function Tickets() {
                     ))}
                   </div>
                 </div>
-                {currency === 'eur' && !hasRate && (
+                {currency === 'usd' && !hasRate && (
                   <div className="mt-1.5 font-mono text-[9.5px] text-[oklch(0.75_0.13_25)]">
-                    {price ? 'rate unavailable right now — set a manual override in settings' : 'loading the live EUR rate…'}
+                    {price ? 'rate unavailable right now — set a manual override in settings' : 'loading the live USD rate…'}
                   </div>
                 )}
               </div>
@@ -414,13 +424,13 @@ export function Tickets() {
                   </span>
                   {hasManual && (
                     <span className="font-mono text-[10px] text-[oklch(0.75_0.13_25)]">
-                      manual override active: 1 XNV = €{manualRate}
+                      manual override active: 1 XNV = ${manualRate}
                     </span>
                   )}
                 </>
               ) : (
                 <span className="inline-flex items-center gap-2 font-mono text-[10.5px] text-[oklch(0.6_0.012_250)]">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> fetching the live XNV/EUR rate…
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> fetching the live XNV/USD rate…
                 </span>
               )}
               <button
@@ -459,7 +469,7 @@ export function Tickets() {
                   <AnimatePresence initial={false}>
                     {items.map((item) => {
                       const atomic = priceAtomic(item)
-                      const eur = atomic ? atomicToEur(atomic) : null
+                      const usd = atomic ? atomicToUsd(atomic) : null
                       return (
                         <motion.div
                           key={item.id}
@@ -472,7 +482,7 @@ export function Tickets() {
                             <div className="text-[13.5px] font-medium text-white/90 truncate">{item.name}</div>
                             <div className="mt-0.5 font-mono text-[10.5px] text-[oklch(0.6_0.012_250)]">
                               {atomic ? formatXnv(BigInt(atomic)) : '?'} XNV
-                              {eur && ` · ≈ €${eur}`} · ×{item.qty}
+                              {usd && ` · ≈ $${usd}`} · ×{item.qty}
                             </div>
                           </div>
                           <button
@@ -568,7 +578,7 @@ export function Tickets() {
                 </li>
                 <li className="flex gap-2.5">
                   <ArrowRight className="w-3.5 h-3.5 text-[oklch(0.78_0.06_237)] shrink-0 mt-0.5" />
-                  Print, cut, shelve. EUR equivalents are locked in at print time from the live rate; the QR itself stays valid indefinitely.
+                  Print, cut, shelve. USD equivalents are locked in at print time from the live rate; the QR itself stays valid indefinitely.
                 </li>
               </ul>
             </div>

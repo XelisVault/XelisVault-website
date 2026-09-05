@@ -34,7 +34,7 @@ const settled = {
 }
 
 const receipt = await buildReceiptPdf(inv, settled, {
-  verifyUrl: 'https://xelisvault.network/nerva/pay?d=dGVzdHRlc3R0ZXN0dGVzdHRlc3R0ZXN0dGVzdA==',
+  verifyUrl: 'https://xelisvault.xyz/nerva/pay?d=dGVzdHRlc3R0ZXN0dGVzdHRlc3R0ZXN0dGVzdA==',
   eur: '0.97',
 })
 writeFileSync(OUT + 'receipt-test.pdf', receipt)
@@ -58,7 +58,7 @@ const tags = Array.from({ length: 10 }, (_, i) => {
     pid: 'abcdefabcdef' + String(i).padStart(2, '0') + 'abcdefabcdefabcdefabcdefabcdef12',
     address: 'NV1k9Y7Uya8KEgFrFAmmMkVVAMJjgGnDhFcWaWXqXgmVgVhPwKw5DQcMc7WZncw2JZDBEFx1Wy9Cxy4',
     merchantName: 'Café du Marché',
-    link: `https://xelisvault.network/nerva/pay?d=${token}`,
+    link: `https://xelisvault.xyz/nerva/pay?d=${token}`,
   }
 })
 console.log('real tag link length:', tags[0].link.length, 'chars')

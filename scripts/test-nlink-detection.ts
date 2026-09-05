@@ -102,8 +102,8 @@ async function main() {
   }
 
   // 4 — SCENARIO B: the same browser revisits → local cache known → instant verify
-  savePaymentCache(decoded.pid, outcome.result)
-  const cached = loadPaymentCache(decoded.pid)
+  savePaymentCache(decoded.pid ?? "", outcome.result)
+  const cached = loadPaymentCache(decoded.pid ?? "")
   log(`\nSCENARIO B — revisit with local memory: cached=${cached ? 'yes' : 'no'} (${cached?.status})`)
   const t1 = Date.now()
   const outcome2 = await detectPayment(decoded, tip, { knownTxHash: cached?.txHash, scanFrom: outcome.scannedUpTo + 1 })

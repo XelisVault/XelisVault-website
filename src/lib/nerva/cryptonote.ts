@@ -19,9 +19,15 @@
  *   · Hs(derivation, out_index) = sc_reduce32(keccak(derivation || varint(out_index)))
  *       — crypto.cpp L240 derivation_to_scalar (write_varint, LE 7-bit chunks)
  *   · output key = spendPub + Hs(...)·G                    — crypto.cpp L252
- *   · mnemonic: 1626-word English list, 4 bytes → 3 words base-1626 with
- *     carry encoding, 25th word = checksum (CRC-32 of concatenated 3-letter
- *     prefixes, index mod 24)                              — electrum-words.cpp
+ *   · mnemonic: 1626-word English list (verified byte-identical to
+ *     nerva english.h), 4 bytes → 3 words base-1626 with carry encoding,
+ *     25th word = checksum (CRC-32 of concatenated 3-letter prefixes,
+ *     index mod 24)                              — electrum-words.cpp
+ *     ⚠ 4-byte groups are read/written LITTLE-ENDIAN (SWAP32LE of a native
+ *     uint32 read — electrum-words.cpp L399/L332): byte 0 is the least
+ *     significant. Verified against the C++ source; a big-endian read
+ *     silently produces a different seed on restore in the official wallet.
+ *     Base58 address blocks, by contrast, stay BIG-endian (base58.cpp).
  *
  * Group order l = 2^252 + 27742317777372353535851937790883648493
  * (identical to ed25519 Point order exposed by @noble/curves).
@@ -314,7 +320,7 @@ for (let i = 0; i < NERVA_WORDLIST.length; i++) WORD_INDEX[NERVA_WORDLIST[i]] = 
 const WL = 1626
 const UNIQUE_PREFIX = 3
 
-/** 4 bytes (BE u32) → 3 words, base-1626 with carry — bytes_to_words core */
+/** 4 bytes (LE u32 — SWAP32LE native read, electrum-words.cpp L399) → 3 words, base-1626 with carry */
 function tripleToWords(w0: number): string[] {
   const w1 = w0 % WL
   const w2 = ((Math.floor(w0 / WL) + w1) % WL)
@@ -322,7 +328,7 @@ function tripleToWords(w0: number): string[] {
   return [NERVA_WORDLIST[w1], NERVA_WORDLIST[w2], NERVA_WORDLIST[w3]]
 }
 
-/** 3 word indices → BE u32, unique decode — words_to_bytes core */
+/** 3 word indices → LE u32 (electrum-words.cpp words_to_bytes), unique decode */
 function wordsToTriple(w1: number, w2: number, w3: number): number | null {
   const w0 = w1 + WL * (((WL - w1) + w2) % WL) + WL * WL * (((WL - w2) + w3) % WL)
   if (w0 > 0xffffffff) return null
@@ -334,8 +340,10 @@ export function bytesToMnemonic(bytes: Uint8Array): string[] {
   if (bytes.length === 0 || bytes.length % 4 !== 0) return []
   const words: string[] = []
   for (let i = 0; i < bytes.length / 4; i++) {
-    const w0 = (bytes[i * 4] << 24) | (bytes[i * 4 + 1] << 16) | (bytes[i * 4 + 2] << 8) | bytes[i * 4 + 3]
-    words.push(...tripleToWords(w0 >>> 0))
+    // LITTLE-ENDIAN u32: SWAP32LE(*(uint32_t*)(src + i*4)) on LE hardware
+    // — byte 0 is the least significant (electrum-words.cpp L399)
+    const w0 = ((bytes[i * 4 + 3] << 24) | (bytes[i * 4 + 2] << 16) | (bytes[i * 4 + 1] << 8) | bytes[i * 4]) >>> 0
+    words.push(...tripleToWords(w0))
   }
   // checksum: crc32 of the concatenated 3-letter prefixes, mod word count
   const prefixes = words.map((w) => w.slice(0, UNIQUE_PREFIX)).join('')
@@ -383,10 +391,12 @@ export function mnemonicToBytes(words: string[]): Uint8Array | null {
     const w0 = wordsToTriple(indices[i * 3], indices[i * 3 + 1], indices[i * 3 + 2])
     if (w0 === null) return null
     const v = w0 >>> 0
-    out[i * 4] = (v >>> 24) & 0xff
-    out[i * 4 + 1] = (v >>> 16) & 0xff
-    out[i * 4 + 2] = (v >>> 8) & 0xff
-    out[i * 4 + 3] = v & 0xff
+    // LITTLE-ENDIAN write: w[0] = SWAP32LE(w[0]); dst.append(&w[0], 4)
+    // — least significant byte first (electrum-words.cpp L332)
+    out[i * 4] = v & 0xff
+    out[i * 4 + 1] = (v >>> 8) & 0xff
+    out[i * 4 + 2] = (v >>> 16) & 0xff
+    out[i * 4 + 3] = (v >>> 24) & 0xff
   }
   return out
 }
@@ -397,6 +407,9 @@ export function mnemonicToBytes(words: string[]): Uint8Array | null {
  * generate_key_derivation: compress(8 · viewPriv · txPubKey).
  * Mirrors ge_scalarmult → ge_mul8 → ge_tobytes. Returns null when the
  * tx pubkey does not decompress to a valid point (ge_frombytes_vartime != 0).
+ *
+ * The math is symmetric (8 · sec · pub): pass (txPub, viewSec) to scan as
+ * the receiver, or (viewPub, txSec) to verify as the payer.
  */
 export function generateKeyDerivation(txPubKey: Uint8Array, viewPriv: Uint8Array): Uint8Array | null {
   try {
@@ -407,6 +420,21 @@ export function generateKeyDerivation(txPubKey: Uint8Array, viewPriv: Uint8Array
   } catch {
     return null
   }
+}
+
+/** device_default.cpp L41 — extra byte hashed with the derivation */
+export const ENCRYPTED_PAYMENT_ID_TAIL = 0x8d
+
+/**
+ * XOR with the payment-id key: keccak(derivation || 0x8d)[0..8]
+ * — device_default.cpp L339-354 encrypt_payment_id / decrypt_payment_id.
+ * Encryption and decryption are the same symmetric XOR.
+ */
+export function cryptShortPaymentId(pid8: Uint8Array, derivation: Uint8Array): Uint8Array {
+  const hash = keccak(concat(derivation, Uint8Array.of(ENCRYPTED_PAYMENT_ID_TAIL)))
+  const out = new Uint8Array(8)
+  for (let i = 0; i < 8; i++) out[i] = pid8[i] ^ hash[i]
+  return out
 }
 
 /** derivation_to_scalar: sc_reduce32(keccak(derivation || varint(out_index))) */

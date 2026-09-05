@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  @page { size: 794px 1123px; margin: 0; }
+  :root {
+    --c-bg: #0a1628;
+    --c-accent: #4da8da;
+    --c-text: #e8f0f8;
+    --c-muted: #7a9bb8;
+    --c-glow: #2d7ab3;
+  }
+  html, body { margin: 0; padding: 0; width: 794px; height: 1123px; background: var(--c-bg); color: var(--c-text); font-family: 'Inter', sans-serif; }
+  @media screen {
+    html { height: auto; display: flex; justify-content: center; min-height: 100vh; background: var(--c-bg); }
+    body { transform-origin: top center; scale: min(1, calc(100vw / 794), calc(100vh / 1123)); margin: 0 auto; box-shadow: 0 0 60px rgba(0,0,0,0.4); }
+  }
+  .cover { width: 794px; height: 1123px; position: relative; box-sizing: border-box; border: none; outline: none; box-shadow: none; }
+  /* Layer 1 — background glows (clipped) */
+  .layer1 { position: absolute; inset: 0; overflow: hidden; z-index: 1; }
+  .glow-a { position: absolute; left: 40px; top: 60px; width: 420px; height: 420px;
+            background: radial-gradient(circle, rgba(45,122,179,0.14) 0%, rgba(45,122,179,0) 70%); }
+  .glow-b { position: absolute; right: 60px; bottom: 90px; width: 480px; height: 480px;
+            background: radial-gradient(circle, rgba(45,122,179,0.11) 0%, rgba(45,122,179,0) 70%); }
+  /* Layer 2 — luminous rectangular frame */
+  .layer2 { position: absolute; inset: 0; z-index: 2; }
+  .frame { position: absolute; left: 60px; right: 60px; top: 80px; bottom: 80px;
+           border: 2px solid var(--c-accent); }
+  /* Layer 3 — content */
+  .layer3 { position: absolute; inset: 0; z-index: 3; }
+  .kicker { position: absolute; left: 104px; top: 135px; font-size: 11pt; font-weight: 300;
+            color: var(--c-accent); letter-spacing: 5px; text-transform: uppercase; }
+  .hero { position: absolute; left: 104px; top: 236px; font-size: 58pt; font-weight: 900;
+          font-family: 'Playfair Display', serif; color: var(--c-text); line-height: 1.15;
+          text-shadow: 0 0 34px rgba(77,168,218,0.35); }
+  .hero-sub { position: absolute; left: 104px; top: 352px; font-size: 15pt; font-weight: 400;
+              color: var(--c-text); opacity: 0.9; letter-spacing: 1px; }
+  .summary { position: absolute; left: 104px; top: 505px; font-size: 15pt; line-height: 1.7;
+             color: var(--c-muted); max-width: 520px; }
+  .org { position: absolute; left: 104px; top: 742px; font-size: 18pt; font-weight: 600;
+         color: var(--c-text); }
+  .org-sub { position: absolute; left: 104px; top: 786px; font-size: 11pt; font-weight: 300;
+             color: var(--c-muted); }
+  .date { position: absolute; left: 104px; top: 985px; font-size: 10pt; color: var(--c-muted);
+          letter-spacing: 3px; text-transform: uppercase; font-weight: 300; }
+</style>
+</head>
+<body>
+  <div class="cover">
+    <div class="layer1">
+      <div class="glow-a"></div>
+      <div class="glow-b"></div>
+    </div>
+    <div class="layer2">
+      <div class="frame"></div>
+    </div>
+    <div class="layer3">
+      <div class="kicker">Proposition de blockchain · XelisVault</div>
+      <div class="hero">ANTUMBRA</div>
+      <div class="hero-sub">Le réseau où la confiance se gagne au lieu de s'acheter</div>
+      <div class="summary">Un BlockDAG CPU privé finalisé en moins de six secondes,
+        des identités humaines sans biométrie, des agents IA responsables par
+        construction, une réputation que le capital ne peut pas acheter — et un
+        plafond de 16 180 339 unités : le nombre d'or.</div>
+      <div class="org">XelisVault</div>
+      <div class="org-sub">Document de réflexion · version 2.0 — remplace la proposition ARCANE</div>
+      <div class="date">Septembre 2026 · xelisvault.xyz</div>
+    </div>
+  </div>
+</body>
+</html>

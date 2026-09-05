@@ -26,7 +26,7 @@ const fraunces = Fraunces({
   axes: ["opsz", "SOFT", "WONK"],
 });
 
-export const SITE_URL = "https://xelisvault.network";
+export const SITE_URL = "https://xelisvault.xyz";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

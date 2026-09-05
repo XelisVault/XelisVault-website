@@ -25,8 +25,8 @@ import {
 } from 'lucide-react'
 import { Reveal } from '@/components/site/reveal'
 import {
-  encodeInvoice, generatePaymentId, isValidNervaAddress,
-  buildNervaUri, renderQrDataUrl, atomicToDisplay, TTL_OPTIONS,
+  encodeInvoice, generatePaymentId8, isValidNervaAddress,
+  buildNervaUri, buildIntegratedAddress, renderQrDataUrl, atomicToDisplay, TTL_OPTIONS,
   type NervaInvoice,
 } from '@/lib/nerva/nlink'
 import { parseXnv, getBlockCount } from '@/lib/nerva/api'
@@ -253,12 +253,12 @@ export function LinkCreator() {
       try { height = await getBlockCount() } catch { height = 0 }
       const ttl = TTL_OPTIONS[form.ttlIndex].seconds
       const inv: NervaInvoice = {
-        v: 1,
+        v: 2,
         a: form.address.trim(),
         amt: amountAtomic !== null ? amountAtomic.toString() : '0',
         d: form.description.trim() || undefined,
         n: form.name.trim() || undefined,
-        pid: generatePaymentId(),
+        pid8: generatePaymentId8(),
         h: height,
         exp: Math.floor(Date.now() / 1000) + ttl,
       }
@@ -307,8 +307,10 @@ export function LinkCreator() {
           <p className="mt-4 text-[14.5px] leading-relaxed text-[oklch(0.7_0.012_250)]">
             Payment links for NERVA: a mini Stripe-style checkout with zero
             infrastructure. The invoice lives <span className="text-white/90 font-medium">entirely inside the link</span>:
-            no database, no account, no keys. Whoever opens it gets a QR the wallet
-            understands, and the page itself watches the chain for the payment.
+            no database, no account, no keys. Whoever opens it pays an
+            <span className="text-white/90 font-medium"> integrated address</span> — the reference rides encrypted
+            inside it, every NERVA wallet handles it automatically — and can
+            report the transaction for an instant receipt.
           </p>
         </div>
 
@@ -445,7 +447,7 @@ export function LinkCreator() {
                         Your payment link is live
                       </div>
                       <div className="mt-1 font-mono text-[10px] text-[oklch(0.6_0.012_250)] truncate">
-                        reference <span className="text-[oklch(0.8_0.13_290)]/85">{invoice.pid.slice(0, 16)}…</span>
+                        reference <span className="text-[oklch(0.8_0.13_290)]/85">{(invoice.v === 2 ? invoice.pid8 : invoice.pid)?.slice(0, 16)}</span>
                         {' · '}stateless, it exists nowhere but this URL
                       </div>
                     </div>
@@ -644,10 +646,10 @@ export function LinkCreator() {
                         </span>
                       </div>
                       <div className="sm:col-span-2">
-                        <CopyRow label="address" value={invoice.a} display={middleTruncate(invoice.a, 34, 10)} mono="plain" />
+                        <CopyRow label="integrated" value={buildIntegratedAddress(invoice) ?? invoice.a} display={middleTruncate(buildIntegratedAddress(invoice) ?? invoice.a, 30, 12)} mono="plain" />
                       </div>
                       <div className="sm:col-span-2">
-                        <CopyRow label="reference" value={invoice.pid} display={middleTruncate(invoice.pid, 30, 12)} mono="mauve" />
+                        <CopyRow label="reference" value={(invoice.v === 2 ? invoice.pid8 : invoice.pid) ?? ''} display={middleTruncate((invoice.v === 2 ? invoice.pid8 : invoice.pid) ?? '', 30, 12)} mono="mauve" />
                       </div>
                     </div>
                   </motion.div>
@@ -669,17 +671,17 @@ export function LinkCreator() {
                     {
                       icon: Sparkles,
                       title: '1 · Mint',
-                      body: 'A random 32-byte reference (payment id) is generated in your browser and encoded into the link together with amount and expiry. Nothing is transmitted.',
+                      body: 'A random 8-byte reference is generated in your browser and embedded into an integrated address inside the link, together with amount and expiry. Nothing is transmitted.',
                     },
                     {
                       icon: Wallet,
                       title: '2 · Pay',
-                      body: 'The payer scans the QR, a canonical nerva: URI that NervaOne and the CLI wallet parse natively, pre-filling address, amount and reference.',
+                      body: 'The payer scans the QR or opens the link: every default NERVA wallet pays the integrated address and encrypts the reference automatically — no refusal, no manual step.',
                     },
                     {
                       icon: Radar,
-                      title: '3 · Watch',
-                      body: 'The checkout page polls the public explorer API every ~10s, scanning the mempool and new blocks for your reference, following it to 10 confirmations.',
+                      title: '3 · Confirm',
+                      body: 'The payer reports the transaction hash on the checkout page for an instant receipt (optionally proving it with the tx key); you, with your view key in the POS, match it silently.',
                     },
                   ].map((s) => (
                     <div key={s.title} className="rounded-md border border-white/8 bg-white/[0.02] p-4">

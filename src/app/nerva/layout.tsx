@@ -63,9 +63,9 @@ export default function NervaLayout({ children }: { children: React.ReactNode })
     "@graph": [
       {
         "@type": "WebApplication",
-        "@id": "https://xelisvault.network/nerva/#app",
+        "@id": "https://xelisvault.xyz/nerva/#app",
         name: "NervaLink & Explorer · the Nerva side of XelisVault",
-        url: "https://xelisvault.network/nerva",
+        url: "https://xelisvault.xyz/nerva",
         applicationCategory: "FinanceApplication",
         operatingSystem: "Any (browser)",
         browserRequirements: "Requires JavaScript",
@@ -82,11 +82,11 @@ export default function NervaLayout({ children }: { children: React.ReactNode })
       },
       {
         "@type": "WebSite",
-        "@id": "https://xelisvault.network/nerva/#website",
-        url: "https://xelisvault.network/nerva",
+        "@id": "https://xelisvault.xyz/nerva/#website",
+        url: "https://xelisvault.xyz/nerva",
         name: "NERVA · XelisVault",
         inLanguage: "en",
-        isPartOf: { "@id": "https://xelisvault.network/#website" },
+        isPartOf: { "@id": "https://xelisvault.xyz/#website" },
       },
     ],
   }

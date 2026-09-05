@@ -268,7 +268,9 @@ export interface ReceiptExtras {
   verifyUrl?: string
   /** generated at (ms), defaults to now */
   generatedAt?: number
-  /** optional fiat equivalent shown under the amount (display only) */
+  /** optional USD equivalent shown under the amount (display only, reference) */
+  usd?: string
+  /** optional EUR equivalent shown under the amount (display only) */
   eur?: string
 }
 
@@ -286,8 +288,9 @@ export async function buildReceiptPdf(
   extras: ReceiptExtras = {},
 ): Promise<Uint8Array> {
   const now = extras.generatedAt ?? Date.now()
-  const paid = !!r && (r.status === 'detected' || r.status === 'confirmed' || r.status === 'settled')
+  const paid = !!r && (r.status === 'declared' || r.status === 'detected' || r.status === 'confirmed' || r.status === 'settled')
   const settled = r?.status === 'settled'
+  const declared = r?.status === 'declared'
 
   // plan first: list of lines so the height is known before serialization
   const page = new Page(R_W, 1000) // provisional height; real one computed at the end
@@ -313,7 +316,7 @@ export async function buildReceiptPdf(
     y += 9.5
   }
   metaRow('Date', enDate(Math.floor(now / 1000)))
-  metaRow('Reference', shortenHash(inv.pid, 16, 6))
+  metaRow('Reference', inv.v === 2 ? (inv.pid8 ?? '—') : shortenHash(inv.pid ?? '', 16, 6))
   if (inv.d) {
     const lines = wrapText(inv.d, 'F1', 7, R_IW - 52, 3)
     lines.forEach((ln, i) => {
@@ -331,7 +334,10 @@ export async function buildReceiptPdf(
   const aSize = inv.amt === '0' ? 11 : 13
   page.center(y, amountStr, 'F2', aSize)
   y += aSize + 6
-  if (extras.eur) {
+  if (extras.usd) {
+    page.center(y, `≈ $${extras.usd}${extras.eur ? ` / EUR ${extras.eur}` : ''}`, 'F3', 8.5, 0.3)
+    y += 11
+  } else if (extras.eur) {
     page.center(y, `≈ EUR ${extras.eur}`, 'F3', 8.5, 0.3)
     y += 11
   } else if (inv.amt === '0') {
@@ -344,12 +350,13 @@ export async function buildReceiptPdf(
 
   // status
   const statusLabel = settled ? 'SETTLED · 10/10 CONFIRMATIONS'
+    : declared ? 'PAYER-REPORTED · AWAITING MERCHANT MATCH'
     : paid ? `PAID · ${r!.confirmations}/${NERVA_CONSTANTS.spendableAge} CONFIRMATIONS`
     : 'AWAITING PAYMENT'
   page.center(y, statusLabel, 'F2', 8.5, settled ? 0 : 0.25)
   y += 12
   if (paid && r) {
-    metaRow('Status', r.inPool ? 'mempool · seen by the network' : settled ? 'settled, spendable' : 'confirmed in a block')
+    metaRow('Status', r.inPool ? 'mempool · seen by the network' : settled ? 'settled, spendable' : declared ? 'payer-reported, merchant verifies' : 'confirmed in a block')
     if (r.blockHeight && !r.inPool) metaRow('Block', `#${r.blockHeight.toLocaleString('en-US')}`)
     if (r.txTimestamp) metaRow('Paid at', enDate(r.txTimestamp))
     if (r.txHash) {
@@ -398,7 +405,7 @@ export async function buildReceiptPdf(
     y += 8
   }
   y += 6
-  page.center(y, 'xelisvault.network', 'F2', 8)
+  page.center(y, 'xelisvault.xyz', 'F2', 8)
   y += 12
 
   // finalize with the real height
@@ -415,9 +422,11 @@ export interface TagSpec {
   name: string
   /** atomic XNV amount (string) */
   amountAtomic: string
-  /** optional fiat equivalent, display only */
+  /** optional USD equivalent, display only (reference currency) */
+  usd?: string
+  /** optional EUR equivalent, display only */
   eur?: string
-  /** unique payment reference carried by the tag's invoice */
+  /** unique payment reference carried by the tag's invoice (pid8 hex16 for v2) */
   pid: string
   /** receiving address */
   address: string
@@ -483,7 +492,10 @@ export async function buildTagsPdf(tags: TagSpec[]): Promise<Uint8Array> {
       const price = `${atomicToDisplay(tag.amountAtomic)} XNV`
       page.text(tx, ty, price, 'F4', 17)
       ty += 21
-      if (tag.eur) {
+      if (tag.usd) {
+        page.text(tx, ty, `≈ $${tag.usd}${tag.eur ? ` · €${tag.eur}` : ''}`, 'F3', 10.5, 0.35)
+        ty += 13
+      } else if (tag.eur) {
         page.text(tx, ty, `≈ EUR ${tag.eur}`, 'F3', 10.5, 0.35)
         ty += 13
       }
@@ -607,7 +619,7 @@ export async function buildPaperWalletPdf(w: PaperWalletSpec): Promise<Uint8Arra
   y += 9
   page.text(mx, y, 'Anyone holding the mnemonic or the spend key controls the funds. Generated locally in your browser — never transmitted, never stored.', 'F3', 6.5, 0.4)
   y += 9
-  page.text(mx, y, 'xelisvault.network/nerva/paper-wallet', 'F4', 7.5)
+  page.text(mx, y, 'xelisvault.xyz/nerva/paper-wallet', 'F4', 7.5)
 
   return serializePdf([{ w: A5_W, h: A5_H, ops: pageContentOps(page) }])
 }

@@ -32,12 +32,12 @@ export async function sha256Hex(input: string): Promise<string> {
  * recompute the seal and compare.
  */
 export function receiptCanonical(inv: NervaInvoice, r: DetectionResult | null, ts: number): string {
-  const paid = !!r && (r.status === 'detected' || r.status === 'confirmed' || r.status === 'settled')
+  const paid = !!r && (r.status === 'declared' || r.status === 'detected' || r.status === 'confirmed' || r.status === 'settled')
   return [
     'nerva-receipt-v1',
     inv.a,
     inv.amt,
-    inv.pid,
+    inv.v === 2 ? inv.pid8 : inv.pid,
     inv.n ?? '',
     inv.d ?? '',
     String(Math.floor(ts / 1000)),
@@ -160,12 +160,12 @@ export async function buildJournalEntry(
 ): Promise<JournalEntry> {
   const entries = loadJournal()
   const prev = entries.length ? entries[entries.length - 1].seal : GENESIS
-  const paid = !!r && (r.status === 'detected' || r.status === 'confirmed' || r.status === 'settled')
+  const paid = !!r && (r.status === 'declared' || r.status === 'detected' || r.status === 'confirmed' || r.status === 'settled')
   const seal = await sha256Hex(receiptCanonical(inv, r, ts))
   return {
     v: 1,
     ts,
-    pid: inv.pid,
+    pid: (inv.v === 2 ? inv.pid8 : inv.pid) ?? '',
     address: inv.a,
     amountAtomic: inv.amt,
     desc: inv.d,

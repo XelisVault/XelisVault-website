@@ -13,26 +13,27 @@ No accounts, no tracking, no keys held by anyone but you.
 
 | Tool | Route | What it does |
 | --- | --- | --- |
-| **POS terminal** | `/nerva/caisse` | Type an amount (XNV or EUR at the live rate), the customer scans, the page watches the chain mempool → 10 confirmations, then prints a PDF receipt. Every sale is sealed into a SHA-256 chained local journal. |
-| **Price tags** | `/nerva/tickets` | Printable A4 shelf labels (10 per sheet). Each tag QR encodes a checkout link — any phone camera opens the payment page with the product, the exact amount and the live EUR equivalent. |
+| **POS terminal** | `/nerva/caisse` | Type an amount (XNV or USD at the live rate), the customer scans an integrated-address QR, the terminal matches the payment (auto with your optional view key, or customer-declared) to 10 confirmations, then prints a PDF receipt. Every sale is sealed into a SHA-256 chained local journal. |
+| **Price tags** | `/nerva/tickets` | Printable A4 shelf labels (10 per sheet). Each tag QR encodes a checkout link — any phone camera opens the payment page with the product, the exact amount and the live USD equivalent. |
 | **Payment links** | `/nerva/link` | Stripe-style checkout with zero infrastructure: the whole invoice lives inside its URL (base64url JSON). |
 | **Paper wallet** | `/nerva/paper-wallet` | Cold-storage key generation in your browser — see the security section below. |
 | **Watch-only** | `/nerva/watch` | Address + view key: watch payments arrive without exposing a spend key. |
 | **Mining center** | `/nerva/mining` | Live hashrate/difficulty and an honest solo-mining odds calculator. |
 
-### Live XNV/EUR rate
+### Live XNV/USD rate (reference) + EUR secondary
 
-All EUR equivalents (POS keypad, price tags, checkout pages, journals) are
-**live by default**, fetched through our own aggregator route
-`GET /api/nerva/price`:
+All fiat equivalents (POS keypad, price tags, checkout pages, journals) are
+**live by default**, quoted in **USD — the market's reference currency —
+with EUR shown alongside**. They are fetched through our own aggregator
+route `GET /api/nerva/price`:
 
-1. **CoinGecko** — direct EUR/USD/BTC quotes for `nerva`
-2. **CoinPaprika** — USD quote converted with the ECB reference rate
+1. **CoinGecko** — direct USD/EUR/BTC quotes for `nerva`
+2. **CoinPaprika** — USD quote, EUR via the ECB reference rate
    (frankfurter.dev) if CoinGecko is unreachable
 
 The route caches for 60 s server-side and serves a stale quote (flagged
 `stale: true`) for up to 30 min during a full outage, so a terminal keeps
-working through exchange downtime. Merchants can set a manual rate
+working through exchange downtime. Merchants can set a manual USD rate
 override in the POS settings — the override always wins.
 
 ## Security model — how to verify it
@@ -53,6 +54,13 @@ detection, PDFs, journals) runs in your browser.
   with a keccak checksum — the exact account math the official NERVA
   wallet uses. `scripts/test-nerva-crypto.ts` runs 70 assertions,
   including full round-trips (mnemonic → keys → address → decode).
+- **Mnemonic encoding is cross-checked against the C++ itself**:
+  `scripts/nerva-mnemonic-xcheck.cpp` is a verbatim copy of NERVA's
+  `electrum-words.cpp` loops (little-endian 4-byte groups, base-1626
+  carry encoding, CRC-32 checksum word); compile it and run
+  `scripts/test-nerva-mnemonic-xcheck.ts` — 48 vectors must match the
+  TypeScript output bit-for-bit. This is what guarantees that a seed
+  printed here restores the **same address** in `nerva-wallet-cli`.
 - The page performs **zero network requests after load** and **writes
   nothing to any storage**. Load it, go offline, generate — it works.
 - The on-screen sheet self-verifies in front of you: the address is
@@ -67,6 +75,8 @@ detection, PDFs, journals) runs in your browser.
 ```bash
 bun run audit:paper-wallet   # static audit: fails on any network/storage
 bun run test:crypto          # 70 CryptoNote round-trip assertions
+g++ -O2 -o /tmp/mnemonic-xcheck scripts/nerva-mnemonic-xcheck.cpp
+bun run scripts/test-nerva-mnemonic-xcheck.ts   # 48 vectors vs C++ verbatim
 ```
 
 The audit script scans the exact modules the page executes and fails on
@@ -76,13 +86,32 @@ any network primitive (`fetch`, `XMLHttpRequest`, `WebSocket`,
 open DevTools → Network, clear it, click *Generate paper wallet* — the
 tab stays empty. Stronger: airplane mode, then generate.
 
-### Payment detection (honest disclosure)
+### Payment matching (honest disclosure)
 
-Payment links and the POS detect payments by scanning the public explorer
-API for the invoice's random 64-hex **payment reference**, which the
-payer's wallet embeds in clear inside `tx_extra`. RingCT encrypts amounts
-on-chain — detection confirms the reference, not the exact amount; the
-recipient's wallet matches both. Everything is queried directly from your
+NervaLink invoices are **v2**: the QR pays an **integrated address** — the
+merchant address with a random 8-byte payment id embedded (prefix 0x7081).
+Every default NERVA wallet then encrypts and attaches that reference
+automatically (tx_extra tag 0x02 → 0x01). We do not use the legacy
+unencrypted 64-hex payment id: nerva-wallet refuses it by default
+(`--long-payment-id-support` = false), which is why first-generation links
+could miss real payments.
+
+Because references travel **encrypted** (that's NERVA's privacy doing its
+job), matching works on three honest levels:
+
+1. **Merchant auto-detection** — with the optional secret view key in the
+   POS settings, the terminal decrypts every integrated reference with
+   `D = 8·viewKey·txPub`, exactly what an official wallet does. The key
+   stays in the merchant's browser; it can see incoming funds, never
+   spend them.
+2. **Payer declaration** — the checkout page lets the payer paste the
+   transaction hash for an instant receipt; with the transaction secret
+   key (`get_tx_key`) the page verifies the reference cryptographically:
+   `pid = enc ⊕ keccak(D‖0x8d)[0..8]`, `D = 8·txKey·viewPub`.
+3. **Legacy links (v1)** still resolve through the clear long-id scan.
+
+RingCT encrypts amounts on-chain; the receiving wallet always has the
+final word on the exact sum. Everything is queried directly from your
 browser, results cached only in your `localStorage`.
 
 ## Repository layout
@@ -120,6 +149,8 @@ bun run build        # production build (webpack)
 | Script | Purpose |
 | --- | --- |
 | `bun run test:crypto` | CryptoNote key math vs NERVA's C++ semantics (70 assertions) |
+| `bun run scripts/test-nerva-mnemonic-xcheck.ts` | Mnemonic encoding vs verbatim C++ port (48 vectors) |
+| `bun run scripts/test-nlink-v2.ts` | Integrated addresses, encrypted-pid matching, v2 URIs |
 | `bun run test:pdf` | Receipt / price-tag / paper-wallet PDFs, then `qpdf --check` |
 | `python3 scripts/decode-qr-pdf.py <png…>` | zbar + OpenCV decode of every QR in rendered pages |
 | `bun run test:nlink` | Payment-link detection engine (mocked chain fixtures) |

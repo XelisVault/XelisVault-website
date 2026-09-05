@@ -8,6 +8,10 @@
  * the same instant. Data comes from our own /api/nerva/price aggregator
  * (CoinGecko → CoinPaprika fallback), never straight from an exchange —
  * so CORS, rate limits and API changes are handled server-side.
+ *
+ * USD is the reference currency (the whole crypto market quotes in USD):
+ * it is always available and shown first. EUR rides along as the secondary
+ * display currency.
  */
 
 import { useEffect, useState } from 'react'
@@ -15,10 +19,10 @@ import { useEffect, useState } from 'react'
 export interface NervaPrice {
   /** human-readable source label, e.g. "CoinGecko" */
   source: string
-  /** EUR per 1 XNV */
-  eur: number
-  /** USD per 1 XNV (when the source provides it) */
-  usd: number | null
+  /** USD per 1 XNV — the reference quote, always present */
+  usd: number
+  /** EUR per 1 XNV (when the source provides it) */
+  eur: number | null
   /** BTC per 1 XNV (when the source provides it) */
   btc: number | null
   /** unix ms of the quote */
@@ -42,12 +46,12 @@ async function tick(): Promise<void> {
     const res = await fetch('/api/nerva/price', { cache: 'no-store' })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const j = (await res.json()) as Record<string, unknown>
-    const eur = Number(j.eur)
-    if (!Number.isFinite(eur) || eur <= 0) throw new Error('bad payload')
+    const usd = Number(j.usd)
+    if (!Number.isFinite(usd) || usd <= 0) throw new Error('bad payload')
     snapshot = {
       source: typeof j.source === 'string' ? j.source : '—',
-      eur,
-      usd: Number.isFinite(Number(j.usd)) && Number(j.usd) > 0 ? Number(j.usd) : null,
+      usd,
+      eur: Number.isFinite(Number(j.eur)) && Number(j.eur) > 0 ? Number(j.eur) : null,
       btc: Number.isFinite(Number(j.btc)) && Number(j.btc) > 0 ? Number(j.btc) : null,
       updatedAt: Number(j.updatedAt) || Date.now(),
       stale: j.stale === true,
@@ -100,52 +104,74 @@ export function useNervaPrice(): { price: NervaPrice | null; refresh: () => void
 /* ─────────────── formatting / conversion helpers ─────────────── */
 
 /**
- * Atomic XNV (1e12) → EUR display string using a numeric EUR/XNV rate.
+ * Atomic XNV (1e12) → fiat display string using a numeric rate.
  * Pure integer math: the rate is scaled by 1e6 (rateScaled), atomic ×
- * rateScaled is divided by 1e12 to micro-EUR, then rounded to cents —
+ * rateScaled is divided by 1e12 to micro-fiat, then rounded to cents —
  * no float drift, no precision loss on small XNV-sized rates.
  */
-export function xnvAtomicToEur(amountAtomic: string | bigint, eurPerXnv: number): string | null {
-  if (!Number.isFinite(eurPerXnv) || eurPerXnv <= 0) return null
+function xnvAtomicToFiat(amountAtomic: string | bigint, ratePerXnv: number): string | null {
+  if (!Number.isFinite(ratePerXnv) || ratePerXnv <= 0) return null
   try {
     const big = typeof amountAtomic === 'bigint' ? amountAtomic : BigInt(amountAtomic)
     if (big < 0n) return null
-    const rateScaled = BigInt(Math.round(eurPerXnv * 1e6))
+    const rateScaled = BigInt(Math.round(ratePerXnv * 1e6))
     if (rateScaled <= 0n) return null
-    // microEUR = atomic × rate × 1e6 = (atomic × rateScaled) / 1e12
-    const microEur = (big * rateScaled) / 10n ** 12n
-    // cents = microEUR / 1e4, rounded; EUR = cents / 100
-    const cents = Math.round(Number(microEur) / 1e4)
-    const eur = cents / 100
-    if (!Number.isFinite(eur)) return null
-    return eur.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    // microFiat = atomic × rate × 1e6 = (atomic × rateScaled) / 1e12
+    const micro = (big * rateScaled) / 10n ** 12n
+    const cents = Math.round(Number(micro) / 1e4)
+    const fiat = cents / 100
+    if (!Number.isFinite(fiat)) return null
+    return fiat.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   } catch {
     return null
   }
 }
 
-/** EUR → atomic XNV for a numeric rate (integer atomic, banker-ish rounding). */
-export function eurToXnvAtomic(eur: number, eurPerXnv: number): bigint | null {
-  if (!Number.isFinite(eur) || !Number.isFinite(eurPerXnv) || eurPerXnv <= 0 || eur <= 0) return null
+/** Atomic XNV → USD display string (reference currency). */
+export function xnvAtomicToUsd(amountAtomic: string | bigint, usdPerXnv: number): string | null {
+  return xnvAtomicToFiat(amountAtomic, usdPerXnv)
+}
+
+/** Atomic XNV → EUR display string (secondary currency). */
+export function xnvAtomicToEur(amountAtomic: string | bigint, eurPerXnv: number): string | null {
+  return xnvAtomicToFiat(amountAtomic, eurPerXnv)
+}
+
+/** fiat (USD or EUR) → atomic XNV for a numeric rate (integer atomic). */
+export function fiatToXnvAtomic(fiat: number, ratePerXnv: number): bigint | null {
+  if (!Number.isFinite(fiat) || !Number.isFinite(ratePerXnv) || ratePerXnv <= 0 || fiat <= 0) return null
   try {
-    // atomic = eur / rate × 1e12 — scale eur to micro-cents to stay integral
-    const eurMicro = BigInt(Math.round(eur * 1e6))
-    const rateScaled = BigInt(Math.round(eurPerXnv * 1e6))
-    return (eurMicro * 10n ** 12n) / (rateScaled * 10n ** 6n)
+    // atomic = fiat / rate × 1e12 — scale fiat to micro units to stay integral
+    const fiatMicro = BigInt(Math.round(fiat * 1e6))
+    const rateScaled = BigInt(Math.round(ratePerXnv * 1e6))
+    return (fiatMicro * 10n ** 12n) / (rateScaled * 10n ** 6n)
   } catch {
     return null
   }
 }
 
-/** "1 XNV = €0.0778 · CoinGecko · 12:03" style caption */
+/** USD → atomic XNV (alias of fiatToXnvAtomic for readability). */
+export function usdToXnvAtomic(usd: number, usdPerXnv: number): bigint | null {
+  return fiatToXnvAtomic(usd, usdPerXnv)
+}
+
+/** EUR → atomic XNV. */
+export function eurToXnvAtomic(eur: number, eurPerXnv: number): bigint | null {
+  return fiatToXnvAtomic(eur, eurPerXnv)
+}
+
+/** "1 XNV = $0.0778 · €0.0712 · CoinGecko · 12:03" style caption (USD first) */
 export function priceCaption(p: NervaPrice): string {
   const time = new Date(p.updatedAt).toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
   })
-  const rate = p.eur.toLocaleString('en-US', {
+  const usd = p.usd.toLocaleString('en-US', {
     minimumFractionDigits: 4,
     maximumFractionDigits: 4,
   })
-  return `1 XNV = €${rate} · ${p.source} · ${time}${p.stale ? ' · cached' : ''}`
+  const eur = p.eur
+    ? p.eur.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
+    : null
+  return `1 XNV = $${usd}${eur ? ` · €${eur}` : ''} · ${p.source} · ${time}${p.stale ? ' · cached' : ''}`
 }

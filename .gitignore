@@ -83,3 +83,6 @@ public/images/nerva/raw/
 
 # PDF test output
 scripts/gen-img-tmp/
+
+# Axon source: local reference material for the ANTUMBRA study, not site code
+axon-src/

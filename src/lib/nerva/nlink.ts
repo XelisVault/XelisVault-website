@@ -4,12 +4,28 @@
  * Design: the invoice lives entirely inside the link URL (base64url JSON).
  * No database, no server state, no keys — 100% Vercel-static compatible.
  *
- * Detection (Mode "public reference"): a random LONG payment id (32 bytes)
- * travels in the `nerva:` URI (`tx_payment_id`) and appears in clear inside
- * `tx_extra` of the paying transaction (tag 0x02 → sub-tag 0x00). The pay
- * page scans the mempool + recent blocks (blocks with size > 90 B only) for
- * that id. RingCT amounts are encrypted — detection confirms the reference,
- * not the exact amount (explained honestly in the UI).
+ * ── Invoice v2 (integrated mode, current) ─────────────────────────────
+ * v1 shipped a 32-byte LONG payment id in the `nerva:` URI. That mechanism
+ * is dead: nerva-wallet refuses unencrypted long ids by default
+ * (--long-payment-id-support defaults to FALSE, simplewallet.cpp L157) and
+ * no live transaction carries one anymore (verified on-chain 2026-09-06:
+ * every recent tx uses an ENCRYPTED SHORT id — most of them dummy ids
+ * auto-added by construct_tx_with_tx_key, cryptonote_tx_utils.cpp L280+).
+ *
+ * v2 embeds a random 8-byte payment id inside an INTEGRATED address
+ * (tag 0x7081). Every default NERVA wallet encrypts and includes it
+ * automatically when paying an integrated address (tx_extra 0x02 → 0x01),
+ * so payments actually flow. Detection then works on three levels:
+ *
+ *   · Payer declaration — "I paid, here is my tx hash": the page fetches
+ *     the tx and checks it exists and carries an encrypted id. With the
+ *     optional transaction secret key (wallet `get_tx_key`), the payer
+ *     gets a full cryptographic proof: pid = enc ⊕ keccak(D‖0x8d)[0..8],
+ *     D = 8·txKey·viewPub — no merchant secret involved.
+ *   · Merchant auto-detection — the merchant's secret view key (caisse
+ *     config) scans the chain: D = 8·viewKey·txPub, decrypt, match pid8.
+ *     Exactly what an official wallet does, in the browser.
+ *   · Legacy long-id scan — kept for v1 links created before the switch.
  */
 
 import { parseTxExtra } from './tx-extra'
@@ -22,11 +38,17 @@ import {
   NERVA_CONSTANTS,
   type NervaBlockHeader,
 } from './api'
+import {
+  decodeAddress, encodeAddress, bytesToHex, hexToBytes,
+  NERVA_ADDRESS_PREFIX, NERVA_INTEGRATED_PREFIX,
+  generateKeyDerivation, cryptShortPaymentId, parseSecretKeyHex,
+  viewKeyMatches,
+} from './cryptonote'
 
 /* ─────────────── invoice model ─────────────── */
 
 export interface NervaInvoice {
-  v: 1
+  v: 1 | 2
   /** merchant standard address (starts with NV…) */
   a: string
   /** requested amount in atomic units (1e12) — 0 = free / open amount */
@@ -35,8 +57,10 @@ export interface NervaInvoice {
   d?: string
   /** merchant display name */
   n?: string
-  /** long payment id, 64 hex chars */
-  pid: string
+  /** v1: long payment id, 64 hex chars (legacy links only) */
+  pid?: string
+  /** v2: short payment id, 16 hex chars — embedded in the integrated address */
+  pid8?: string
   /** network height when the link was created (scan window start) */
   h: number
   /** expiry, unix seconds */
@@ -65,15 +89,29 @@ export function encodeInvoice(inv: NervaInvoice): string {
 export function decodeInvoice(token: string): NervaInvoice | null {
   try {
     const obj = JSON.parse(b64urlDecode(token))
-    if (obj?.v !== 1 || typeof obj.a !== 'string' || typeof obj.pid !== 'string') return null
-    if (!/^[0-9a-f]{64}$/i.test(obj.pid)) return null
+    if (typeof obj?.a !== 'string') return null
+    if (obj.v === 2) {
+      if (typeof obj.pid8 !== 'string' || !/^[0-9a-f]{16}$/i.test(obj.pid8)) return null
+      return {
+        v: 2,
+        a: obj.a,
+        amt: String(obj.amt ?? '0'),
+        d: typeof obj.d === 'string' ? obj.d.slice(0, NLINK_DESC_MAX) : undefined,
+        n: typeof obj.n === 'string' ? obj.n.slice(0, 60) : undefined,
+        pid8: String(obj.pid8).toLowerCase(),
+        h: Number(obj.h) || 0,
+        exp: Number(obj.exp) || 0,
+      }
+    }
+    // v1 legacy: 64-hex long payment id
+    if (obj?.v !== 1 || typeof obj.pid !== 'string' || !/^[0-9a-f]{64}$/i.test(obj.pid)) return null
     return {
       v: 1,
       a: obj.a,
       amt: String(obj.amt ?? '0'),
       d: typeof obj.d === 'string' ? obj.d.slice(0, NLINK_DESC_MAX) : undefined,
       n: typeof obj.n === 'string' ? obj.n.slice(0, 60) : undefined,
-      pid: obj.pid.toLowerCase(),
+      pid: String(obj.pid).toLowerCase(),
       h: Number(obj.h) || 0,
       exp: Number(obj.exp) || 0,
     }
@@ -82,9 +120,16 @@ export function decodeInvoice(token: string): NervaInvoice | null {
   }
 }
 
-/* ─────────────── payment id & URI ─────────────── */
+/* ─────────────── payment id & addresses ─────────────── */
 
-/** random 32-byte payment id as 64 lowercase hex chars */
+/** random 8-byte payment id as 16 lowercase hex chars (v2 integrated mode) */
+export function generatePaymentId8(): string {
+  const bytes = new Uint8Array(8)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+/** legacy: random 32-byte payment id as 64 lowercase hex chars (v1 links) */
 export function generatePaymentId(): string {
   const bytes = new Uint8Array(32)
   crypto.getRandomValues(bytes)
@@ -102,16 +147,48 @@ export function isValidNervaAddress(addr: string): { ok: boolean; reason?: strin
 }
 
 /**
- * `nerva:` payment URI — format verified in wallet2::make_uri (nerva source):
+ * Integrated address for a v2 invoice: the merchant standard address with
+ * the 8-byte payment id embedded (tag 0x7081 — get_account_integrated_
+ * address_as_str). This is the address the payer actually pays: every
+ * default wallet then encrypts and includes the id automatically.
+ */
+export function buildIntegratedAddress(inv: NervaInvoice): string | null {
+  if (inv.v !== 2 || !inv.pid8) return null
+  const decoded = decodeAddress(inv.a)
+  if (!decoded || decoded.tag !== NERVA_ADDRESS_PREFIX) return null
+  const pidBytes = hexToBytes(inv.pid8)
+  if (!pidBytes || pidBytes.length !== 8) return null
+  return encodeAddress(decoded.spendPub, decoded.viewPub, NERVA_INTEGRATED_PREFIX, pidBytes)
+}
+
+/** view-preflight: check a merchant view key really matches the address */
+export function viewKeyMatchesAddress(viewKeyHex: string, address: string): { ok: boolean; reason?: string } {
+  const sec = parseSecretKeyHex(viewKeyHex)
+  if (!sec) return { ok: false, reason: 'View key must be 64 hex characters' }
+  const decoded = decodeAddress(address)
+  if (!decoded || decoded.tag !== NERVA_ADDRESS_PREFIX) return { ok: false, reason: 'Invalid standard address' }
+  if (!viewKeyMatches(sec, decoded.viewPub)) {
+    return { ok: false, reason: 'This view key does not match the receiving address' }
+  }
+  return { ok: true }
+}
+
+/**
+ * `nerva:` payment URI.
+ * v2: integrated address + NO tx_payment_id (the wallet refuses a separate
+ *     id alongside an integrated one — wallet2::parse_uri).
+ * v1: standard address + long tx_payment_id (legacy wallets only).
+ * Format verified in wallet2::make_uri / parse_uri:
  *   nerva:ADDRESS?tx_amount=X&tx_payment_id=HEX&tx_description=..&recipient_name=..
  */
 export function buildNervaUri(inv: NervaInvoice): string {
+  const target = inv.v === 2 ? buildIntegratedAddress(inv) ?? inv.a : inv.a
   const params = new URLSearchParams()
   if (inv.amt !== '0') params.set('tx_amount', atomicToDisplay(inv.amt))
-  params.set('tx_payment_id', inv.pid)
+  if (inv.v === 1 && inv.pid) params.set('tx_payment_id', inv.pid)
   if (inv.d) params.set('tx_description', inv.d.slice(0, 60))
   if (inv.n) params.set('recipient_name', inv.n.slice(0, 40))
-  return `nerva:${inv.a}?${params.toString()}`
+  return `nerva:${target}?${params.toString()}`
 }
 
 export function atomicToDisplay(atomic: string | bigint): string {
@@ -134,9 +211,9 @@ export async function renderQrDataUrl(text: string, size = 320): Promise<string>
   })
 }
 
-/* ─────────────── detection (ExplorerDetector, client-side) ─────────────── */
+/* ─────────────── detection model ─────────────── */
 
-export type InvoiceStatus = 'pending' | 'detected' | 'confirmed' | 'settled' | 'expired'
+export type InvoiceStatus = 'pending' | 'declared' | 'detected' | 'confirmed' | 'settled' | 'expired'
 
 export interface DetectionResult {
   status: InvoiceStatus
@@ -149,6 +226,8 @@ export interface DetectionResult {
   checkedTxs: number
   scannedBlocks: number
   networkHeight: number
+  /** how the payment was tied to this invoice */
+  match?: 'long-pid' | 'pid8-merchant' | 'pid8-txkey' | 'payer-declared'
 }
 
 /** empty scan result (network unreachable) */
@@ -171,6 +250,9 @@ export interface PaymentCacheEntry {
   txTimestamp?: number
   inPool?: boolean
   status: InvoiceStatus
+  match?: DetectionResult['match']
+  /** payer-provided transaction secret key (self-proof), when supplied */
+  txKey?: string
   confirmations: number
   networkHeight: number
   seenAt: number // unix ms of the last verification
@@ -196,7 +278,9 @@ export function loadPaymentCache(pid: string): PaymentCacheEntry | null {
       blockHeight: typeof obj.blockHeight === 'number' && obj.blockHeight > 0 ? obj.blockHeight : undefined,
       txTimestamp: typeof obj.txTimestamp === 'number' && obj.txTimestamp > 0 ? obj.txTimestamp : undefined,
       inPool: obj.inPool === true,
-      status: ['detected', 'confirmed', 'settled'].includes(obj.status) ? obj.status : 'detected',
+      status: ['declared', 'detected', 'confirmed', 'settled'].includes(obj.status) ? obj.status : 'detected',
+      match: obj.match,
+      txKey: typeof obj.txKey === 'string' && /^[0-9a-f]{64}$/i.test(obj.txKey) ? obj.txKey : undefined,
       confirmations: Number(obj.confirmations) || 0,
       networkHeight: Number(obj.networkHeight) || 0,
       seenAt: Number(obj.seenAt) || Date.now(),
@@ -206,7 +290,7 @@ export function loadPaymentCache(pid: string): PaymentCacheEntry | null {
   }
 }
 
-export function savePaymentCache(pid: string, r: DetectionResult): void {
+export function savePaymentCache(pid: string, r: DetectionResult, txKey?: string): void {
   if (!r.txHash) return
   lsSet(PAY_CACHE_PREFIX + pid, JSON.stringify({
     txHash: r.txHash,
@@ -214,6 +298,8 @@ export function savePaymentCache(pid: string, r: DetectionResult): void {
     txTimestamp: r.txTimestamp,
     inPool: r.inPool,
     status: r.status,
+    match: r.match,
+    txKey: /^[0-9a-f]{64}$/i.test(txKey ?? '') ? txKey : undefined,
     confirmations: r.confirmations,
     networkHeight: r.networkHeight,
     seenAt: Date.now(),
@@ -222,6 +308,11 @@ export function savePaymentCache(pid: string, r: DetectionResult): void {
 
 export function clearPaymentCache(pid: string): void {
   try { localStorage.removeItem(PAY_CACHE_PREFIX + pid) } catch { /* noop */ }
+}
+
+/** invoice key used for the local cache (pid8 for v2, pid for v1) */
+export function invoiceCacheKey(inv: NervaInvoice): string {
+  return inv.v === 2 ? `pid8:${inv.pid8}` : `pid:${inv.pid ?? inv.a}`
 }
 
 /* ─────────────── helpers ─────────────── */
@@ -234,14 +325,116 @@ function fromMinedHeight(height: number, tipHeight: number): { status: InvoiceSt
   return { status: 'detected', confirmations }
 }
 
-function txMatchesPaymentId(tx: unknown, pid: string): boolean {
+function txMatchesLongPid(tx: unknown, pid: string): boolean {
   const extra = (tx as { json?: { extra?: unknown } })?.json?.extra
   if (!Array.isArray(extra)) return false
   const parsed = parseTxExtra(extra)
   return !!parsed.paymentIdLong && parsed.paymentIdLong.toLowerCase() === pid
 }
 
-/* ─────────────── scan engine ─────────────── */
+interface ExtraInfo {
+  txPubkey: Uint8Array | null
+  encryptedPid: Uint8Array | null
+}
+
+function parseExtraInfo(tx: unknown): ExtraInfo {
+  const extra = (tx as { json?: { extra?: unknown } })?.json?.extra
+  if (!Array.isArray(extra)) return { txPubkey: null, encryptedPid: null }
+  const parsed = parseTxExtra(extra)
+  return { txPubkey: parsed.txPubkey, encryptedPid: parsed.paymentIdShort }
+}
+
+/* ─────────────── payer declaration (v2) ─────────────── */
+
+export interface DeclaredVerification {
+  ok: boolean
+  reason?: string
+  result?: DetectionResult
+}
+
+/**
+ * Verify a payer-declared payment for a v2 invoice.
+ *
+ * With just the tx hash: sanity checks (exists, in window, carries an
+ * encrypted payment id) → status 'declared' (payer-claimed).
+ * With the transaction secret key too (`get_tx_key` in the wallet):
+ * full proof — D = 8·txKey·viewPub (viewPub from the merchant address),
+ * pid = enc ⊕ keccak(D‖0x8d)[0..8], must equal the invoice pid8 →
+ * detected/confirmed/settled with match 'pid8-txkey'.
+ */
+export async function verifyDeclaredPayment(
+  inv: NervaInvoice,
+  txHash: string,
+  opts: { txKey?: string; tipHeight: number },
+): Promise<DeclaredVerification> {
+  const hash = txHash.trim().toLowerCase()
+  if (!/^[0-9a-f]{64}$/.test(hash)) return { ok: false, reason: 'Transaction hash must be 64 hex characters' }
+  const tip = opts.tipHeight
+
+  let tx: unknown
+  try {
+    const [t] = await getTransactions([hash])
+    tx = t
+  } catch {
+    return { ok: false, reason: 'The explorer is unreachable right now — try again' }
+  }
+  if (!tx) return { ok: false, reason: 'Transaction not found — is it confirmed by the network yet?' }
+
+  const t = tx as { tx_hash?: string; block_height?: number; block_timestamp?: number; in_pool?: boolean }
+  const { encryptedPid } = parseExtraInfo(tx)
+  if (!encryptedPid) {
+    return { ok: false, reason: 'This transaction carries no payment reference — it cannot be tied to this invoice' }
+  }
+
+  const height = Number(t.block_height) || 0
+  const inPool = t.in_pool === true
+  if (!inPool && height > 0 && inv.h > 0 && height < inv.h) {
+    return { ok: false, reason: 'This transaction was mined before the invoice was created' }
+  }
+
+  // payer-supplied transaction secret key → full cryptographic proof
+  const txKeyHex = (opts.txKey ?? '').trim().toLowerCase()
+  if (/^[0-9a-f]{64}$/.test(txKeyHex) && inv.v === 2 && inv.pid8) {
+    const txKey = hexToBytes(txKeyHex)
+    const decoded = decodeAddress(inv.a)
+    if (txKey && decoded) {
+      const D = generateKeyDerivation(decoded.viewPub, txKey) // 8·txKey·viewPub
+      if (D) {
+        const pid = cryptShortPaymentId(encryptedPid, D)
+        const pidHex = bytesToHex(pid)
+        if (pidHex !== inv.pid8) {
+          return { ok: false, reason: 'The transaction key does not match this invoice (reference mismatch)' }
+        }
+        const { status, confirmations } = inPool
+          ? { status: 'detected' as InvoiceStatus, confirmations: 0 }
+          : fromMinedHeight(height, tip)
+        return {
+          ok: true,
+          result: {
+            status, txHash: hash, blockHeight: height || undefined,
+            txTimestamp: Number(t.block_timestamp) || undefined, inPool,
+            confirmations, checkedTxs: 1, scannedBlocks: 0, networkHeight: tip,
+            match: 'pid8-txkey',
+          },
+        }
+      }
+    }
+  }
+
+  // declaration without proof: honest 'declared' state
+  return {
+    ok: true,
+    result: {
+      status: 'declared', txHash: hash, blockHeight: height || undefined,
+      txTimestamp: Number(t.block_timestamp) || undefined, inPool,
+      confirmations: inPool ? 0 : Math.max(0, tip - height + 1),
+      checkedTxs: 1, scannedBlocks: 0, networkHeight: tip,
+      match: 'payer-declared',
+    },
+  }
+}
+
+/* ─────────────── scan engine (shared) ─────────────── */
 
 export interface ScanProgress {
   scanned: number
@@ -340,33 +533,72 @@ async function fetchBlockTxs(
   return out
 }
 
+/** does this tx pay THIS invoice? merchant mode decrypts the integrated pid8 */
+function txPaysInvoice(
+  tx: unknown,
+  inv: NervaInvoice,
+  viewPriv: Uint8Array | null,
+): (DetectionResult & { txHash: string }) | null {
+  const t = tx as { tx_hash?: string }
+
+  // v1: clear long payment id
+  if (inv.v === 1 && inv.pid && txMatchesLongPid(tx, inv.pid)) {
+    return {
+      status: 'detected', txHash: t.tx_hash ?? '', inPool: true, confirmations: 0,
+      checkedTxs: 0, scannedBlocks: 0, networkHeight: 0, match: 'long-pid',
+    }
+  }
+
+  // v2: encrypted short payment id — needs the merchant view key
+  if (inv.v === 2 && inv.pid8 && viewPriv) {
+    const { txPubkey, encryptedPid } = parseExtraInfo(tx)
+    if (txPubkey && encryptedPid) {
+      const D = generateKeyDerivation(txPubkey, viewPriv) // 8·viewKey·txPub
+      if (D) {
+        const pid = cryptShortPaymentId(encryptedPid, D)
+        if (bytesToHex(pid) === inv.pid8) {
+          return {
+            status: 'detected', txHash: t.tx_hash ?? '', inPool: true, confirmations: 0,
+            checkedTxs: 0, scannedBlocks: 0, networkHeight: 0, match: 'pid8-merchant',
+          }
+        }
+      }
+    }
+  }
+  return null
+}
+
 /**
- * Scan the chain for the invoice's payment id.
- * Strategy (validated against the live network):
- *   1. mempool (get_transaction_pool) — always fresh
- *   2. direct verification of the known tx hash (from cache/poll) — works
- *      no matter how old the payment is, single authoritative call
- *   3. full history since link creation: every tx-bearing block in
- *      [max(inv.h, tip-window) .. tip] is inspected (paged, concurrent,
- *      progress-reported) — this is what makes a link revisited days later
- *      still resolve to "paid" instead of falling back to "listening"
+ * Scan the chain for a payment matching the invoice.
+ *   · v1 links: looks for the legacy clear long payment id.
+ *   · v2 links with a view key (merchant): decrypts every integrated
+ *     payment id and matches pid8 — works with every default wallet.
+ *   · v2 links without a view key (payer device): the history scan cannot
+ *     see references (they are encrypted) — declare via tx hash instead
+ *     (verifyDeclaredPayment); mempool/knownTx still resolve prior hits.
  */
-export async function detectPayment(inv: NervaInvoice, tipHeight: number, opts: ScanOptions = {}): Promise<ScanOutcome> {
+export async function detectPayment(
+  inv: NervaInvoice,
+  tipHeight: number,
+  opts: ScanOptions & { viewKey?: Uint8Array | null } = {},
+): Promise<ScanOutcome> {
   const maxWindow = opts.maxWindowBlocks ?? 21_600 // ≈ 15 days at 60 s blocks
   const maxDetail = opts.maxDetailBlocks ?? 500
   let checkedTxs = 0
+  const viewPriv = opts.viewKey ?? null
 
   // 1 — mempool
   let pool: unknown[] = []
   try { pool = await getTransactionPool() } catch { /* pool unavailable */ }
   checkedTxs += pool.length
   for (const tx of pool) {
-    if (txMatchesPaymentId(tx, inv.pid)) {
+    const m = txPaysInvoice(tx, inv, viewPriv)
+    if (m) {
       const t = tx as { tx_hash?: string }
       return {
         result: {
           status: 'detected', txHash: t.tx_hash, inPool: true, confirmations: 0,
-          checkedTxs, scannedBlocks: 0, networkHeight: tipHeight,
+          checkedTxs, scannedBlocks: 0, networkHeight: tipHeight, match: m.match,
         },
         scannedUpTo: tipHeight,
       }
@@ -377,15 +609,32 @@ export async function detectPayment(inv: NervaInvoice, tipHeight: number, opts: 
   if (opts.knownTxHash) {
     try {
       const [tx] = await getTransactions([opts.knownTxHash])
-      if (tx && txMatchesPaymentId(tx, inv.pid)) {
-        const height = Number(tx.block_height) || 0
-        if (tx.in_pool !== true && height > 0) {
-          const { status, confirmations } = fromMinedHeight(height, tipHeight)
+      if (tx) {
+        const m = txPaysInvoice(tx, inv, viewPriv)
+        // v2 declared payments keep their declared state when re-verified
+        const declared = inv.v === 2 && !m
+        if (m || declared) {
+          const height = Number(tx.block_height) || 0
+          if (tx.in_pool !== true && height > 0) {
+            const { status, confirmations } = fromMinedHeight(height, tipHeight)
+            return {
+              result: {
+                status: declared && !m ? 'declared' : status, txHash: tx.tx_hash, blockHeight: height,
+                txTimestamp: Number(tx.block_timestamp) || undefined, inPool: false,
+                confirmations, checkedTxs: checkedTxs + 1, scannedBlocks: 0, networkHeight: tipHeight,
+                match: m?.match ?? 'payer-declared',
+              },
+              scannedUpTo: tipHeight,
+            }
+          }
+          // still in pool
+          const t = tx as { tx_hash?: string }
           return {
             result: {
-              status, txHash: tx.tx_hash, blockHeight: height,
-              txTimestamp: Number(tx.block_timestamp) || undefined, inPool: false,
-              confirmations, checkedTxs: checkedTxs + 1, scannedBlocks: 0, networkHeight: tipHeight,
+              status: declared && !m ? 'declared' : 'detected', txHash: tx.tx_hash ?? t.tx_hash,
+              inPool: true, confirmations: 0,
+              checkedTxs: checkedTxs + 1, scannedBlocks: 0, networkHeight: tipHeight,
+              match: m?.match ?? 'payer-declared',
             },
             scannedUpTo: tipHeight,
           }
@@ -394,18 +643,19 @@ export async function detectPayment(inv: NervaInvoice, tipHeight: number, opts: 
     } catch { /* verification call failed — fall through to the history scan */ }
   }
 
-  // 3 — history scan since the link was created
+  // 3 — history scan (v1 long ids, or v2 with the merchant view key)
+  const canScanHistory = inv.v === 1 || (inv.v === 2 && !!viewPriv)
   const windowStart = inv.h > 0 ? Math.max(inv.h, tipHeight - maxWindow) : Math.max(0, tipHeight - 500)
-  const scanFrom = Math.max(windowStart, opts.scanFrom ?? windowStart)
+  const scanFrom = canScanHistory ? Math.max(windowStart, opts.scanFrom ?? windowStart) : tipHeight + 1
   let scannedBlocks = 0
   let scannedUpTo = scanFrom - 1
 
-  if (tipHeight >= scanFrom) {
+  if (canScanHistory && tipHeight >= scanFrom) {
     const { headers, completeUpTo } = await fetchHeadersPaged(scanFrom, tipHeight, opts.onProgress)
     scannedBlocks = headers.length
     scannedUpTo = completeUpTo
     const withTxs = headers.filter(
-      (bh) => bh.block_size > NERVA_CONSTANTS.txSizeThreshold && (bh.num_txes ?? 0) > 0
+      (bh) => bh.block_size > NERVA_CONSTANTS.txSizeThreshold && (bh.num_txes ?? 0) > 0,
     )
     // newest-first would miss old payments — we inspect ALL tx-bearing blocks
     // up to the safety cap, oldest first for a chronological receipt
@@ -413,14 +663,15 @@ export async function detectPayment(inv: NervaInvoice, tipHeight: number, opts: 
     const entries = await fetchBlockTxs(bounded, opts.onProgress)
     checkedTxs += entries.length
     for (const { tx, height } of entries) {
-      if (txMatchesPaymentId(tx, inv.pid)) {
+      const m = txPaysInvoice(tx, inv, viewPriv)
+      if (m) {
         const t = tx as { tx_hash?: string; block_timestamp?: number }
         const { status, confirmations } = fromMinedHeight(height, tipHeight)
         return {
           result: {
             status, txHash: t.tx_hash, blockHeight: height,
             txTimestamp: Number(t.block_timestamp) || undefined, inPool: false,
-            confirmations, checkedTxs, scannedBlocks, networkHeight: tipHeight,
+            confirmations, checkedTxs, scannedBlocks, networkHeight: tipHeight, match: m.match,
           },
           scannedUpTo,
         }

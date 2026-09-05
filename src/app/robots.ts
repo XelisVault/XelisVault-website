@@ -15,7 +15,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: '/nerva/pay',
       },
     ],
-    sitemap: 'https://xelisvault.network/sitemap.xml',
-    host: 'https://xelisvault.network',
+    sitemap: 'https://xelisvault.xyz/sitemap.xml',
+    host: 'https://xelisvault.xyz',
   }
 }
