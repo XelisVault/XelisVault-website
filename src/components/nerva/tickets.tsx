@@ -1,29 +1,36 @@
 'use client'
 
 /**
- * Tickets prix NERVA — printable price tags.
+ * NERVA price tags — printable shelf labels.
  *
- * Each tag carries a wallet-native `nerva:` QR (address + exact amount +
- * unique reference), so a customer scans and pays the shelf price with
- * their phone. One A4 sheet = 10 tags with dashed crop lines; the PDF is
- * generated fully client-side.
+ * Each tag carries a checkout URL QR: any phone camera opens the NervaLink
+ * payment page with the product, the exact XNV price and live payment
+ * detection — NERVA wallets then scan the wallet-native QR from that page.
+ * One A4 sheet = 10 tags with dashed crop lines; the PDF is generated
+ * fully client-side.
  *
- * Items reuse the caisse merchant config (address, shop name, EUR rate).
+ * EUR equivalents and EUR-priced items use the live XNV/EUR rate
+ * (CoinGecko → CoinPaprika fallback via /api/nerva/price) unless the
+ * merchant sets a manual override in the shop settings.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Tag, Plus, Trash2, Printer, Download, Store, Settings2, Loader2,
-  Check, QrCode, AlertTriangle, ArrowRight,
+  Check, QrCode, AlertTriangle, ArrowRight, RefreshCw,
 } from 'lucide-react'
-import { generatePaymentId } from '@/lib/nerva/nlink'
-import { parseXnv, formatXnv, NERVA_CONSTANTS } from '@/lib/nerva/api'
 import {
-  loadMerchantConfig, saveMerchantConfig, configReady, xnvAtomicToEur,
+  generatePaymentId, encodeInvoice, renderQrDataUrl,
+  type NervaInvoice,
+} from '@/lib/nerva/nlink'
+import { parseXnv, formatXnv, getBlockCount, NERVA_CONSTANTS } from '@/lib/nerva/api'
+import {
+  loadMerchantConfig, saveMerchantConfig, configReady,
   type MerchantConfig,
 } from '@/lib/nerva/merchant'
+import { useNervaPrice, xnvAtomicToEur as xnvAtomicToEurLive, priceCaption } from '@/lib/nerva/price'
 import { buildTagsPdf, downloadPdf, printPdf, type TagSpec } from '@/lib/nerva/pdf'
 
 /* ─────────────── an item on the sheet ─────────────── */
@@ -50,12 +57,25 @@ export function Tickets() {
   const [editConfig, setEditConfig] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [netHeight, setNetHeight] = useState(0)
+  const [previewQrs, setPreviewQrs] = useState<Record<string, string>>({})
+
+  /* live XNV/EUR rate, shared singleton */
+  const { price, refresh } = useNervaPrice()
 
   /* form */
   const [name, setName] = useState('')
   const [priceInput, setPriceInput] = useState('')
   const [currency, setCurrency] = useState<'xnv' | 'eur'>('xnv')
   const [qty, setQty] = useState(1)
+
+  /* stable per-item preview payment ids (the printed sheet mints fresh
+     unique pids per tag at generation time) */
+  const previewPids = useRef<Map<string, string>>(new Map())
+  const previewPid = (id: string) => {
+    if (!previewPids.current.has(id)) previewPids.current.set(id, generatePaymentId())
+    return previewPids.current.get(id)!
+  }
 
   useEffect(() => {
     setConfig(loadMerchantConfig())
@@ -66,14 +86,19 @@ export function Tickets() {
         if (Array.isArray(arr)) setItems(arr.filter((i) => i && typeof i.name === 'string'))
       }
     } catch { /* fresh start */ }
+    void getBlockCount().then(setNetHeight).catch(() => {})
   }, [])
 
   useEffect(() => {
     try { localStorage.setItem(ITEMS_KEY, JSON.stringify(items)) } catch { /* ignore */ }
   }, [items])
 
-  const rate = Number((config?.eurRate ?? '').replace(',', '.'))
-  const hasRate = Number.isFinite(rate) && rate > 0
+  /* effective EUR/XNV rate: manual override wins, otherwise live */
+  const manualRate = Number((config?.eurRate ?? '').replace(',', '.'))
+  const hasManual = Number.isFinite(manualRate) && manualRate > 0
+  const liveRate = price?.eur ?? 0
+  const rate = hasManual ? manualRate : liveRate
+  const hasRate = rate > 0
 
   /* price → atomic */
   const priceAtomic = (item: Item): string | null => {
@@ -89,13 +114,19 @@ export function Tickets() {
     return atomic !== null && atomic > 0n ? atomic.toString() : null
   }
 
+  /* atomic → EUR string with the effective rate (manual or live), integer math */
+  const atomicToEur = (atomic: string | bigint): string | null => {
+    if (!hasRate) return null
+    return xnvAtomicToEurLive(atomic, rate)
+  }
+
   const tagCount = items.reduce((s, i) => s + Math.max(1, Math.min(50, i.qty)), 0)
 
   const addItem = () => {
     const probe: Item = { id: '', name: name.trim(), priceInput: priceInput.trim(), currency, qty }
     const atomic = priceAtomic(probe)
     if (!probe.name || atomic === null) {
-      setError(!probe.name ? 'nom manquant' : hasRate || currency === 'xnv' ? 'prix invalide' : 'réglez un taux EUR/XNV d’abord')
+      setError(!probe.name ? 'product name missing' : hasRate || currency === 'xnv' ? 'invalid price' : 'live rate unavailable — retry in a moment or set a manual rate')
       return
     }
     setError('')
@@ -107,6 +138,24 @@ export function Tickets() {
 
   const removeItem = (id: string) => setItems((arr) => arr.filter((i) => i.id !== id))
 
+  /* the checkout link for one printed tag: a stateless NervaLink invoice
+     (unique reference per tag, no expiry — a shelf tag lives indefinitely).
+     Deliberately compact: no merchant name (already printed on the tag),
+     so the QR stays phone-friendly (fewer modules = bigger dots). */
+  const tagLink = (address: string, item: { name: string }, pid: string, atomic: string): string => {
+    const inv: NervaInvoice = {
+      v: 1,
+      a: address,
+      amt: atomic,
+      d: item.name.slice(0, 140),
+      pid,
+      h: netHeight,
+      exp: 0,
+    }
+    const token = encodeInvoice(inv)
+    return `${window.location.origin}/nerva/pay?d=${token}`
+  }
+
   /* build the PDF: one unique reference per printed tag */
   const buildSpecs = (): TagSpec[] => {
     const specs: TagSpec[] = []
@@ -114,14 +163,15 @@ export function Tickets() {
       const atomic = priceAtomic(item) ?? '0'
       const n = Math.max(1, Math.min(50, item.qty))
       for (let k = 0; k < n; k++) {
+        const pid = generatePaymentId()
         specs.push({
           name: item.name,
           amountAtomic: atomic,
-          eur: item.currency === 'eur' ? item.priceInput.replace('.', ',')
-            : hasRate ? (xnvAtomicToEur(atomic, config!.eurRate) ?? undefined) : undefined,
-          pid: generatePaymentId(),
+          eur: atomicToEur(atomic) ?? undefined,
+          pid,
           address: config!.address,
           merchantName: config!.name || undefined,
+          link: tagLink(config!.address, item, pid, atomic),
         })
       }
     }
@@ -135,11 +185,29 @@ export function Tickets() {
       const specs = buildSpecs()
       const bytes = await buildTagsPdf(specs)
       if (mode === 'print') printPdf(bytes)
-      else downloadPdf(bytes, `tickets-prix-${new Date().toISOString().slice(0, 10)}.pdf`)
+      else downloadPdf(bytes, `nerva-price-tags-${new Date().toISOString().slice(0, 10)}.pdf`)
     } finally {
       setBusy(false)
     }
   }
+
+  /* real, scannable preview QRs — one representative link per item */
+  useEffect(() => {
+    if (!config || !configReady(config) || items.length === 0) { setPreviewQrs({}); return }
+    let alive = true
+    void (async () => {
+      const next: Record<string, string> = {}
+      for (const item of items.slice(0, 10)) {
+        try {
+          const atomic = priceAtomic(item) ?? '0'
+          const link = tagLink(config.address, item, previewPid(item.id), atomic)
+          next[item.id] = await renderQrDataUrl(link, 140)
+        } catch { /* preview QR is cosmetic; skip */ }
+      }
+      if (alive) setPreviewQrs(next)
+    })()
+    return () => { alive = false }
+  }, [items, config?.address, config?.name, netHeight])
 
   /* ─────────────── render ─────────────── */
 
@@ -163,13 +231,13 @@ export function Tickets() {
             <div className="flex items-center gap-2.5">
               <Settings2 className="w-4 h-4 text-[oklch(0.78_0.06_237)]" />
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.012_250)]">
-                Réglages boutique (partagés avec la caisse)
+                Shop settings (shared with the POS)
               </span>
             </div>
             <div className="mt-6 space-y-5">
               <div>
                 <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.62_0.025_250)]">
-                  Votre adresse NERVA
+                  Your NERVA address
                 </label>
                 <div className="mt-2">
                   <input
@@ -182,7 +250,7 @@ export function Tickets() {
               <div className="grid sm:grid-cols-2 gap-5">
                 <div>
                   <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.62_0.025_250)]">
-                    Nom de la boutique
+                    Shop name
                   </label>
                   <div className="mt-2">
                     <input
@@ -194,14 +262,17 @@ export function Tickets() {
                 </div>
                 <div>
                   <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.62_0.025_250)]">
-                    Taux EUR / XNV (optionnel)
+                    EUR / XNV rate override
                   </label>
                   <div className="mt-2">
                     <input
                       value={config.eurRate}
                       onChange={(e) => setConfig({ ...config, eurRate: e.target.value.replace(',', '.') })}
-                      placeholder="ex. 0.085" className={inputCls} inputMode="decimal"
+                      placeholder="leave empty = live rate" className={inputCls} inputMode="decimal"
                     />
+                  </div>
+                  <div className="mt-1.5 font-mono text-[9.5px] text-[oklch(0.5_0.01_250)]">
+                    {price ? `live: 1 XNV = €${price.eur.toFixed(4)}` : 'live rate loads automatically'}
                   </div>
                 </div>
               </div>
@@ -214,7 +285,7 @@ export function Tickets() {
               }}
               className="mt-8 inline-flex h-12 items-center justify-center gap-2.5 rounded-md px-8 text-[14.5px] font-semibold bg-[oklch(0.66_0.083_233)] text-[oklch(0.13_0.02_255)] hover:bg-[oklch(0.7_0.08_236)] transition-colors"
             >
-              <Check className="w-[17px] h-[17px]" /> Enregistrer
+              <Check className="w-[17px] h-[17px]" /> Save
             </button>
           </div>
         </div>
@@ -236,9 +307,9 @@ export function Tickets() {
               <Tag className="w-5 h-5 text-[oklch(0.78_0.06_237)]" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Tickets prix</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Price tags</h1>
               <div className="mt-0.5 font-mono text-[10px] text-[oklch(0.58_0.025_250)]">
-                étiquettes prix en XNV, QR payable · A4, 10 par page
+                XNV shelf labels with a payable QR · A4, 10 per sheet
               </div>
             </div>
           </div>
@@ -246,7 +317,7 @@ export function Tickets() {
             href="/nerva/caisse"
             className="inline-flex h-10 items-center gap-2 rounded-md px-4 font-mono text-[11px] border border-white/10 bg-white/[0.03] text-white/55 hover:border-[oklch(0.78_0.06_237)]/50 hover:text-[oklch(0.83_0.055_237)] transition-all"
           >
-            <Store className="w-3.5 h-3.5" /> Caisse
+            <Store className="w-3.5 h-3.5" /> POS
           </Link>
         </div>
 
@@ -254,34 +325,34 @@ export function Tickets() {
           {/* ── form + list ── */}
           <div className="panel-nerva rounded-lg p-6 sm:p-8 min-w-0">
             <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.012_250)]">
-              Ajouter un produit
+              Add a product
             </div>
 
             <div className="mt-6 grid sm:grid-cols-2 gap-5">
               <div className="sm:col-span-2">
                 <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.62_0.025_250)]">
-                  Nom du produit
+                  Product name
                 </label>
                 <div className="mt-2">
                   <input
                     value={name}
                     onChange={(e) => setName(e.target.value.slice(0, 40))}
                     onKeyDown={(e) => { if (e.key === 'Enter') addItem() }}
-                    placeholder="ex. Café expresso bio"
+                    placeholder="e.g. Organic espresso"
                     className={inputCls} maxLength={40}
                   />
                 </div>
               </div>
               <div>
                 <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.62_0.025_250)]">
-                  Prix
+                  Price
                 </label>
                 <div className="mt-2 flex gap-2">
                   <input
                     value={priceInput}
                     onChange={(e) => setPriceInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') addItem() }}
-                    placeholder={currency === 'xnv' ? '2.5' : '1,20'}
+                    placeholder={currency === 'xnv' ? '2.5' : '1.20'}
                     className={inputCls} inputMode="decimal"
                   />
                   <div className="flex rounded-lg border border-white/10 bg-[oklch(0.12_0.018_255)] p-0.5 shrink-0">
@@ -297,13 +368,13 @@ export function Tickets() {
                 </div>
                 {currency === 'eur' && !hasRate && (
                   <div className="mt-1.5 font-mono text-[9.5px] text-[oklch(0.75_0.13_25)]">
-                    réglez un taux EUR/XNV dans les réglages de la caisse
+                    {price ? 'rate unavailable right now — set a manual override in settings' : 'loading the live EUR rate…'}
                   </div>
                 )}
               </div>
               <div>
                 <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.62_0.025_250)]">
-                  Nombre d’étiquettes
+                  Copies
                 </label>
                 <div className="mt-2 flex gap-2">
                   {[1, 2, 5, 10].map((n) => (
@@ -330,21 +401,49 @@ export function Tickets() {
               onClick={addItem}
               className="mt-6 inline-flex h-11 items-center gap-2 rounded-md px-6 text-[13.5px] font-semibold border border-[oklch(0.78_0.06_237)]/50 bg-[oklch(0.78_0.06_237)]/12 text-[oklch(0.83_0.055_237)] hover:bg-[oklch(0.78_0.06_237)]/20 transition-all"
             >
-              <Plus className="w-4 h-4" /> Ajouter à la planche
+              <Plus className="w-4 h-4" /> Add to sheet
             </button>
+
+            {/* live rate strip */}
+            <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-white/8 bg-white/[0.02] px-4 py-3">
+              {price ? (
+                <>
+                  <span className="inline-flex items-center gap-1.5 font-mono text-[10.5px] text-[oklch(0.72_0.12_160)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[oklch(0.72_0.12_160)]" />
+                    {priceCaption(price)}
+                  </span>
+                  {hasManual && (
+                    <span className="font-mono text-[10px] text-[oklch(0.75_0.13_25)]">
+                      manual override active: 1 XNV = €{manualRate}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="inline-flex items-center gap-2 font-mono text-[10.5px] text-[oklch(0.6_0.012_250)]">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> fetching the live XNV/EUR rate…
+                </span>
+              )}
+              <button
+                onClick={refresh}
+                className="ml-auto inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 text-white/50 hover:text-white/85 hover:border-white/25 transition-all"
+                title="Refresh rate"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
             {/* item list */}
             <div className="mt-8 pt-6 border-t border-white/8">
               <div className="flex items-center justify-between gap-3">
                 <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.012_250)]">
-                  Produits · {items.length}
+                  Products · {items.length}
                 </div>
                 {items.length > 0 && (
                   <button
                     onClick={() => setItems([])}
                     className="font-mono text-[10px] text-white/35 hover:text-[oklch(0.75_0.13_25)] transition-colors"
                   >
-                    vider
+                    clear
                   </button>
                 )}
               </div>
@@ -352,7 +451,7 @@ export function Tickets() {
                 <div className="mt-5 py-10 text-center">
                   <QrCode className="w-7 h-7 mx-auto text-white/15" />
                   <p className="mt-3 text-[12.5px] text-[oklch(0.6_0.012_250)]">
-                    La planche est vide — ajoutez vos premiers produits.
+                    The sheet is empty — add your first products.
                   </p>
                 </div>
               ) : (
@@ -360,7 +459,7 @@ export function Tickets() {
                   <AnimatePresence initial={false}>
                     {items.map((item) => {
                       const atomic = priceAtomic(item)
-                      const eur = atomic && hasRate ? xnvAtomicToEur(atomic, config.eurRate) : null
+                      const eur = atomic ? atomicToEur(atomic) : null
                       return (
                         <motion.div
                           key={item.id}
@@ -373,13 +472,13 @@ export function Tickets() {
                             <div className="text-[13.5px] font-medium text-white/90 truncate">{item.name}</div>
                             <div className="mt-0.5 font-mono text-[10.5px] text-[oklch(0.6_0.012_250)]">
                               {atomic ? formatXnv(BigInt(atomic)) : '?'} XNV
-                              {eur && ` · ≈ ${eur} EUR`} · ×{item.qty}
+                              {eur && ` · ≈ €${eur}`} · ×{item.qty}
                             </div>
                           </div>
                           <button
                             onClick={() => removeItem(item.id)}
                             className="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/10 text-white/40 hover:border-[oklch(0.7_0.13_25)]/50 hover:text-[oklch(0.75_0.13_25)] transition-all"
-                            title="Retirer"
+                            title="Remove"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -396,38 +495,41 @@ export function Tickets() {
           <div className="space-y-4 lg:sticky lg:top-24">
             <div className="panel-nerva rounded-lg p-6">
               <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.012_250)]">
-                Planche A4
+                A4 sheet preview
               </div>
-              {/* mini sheet preview */}
+              {/* mini sheet preview — real, scannable QRs */}
               <div className="mt-4 rounded-lg border border-white/10 bg-white p-3">
                 <div className="grid grid-cols-2 gap-1.5">
-                  {Array.from({ length: Math.min(10, Math.max(tagCount, 4)) }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-[52px] rounded-[3px] border border-dashed border-[#9aa7b8] flex items-center px-2 gap-2 overflow-hidden"
-                    >
-                      <div className="w-[34px] h-[34px] shrink-0 grid grid-cols-5 gap-[1px]">
-                        {Array.from({ length: 25 }).map((_, k) => (
-                          <div key={k} className={k % 3 === 0 || k % 7 === 0 ? 'bg-[#060a14]' : ''} />
-                        ))}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-[7px] font-bold text-[#060a14] uppercase truncate">
-                          {items[i % Math.max(items.length, 1)]?.name || 'produit'}
+                  {Array.from({ length: Math.min(10, Math.max(tagCount, 4)) }).map((_, i) => {
+                    const item = items[i % Math.max(items.length, 1)]
+                    const atomic = item ? priceAtomic(item) : null
+                    const qr = item ? previewQrs[item.id] : undefined
+                    return (
+                      <div
+                        key={i}
+                        className="h-[52px] rounded-[3px] border border-dashed border-[#9aa7b8] flex items-center px-2 gap-2 overflow-hidden"
+                      >
+                        <div className="w-[34px] h-[34px] shrink-0">
+                          {qr
+                            ? <img src={qr} alt="tag QR" className="w-[34px] h-[34px]" />
+                            : <div className="w-[34px] h-[34px] rounded-sm bg-[#e8eef7] animate-pulse" />}
                         </div>
-                        <div className="text-[8.5px] font-bold text-[#060a14] font-mono">
-                          {items[i % Math.max(items.length, 1)]
-                            ? `${formatXnv(BigInt(priceAtomic(items[i % Math.max(items.length, 1)]) ?? 0n))} XNV`
-                            : '0 XNV'}
+                        <div className="min-w-0">
+                          <div className="text-[7px] font-bold text-[#060a14] uppercase truncate">
+                            {item?.name || 'product'}
+                          </div>
+                          <div className="text-[8.5px] font-bold text-[#060a14] font-mono">
+                            {item && atomic ? `${formatXnv(BigInt(atomic))} XNV` : item ? '—' : '0 XNV'}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
               <div className="mt-4 flex items-center justify-between font-mono text-[10.5px]">
                 <span className="text-[oklch(0.6_0.012_250)]">
-                  {tagCount} étiquette{tagCount > 1 ? 's' : ''} · {Math.ceil(tagCount / 10)} page{Math.ceil(tagCount / 10) > 1 ? 's' : ''}
+                  {tagCount} tag{tagCount > 1 ? 's' : ''} · {Math.ceil(tagCount / 10)} page{Math.ceil(tagCount / 10) > 1 ? 's' : ''}
                 </span>
                 {tagCount > MAX_TAGS && <span className="text-[oklch(0.75_0.13_25)]">max {MAX_TAGS}</span>}
               </div>
@@ -439,7 +541,7 @@ export function Tickets() {
                   className="inline-flex h-12 items-center justify-center gap-2.5 rounded-md text-[14px] font-semibold bg-[oklch(0.66_0.083_233)] text-[oklch(0.13_0.02_255)] hover:bg-[oklch(0.7_0.08_236)] transition-colors disabled:opacity-50"
                 >
                   {busy ? <Loader2 className="w-[17px] h-[17px] animate-spin" /> : <Printer className="w-[17px] h-[17px]" />}
-                  Imprimer la planche
+                  Print sheet
                 </button>
                 <button
                   onClick={() => void generate('download')}
@@ -453,20 +555,20 @@ export function Tickets() {
 
             <div className="panel-nerva rounded-lg p-6">
               <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.012_250)]">
-                Comment ça marche
+                How it works
               </div>
               <ul className="mt-4 space-y-3 text-[11.5px] leading-relaxed text-[oklch(0.64_0.012_250)]">
                 <li className="flex gap-2.5">
                   <Store className="w-3.5 h-3.5 text-[oklch(0.78_0.06_237)] shrink-0 mt-0.5" />
-                  Chaque étiquette embarque votre adresse, le prix exact et une référence unique : le client scanne, son wallet pré-remplit tout.
+                  Each tag encodes a checkout link with your address, the exact price and a unique reference: any phone camera opens the payment page — no wallet required to see the details.
                 </li>
                 <li className="flex gap-2.5">
                   <QrCode className="w-3.5 h-3.5 text-[oklch(0.78_0.06_237)] shrink-0 mt-0.5" />
-                  Les paiements arrivent pair-à-pair dans votre wallet ; la référence en clair vous permet de rattacher chaque vente à son produit.
+                  NERVA wallets scan the payment page QR (address, amount and reference pre-filled). Payments arrive peer-to-peer; the reference lets you match every sale to its product.
                 </li>
                 <li className="flex gap-2.5">
                   <ArrowRight className="w-3.5 h-3.5 text-[oklch(0.78_0.06_237)] shrink-0 mt-0.5" />
-                  Imprimez, découpez, posez en rayon. Le QR reste valide indéfiniment : il encode une URI <span className="font-mono text-white/75">nerva:</span> standard.
+                  Print, cut, shelve. EUR equivalents are locked in at print time from the live rate; the QR itself stays valid indefinitely.
                 </li>
               </ul>
             </div>

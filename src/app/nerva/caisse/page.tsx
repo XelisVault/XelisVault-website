@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import { Caisse } from '@/components/nerva/caisse'
 
 export const metadata: Metadata = {
-  title: 'Caisse NERVA · Terminal point de vente',
+  title: 'NERVA POS · Point-of-sale terminal',
   description:
-    'Le terminal de caisse NERVA : tapez le montant, le client scanne le QR, la page surveille la chaîne jusqu’à 10 confirmations, imprimez le reçu PDF. Journal des ventes scellé SHA-256, 100 % local dans le navigateur.',
+    'The NERVA point-of-sale terminal: type the amount, the customer scans the QR, the page watches the chain up to 10 confirmations, then print the PDF receipt. Live XNV/EUR rate, SHA-256 chained sales journal, 100% local in your browser.',
 }
 
 export default function NervaCaisseRoute() {

@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test:crypto": "bun scripts/test-nerva-crypto.ts",
+    "test:pdf": "bun scripts/test-nerva-pdf.ts",
+    "test:nlink": "bun scripts/test-nlink-detection.ts",
+    "audit:paper-wallet": "bun scripts/audit-paper-wallet.ts"
   },
   "dependencies": {
     "@noble/curves": "^2.4.0",

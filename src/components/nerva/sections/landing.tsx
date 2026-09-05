@@ -614,14 +614,14 @@ function HowItWorks() {
             {
               href: '/nerva/caisse',
               icon: Store,
-              title: 'Caisse NERVA',
-              desc: 'The point-of-sale terminal: type the amount, the customer scans, the chain confirms. Receipts print as PDF, every sale is sealed in a SHA-256 chained journal.',
+              title: 'NERVA POS',
+              desc: 'The point-of-sale terminal: type the amount, the customer scans, the chain confirms. Live XNV/EUR rate, receipts print as PDF, every sale is sealed in a SHA-256 chained journal.',
             },
             {
               href: '/nerva/tickets',
               icon: Tag,
               title: 'Price tags',
-              desc: 'Printable shelf labels with a wallet-native payment QR: address, exact amount and a unique reference, one A4 sheet = 10 tags.',
+              desc: 'Printable shelf labels with a payment QR any phone can open: product, exact amount and live EUR equivalent, one A4 sheet = 10 tags.',
             },
             {
               href: '/nerva/link',

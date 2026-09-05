@@ -16,7 +16,7 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import {
   Printer, RefreshCw, ShieldAlert, ShieldCheck, KeyRound, Eye, EyeOff,
-  Copy, Check, ArrowUpRight, WifiOff, FileKey2, BookOpenText, TerminalSquare, Lock,
+  Copy, Check, ArrowUpRight, WifiOff, FileKey2, BookOpenText, TerminalSquare, Lock, FileDown, Loader2,
 } from 'lucide-react'
 
 import { copyText, middleTruncate } from '@/lib/clipboard'
@@ -26,6 +26,7 @@ import {
 } from '@/lib/nerva/cryptonote'
 import { renderQrDataUrl } from '@/lib/nerva/nlink'
 import { NERVA_LINKS } from '@/lib/nerva/api'
+import { buildPaperWalletPdf, downloadPdf } from '@/lib/nerva/pdf'
 
 /* ───────────────── shared bits ───────────────── */
 
@@ -286,6 +287,7 @@ export function PaperWallet() {
   const [created, setCreated] = useState(0)
   const [showSecrets, setShowSecrets] = useState(true)
   const [confirmNew, setConfirmNew] = useState(false)
+  const [pdfBusy, setPdfBusy] = useState(false)
   const sheetRef = useRef<HTMLDivElement>(null)
 
   const generate = () => {
@@ -293,6 +295,23 @@ export function PaperWallet() {
     setCreated(Date.now())
     setShowSecrets(true)
     setConfirmNew(false)
+  }
+
+  const downloadPdfSheet = async () => {
+    if (!wallet) return
+    setPdfBusy(true)
+    try {
+      const bytes = await buildPaperWalletPdf({
+        address: wallet.address,
+        mnemonic: wallet.mnemonic,
+        spendKeyHex: bytesToHex(wallet.spend),
+        viewKeyHex: bytesToHex(wallet.view),
+        createdAt: created,
+      })
+      downloadPdf(bytes, `nerva-paper-wallet-${wallet.address.slice(0, 10)}.pdf`)
+    } finally {
+      setPdfBusy(false)
+    }
   }
 
   return (
@@ -384,6 +403,15 @@ export function PaperWallet() {
                 >
                   <Printer className="w-4 h-4" />
                   Print sheet
+                </button>
+                <button
+                  onClick={() => void downloadPdfSheet()}
+                  disabled={pdfBusy}
+                  className="inline-flex h-9 items-center gap-2 rounded-md px-4 text-[13px] font-semibold border border-[oklch(0.78_0.06_237)]/40 text-[oklch(0.83_0.055_237)] hover:bg-[oklch(0.78_0.06_237)]/10 transition-colors disabled:opacity-50"
+                  title="Vector A5 PDF — same layout, crisp at any print quality"
+                >
+                  {pdfBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+                  Download PDF
                 </button>
                 {!confirmNew ? (
                   <button

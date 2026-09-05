@@ -26,6 +26,7 @@ import { atomicToDisplay } from '@/lib/nerva/nlink'
 import { getBlockCount, shortenHash, formatTimestamp, NERVA_LINKS, NERVA_CONSTANTS } from '@/lib/nerva/api'
 import { copyText } from '@/lib/clipboard'
 import { buildReceiptPdf, downloadPdf, printPdf } from '@/lib/nerva/pdf'
+import { useNervaPrice, xnvAtomicToEur as xnvAtomicToEurLive } from '@/lib/nerva/price'
 import { Printer, Download } from 'lucide-react'
 
 /* ───────────── countdown ───────────── */
@@ -137,6 +138,7 @@ export function PayPage() {
   const params = useSearchParams()
   const token = params.get('d') ?? ''
   const invoice = useMemo(() => decodeInvoice(token), [token])
+  const { price } = useNervaPrice()
 
   const [qr, setQr] = useState<string | null>(null)
   const [result, setResult] = useState<DetectionResult | null>(null)
@@ -253,7 +255,7 @@ export function PayPage() {
     try {
       const bytes = await buildReceiptPdf(invoice, result, { verifyUrl: window.location.href })
       if (mode === 'print') printPdf(bytes)
-      else downloadPdf(bytes, `recu-${invoice.pid.slice(0, 12)}.pdf`)
+      else downloadPdf(bytes, `receipt-${invoice.pid.slice(0, 12)}.pdf`)
     } finally {
       setPdfBusy(false)
     }
@@ -339,6 +341,12 @@ export function PayPage() {
             {freeAmount ? 'Any amount' : atomicToDisplay(invoice.amt)}
             {!freeAmount && <span className="text-[20px] ml-2 text-[oklch(0.7_0.08_220)]">XNV</span>}
           </div>
+          {!freeAmount && price && (
+            <div className="mt-2.5 font-mono text-[12px] text-[oklch(0.6_0.012_250)]">
+              ≈ €{xnvAtomicToEurLive(invoice.amt, price.eur) ?? '—'}
+              <span className="text-[9px] ml-1.5 text-[oklch(0.5_0.01_250)]">live rate · {price.source}</span>
+            </div>
+          )}
           {freeAmount && (
             <div className="mt-2 font-mono text-[11px] text-[oklch(0.55_0.01_250)]">
               the payer chooses the sum, a donation-style link

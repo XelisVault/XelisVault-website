@@ -1,9 +1,10 @@
 /**
- * NervaLink PDF generator — receipts (80 mm thermal-style) and price-tag
- * sheets (A4). Zero external dependency at build time: a tiny PDF 1.4
- * writer emitting base-14 fonts (Courier + Helvetica, WinAnsiEncoding so
- * French accents print), vector rectangles for QR modules (crisp at any
- * dpi, no rasterised image), and dashed crop marks for the tag sheets.
+ * NervaLink PDF generator — receipts (80 mm thermal-style), price-tag
+ * sheets (A4) and paper wallets (A5). Zero external dependency at build
+ * time: a tiny PDF 1.4 writer emitting base-14 fonts (Courier + Helvetica,
+ * WinAnsiEncoding so accents print), vector rectangles for QR modules
+ * (crisp at any dpi, no rasterised image), and dashed crop marks for the
+ * tag sheets.
  *
  * Everything runs client-side; nothing ever leaves the browser.
  *
@@ -15,12 +16,12 @@ import { atomicToDisplay, type NervaInvoice, type DetectionResult } from './nlin
 import { shortenHash, NERVA_CONSTANTS } from './api'
 import { receiptSeal } from './receipt-chain'
 
-/* French date formatting, deterministic (the api.ts one is en-US) */
-const FR_MONTHS = ['janv.', 'févr.', 'mars', 'avril', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.']
-function frDate(unixSeconds: number): string {
+/* English date formatting, deterministic (the api.ts one is en-US too) */
+const EN_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+function enDate(unixSeconds: number): string {
   const d = new Date(unixSeconds * 1000)
   const pad = (n: number) => String(n).padStart(2, '0')
-  return `${pad(d.getDate())} ${FR_MONTHS[d.getMonth()]} ${d.getFullYear()} · ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${EN_MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 /* ─────────────── CP1252 (WinAnsi) text encoding ─────────────── */
@@ -267,6 +268,8 @@ export interface ReceiptExtras {
   verifyUrl?: string
   /** generated at (ms), defaults to now */
   generatedAt?: number
+  /** optional fiat equivalent shown under the amount (display only) */
+  eur?: string
 }
 
 const R_W = 226.77 // 80 mm
@@ -293,11 +296,11 @@ export async function buildReceiptPdf(
   // header
   page.center(y, 'XELISVAULT', 'F2', 11)
   y += 13
-  page.center(y, 'NERVA · CAISSE NERVALINK', 'F1', 7.5, 0.35)
+  page.center(y, 'NERVA · NERVALINK POS', 'F1', 7.5, 0.35)
   y += 17
-  page.center(y, inv.n || 'REÇU DE PAIEMENT', 'F2', 10)
+  page.center(y, inv.n || 'PAYMENT RECEIPT', 'F2', 10)
   y += 12
-  page.center(y, 'paiement en XNV · pair-à-pair', 'F1', 7, 0.35)
+  page.center(y, 'XNV payment · peer-to-peer', 'F1', 7, 0.35)
   y += 12
   dashedRule(page, y)
   y += 11
@@ -309,8 +312,8 @@ export async function buildReceiptPdf(
     page.text(R_W - R_MX - textWidth(value, 'F1', 7), y, value, 'F1', 7)
     y += 9.5
   }
-  metaRow('Date', frDate(Math.floor(now / 1000)))
-  metaRow('Référence', shortenHash(inv.pid, 16, 6))
+  metaRow('Date', enDate(Math.floor(now / 1000)))
+  metaRow('Reference', shortenHash(inv.pid, 16, 6))
   if (inv.d) {
     const lines = wrapText(inv.d, 'F1', 7, R_IW - 52, 3)
     lines.forEach((ln, i) => {
@@ -324,25 +327,31 @@ export async function buildReceiptPdf(
   y += 12
 
   // amount block
-  const amountStr = inv.amt === '0' ? 'MONTANT LIBRE' : `${atomicToDisplay(inv.amt)} XNV`
+  const amountStr = inv.amt === '0' ? 'OPEN AMOUNT' : `${atomicToDisplay(inv.amt)} XNV`
   const aSize = inv.amt === '0' ? 11 : 13
   page.center(y, amountStr, 'F2', aSize)
-  y += aSize + 8
+  y += aSize + 6
+  if (extras.eur) {
+    page.center(y, `≈ EUR ${extras.eur}`, 'F3', 8.5, 0.3)
+    y += 11
+  } else if (inv.amt === '0') {
+    y += 2
+  }
   if (inv.amt === '0') {
-    page.center(y, 'le client choisit la somme', 'F1', 7, 0.35)
+    page.center(y, 'the payer chooses the sum', 'F1', 7, 0.35)
     y += 10
   }
 
   // status
-  const statusLabel = settled ? 'RÉGLÉ · 10/10 CONFIRMATIONS'
-    : paid ? `PAYÉ · ${r!.confirmations}/${NERVA_CONSTANTS.spendableAge} CONFIRMATIONS`
-    : 'EN ATTENTE DE PAIEMENT'
+  const statusLabel = settled ? 'SETTLED · 10/10 CONFIRMATIONS'
+    : paid ? `PAID · ${r!.confirmations}/${NERVA_CONSTANTS.spendableAge} CONFIRMATIONS`
+    : 'AWAITING PAYMENT'
   page.center(y, statusLabel, 'F2', 8.5, settled ? 0 : 0.25)
   y += 12
   if (paid && r) {
-    metaRow('Statut', r.inPool ? 'mempool · vu par le réseau' : settled ? 'règlé, dépensable' : 'confirmé en bloc')
-    if (r.blockHeight && !r.inPool) metaRow('Bloc', `#${r.blockHeight.toLocaleString('fr-FR')}`)
-    if (r.txTimestamp) metaRow('Payé le', frDate(r.txTimestamp))
+    metaRow('Status', r.inPool ? 'mempool · seen by the network' : settled ? 'settled, spendable' : 'confirmed in a block')
+    if (r.blockHeight && !r.inPool) metaRow('Block', `#${r.blockHeight.toLocaleString('en-US')}`)
+    if (r.txTimestamp) metaRow('Paid at', enDate(r.txTimestamp))
     if (r.txHash) {
       for (const ln of wrapText(r.txHash, 'F1', 6.5, R_IW, 2)) {
         page.text(R_MX, y, ln, 'F1', 6.5, 0.3)
@@ -356,7 +365,7 @@ export async function buildReceiptPdf(
 
   // seal
   const seal = await receiptSeal(inv, r, now)
-  page.text(R_MX, y, 'Empreinte SHA-256 du reçu', 'F1', 6.5, 0.35)
+  page.text(R_MX, y, 'SHA-256 receipt seal', 'F1', 6.5, 0.35)
   y += 9
   for (const ln of wrapText(seal, 'F1', 6.5, R_IW, 2)) {
     page.text(R_MX, y, ln, 'F1', 6.5, 0.15)
@@ -371,9 +380,9 @@ export async function buildReceiptPdf(
     const m = await qrMatrix(extras.verifyUrl, 'M')
     page.qr(qx, y, qrSize, m)
     y += qrSize + 8
-    page.center(y, 're-scannez pour re-vérifier', 'F1', 6.5, 0.35)
+    page.center(y, 'scan to re-verify this', 'F1', 6.5, 0.35)
     y += 8
-    page.center(y, 'ce paiement sur la chaîne', 'F1', 6.5, 0.35)
+    page.center(y, 'payment on the chain', 'F1', 6.5, 0.35)
     y += 10
   }
 
@@ -382,7 +391,7 @@ export async function buildReceiptPdf(
 
   // honesty footer
   for (const ln of wrapText(
-    'Reçu généré localement dans votre navigateur — aucune donnée envoyée à un serveur. Montants RingCT chiffrés sur la chaîne : le montant exact se vérifie dans le wallet du destinataire.',
+    'Receipt generated locally in your browser — no data was sent to any server. RingCT encrypts amounts on-chain: the exact value is confirmed inside the recipient\u2019s wallet.',
     'F1', 6.3, R_IW, 6,
   )) {
     page.center(y, ln, 'F1', 6.3, 0.3)
@@ -408,12 +417,18 @@ export interface TagSpec {
   amountAtomic: string
   /** optional fiat equivalent, display only */
   eur?: string
-  /** unique payment reference carried by the tag QR */
+  /** unique payment reference carried by the tag's invoice */
   pid: string
   /** receiving address */
   address: string
   /** merchant name */
   merchantName?: string
+  /**
+   * Checkout URL encoded by the tag QR (https). Any phone camera opens
+   * the NervaLink checkout with the product, price and payment detection;
+   * the checkout then shows the wallet-native `nerva:` QR for wallets.
+   */
+  link: string
 }
 
 const A4_W = 595.28
@@ -433,11 +448,12 @@ export async function buildTagsPdf(tags: TagSpec[]): Promise<Uint8Array> {
     const batch = tags.slice(base, base + perPage)
     const page = new Page(A4_W, A4_H)
 
-    // QR matrices are generated up-front (async), then drawn synchronously
-    const qrs = await Promise.all(batch.map((tag) => {
-      const uri = `nerva:${tag.address}?tx_amount=${atomicToDisplay(tag.amountAtomic)}&tx_payment_id=${tag.pid}&tx_description=${encodeURIComponent(tag.name.slice(0, 60))}`
-      return qrMatrix(uri, 'M')
-    }))
+    // QR matrices are generated up-front (async), then drawn synchronously.
+    // The QR carries the checkout URL: any camera app opens the payment
+    // page (product, price, live status) — wallets scan from that page.
+    // ECC level L + a 108 pt box keeps modules ≥ 0.6 mm on paper (phone-
+    // friendly) even with ~360-char links.
+    const qrs = await Promise.all(batch.map((tag) => qrMatrix(tag.link, 'L')))
 
     batch.forEach((tag, i) => {
       const col = i % 2
@@ -448,15 +464,15 @@ export async function buildTagsPdf(tags: TagSpec[]): Promise<Uint8Array> {
       // cut line
       page.rectOutline(x, yTop, TAG_W, TAG_H, 0.55, 0.6, [3, 2])
 
-      // QR: nerva: URI (wallet-native), left side of the tag
-      const qrSize = 100
-      const qx = x + 22
+      // QR: checkout URL (opens on any phone), left side of the tag
+      const qrSize = 108
+      const qx = x + 20
       const qy = yTop + (TAG_H - qrSize) / 2
       page.qr(qx, qy, qrSize, qrs[i])
 
       // right column text
-      const tx = x + 22 + qrSize + 18
-      const tw = TAG_W - (22 + qrSize + 18) - 16
+      const tx = x + 20 + qrSize + 16
+      const tw = TAG_W - (20 + qrSize + 16) - 14
       let ty = yTop + 20
 
       for (const ln of wrapText(tag.name.toUpperCase(), 'F4', 13, tw, 2)) {
@@ -468,24 +484,132 @@ export async function buildTagsPdf(tags: TagSpec[]): Promise<Uint8Array> {
       page.text(tx, ty, price, 'F4', 17)
       ty += 21
       if (tag.eur) {
-        page.text(tx, ty, `~ ${tag.eur} EUR`, 'F3', 10.5, 0.35)
+        page.text(tx, ty, `≈ EUR ${tag.eur}`, 'F3', 10.5, 0.35)
         ty += 13
       }
       ty += 4
-      page.text(tx, ty, 'Scannez pour payer en NERVA', 'F3', 8, 0.25)
+      page.text(tx, ty, 'Scan to pay in NERVA', 'F3', 8, 0.25)
       ty += 11
-      page.text(tx, ty, 'wallet NervaOne, CLI ou compatible', 'F3', 6.5, 0.4)
+      page.text(tx, ty, 'any phone camera · NERVA wallets', 'F3', 6.5, 0.4)
       ty += 9
 
       // footer strip inside the tag
       page.text(x + 16, yTop + TAG_H - 16, (tag.merchantName ? `${tag.merchantName} · ` : '') + 'XelisVault NervaLink', 'F3', 6.5, 0.4)
-      page.text(x + TAG_W - 16 - textWidth(`réf ${shortenHash(tag.pid, 8, 4)}`, 'F3', 6.5), yTop + TAG_H - 16, `réf ${shortenHash(tag.pid, 8, 4)}`, 'F3', 6.5, 0.4)
+      page.text(x + TAG_W - 16 - textWidth(`ref ${shortenHash(tag.pid, 8, 4)}`, 'F3', 6.5), yTop + TAG_H - 16, `ref ${shortenHash(tag.pid, 8, 4)}`, 'F3', 6.5, 0.4)
     })
 
     pages.push({ w: A4_W, h: A4_H, ops: pageContentOps(page) })
   }
 
   return serializePdf(pages)
+}
+
+/* ─────────────── paper wallet (A5, fold to conceal) ─────────────── */
+
+export interface PaperWalletSpec {
+  /** public NV… address */
+  address: string
+  /** 25-word mnemonic (Electrum, NERVA flavour) */
+  mnemonic: string[]
+  /** secret spend key, 32-byte hex */
+  spendKeyHex: string
+  /** secret view key, 32-byte hex */
+  viewKeyHex: string
+  /** creation time, unix ms */
+  createdAt: number
+}
+
+const A5_W = 419.53
+const A5_H = 595.28
+
+/**
+ * Vector A5 paper wallet. Same design language as the on-screen sheet:
+ * public half on top, a dashed fold line, secrets below — folding the
+ * sheet along the line hides the mnemonic and keys. The address QR is a
+ * wallet-native `nerva:` URI, scannable by NERVA wallets.
+ */
+export async function buildPaperWalletPdf(w: PaperWalletSpec): Promise<Uint8Array> {
+  const page = new Page(A5_W, A5_H)
+  const mx = 28
+  const iw = A5_W - 2 * mx
+  let y = 30
+
+  // header
+  page.text(mx, y, 'NERVA', 'F4', 16)
+  page.text(mx + 84, y + 2, 'paper wallet · cold storage · XNV', 'F3', 8, 0.4)
+  const genBy = 'generated by XelisVault'
+  page.text(A5_W - mx - textWidth(genBy, 'F3', 7), y, genBy, 'F3', 7, 0.4)
+  y += 12
+  const created = new Date(w.createdAt)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const dateStr = `${created.getUTCFullYear()}-${pad(created.getUTCMonth() + 1)}-${pad(created.getUTCDate())} ${pad(created.getUTCHours())}:${pad(created.getUTCMinutes())} UTC`
+  page.text(A5_W - mx - textWidth(dateStr, 'F3', 6.5), y, dateStr, 'F3', 6.5, 0.4)
+  y += 10
+  page.hline(mx, A5_W - mx, y, 0, 1.4)
+  y += 16
+
+  // public address + QR
+  page.text(mx, y, 'PUBLIC ADDRESS — SHARE FREELY', 'F3', 7.5, 0.35)
+  y += 11
+  for (const ln of wrapText(w.address, 'F1', 9, iw - 110, 4)) {
+    page.text(mx, y, ln, 'F1', 9)
+    y += 11
+  }
+  const qrSize = 96
+  const qx = A5_W - mx - qrSize
+  const qy = y - 34
+  const m = await qrMatrix(`nerva:${w.address}`, 'M')
+  page.qr(qx, qy, qrSize, m)
+  const qrCaption = 'scan with any NERVA wallet'
+  page.text(qx + (qrSize - textWidth(qrCaption, 'F3', 6)) / 2, qy + qrSize + 4, qrCaption, 'F3', 6, 0.4)
+  y = Math.max(y, qy + qrSize + 14) + 8
+
+  // fold line
+  page.hline(mx, A5_W - mx, y, 0.5, 0.8, [4, 3])
+  const foldLabel = 'FOLD HERE — SECRETS BELOW'
+  page.text((A5_W - textWidth(foldLabel, 'F3', 7.5)) / 2, y - 2.5, foldLabel, 'F3', 7.5, 0.45)
+  y += 20
+
+  // mnemonic grid: 5 columns × 5 rows
+  page.text(mx, y, '25-WORD MNEMONIC (ELECTRUM) — RESTORES THE WALLET', 'F3', 7.5, 0.35)
+  y += 13
+  const colW = iw / 5
+  w.mnemonic.forEach((word, i) => {
+    const col = i % 5
+    const row = Math.floor(i / 5)
+    const cx = mx + col * colW
+    const cy = y + row * 13
+    page.text(cx, cy, `${String(i + 1).padStart(2, ' ')}`, 'F1', 7.5, 0.4)
+    page.text(cx + 16, cy, word, 'F2', 7.5)
+  })
+  y += 5 * 13 + 12
+
+  // secret keys
+  page.text(mx, y, 'SECRET SPEND KEY — FULL CONTROL. NEVER SHARE.', 'F3', 7.5, 0.35)
+  y += 11
+  for (const ln of wrapText(w.spendKeyHex, 'F1', 8.5, iw, 2)) {
+    page.text(mx, y, ln, 'F1', 8.5, 0.15)
+    y += 10.5
+  }
+  y += 6
+  page.text(mx, y, 'SECRET VIEW KEY — WATCH-ONLY. DETECTS INCOMING PAYMENTS.', 'F3', 7.5, 0.35)
+  y += 11
+  for (const ln of wrapText(w.viewKeyHex, 'F1', 8.5, iw, 2)) {
+    page.text(mx, y, ln, 'F1', 8.5, 0.15)
+    y += 10.5
+  }
+  y += 10
+
+  // footer
+  page.hline(mx, A5_W - mx, y, 0.75, 0.8)
+  y += 10
+  page.text(mx, y, 'Restore: nerva-wallet-cli --restore-deterministic-wallet (mnemonic) or --generate-from-keys (address + keys).', 'F3', 6.5, 0.4)
+  y += 9
+  page.text(mx, y, 'Anyone holding the mnemonic or the spend key controls the funds. Generated locally in your browser — never transmitted, never stored.', 'F3', 6.5, 0.4)
+  y += 9
+  page.text(mx, y, 'xelisvault.network/nerva/paper-wallet', 'F4', 7.5)
+
+  return serializePdf([{ w: A5_W, h: A5_H, ops: pageContentOps(page) }])
 }
 
 /* ─────────────── browser helpers (DOM, deliberately separate) ─────────────── */

@@ -56,7 +56,7 @@ export async function receiptSeal(inv: NervaInvoice, r: DetectionResult | null, 
 
 export interface JournalEntry {
   v: 1
-  /** when the sale was encaissée (ms) */
+  /** when the sale was completed (ms) */
   ts: number
   pid: string
   address: string
@@ -149,7 +149,7 @@ export function entryCanonical(e: JournalEntry): string {
 export const GENESIS = '0'.repeat(64)
 
 /**
- * Build a journal entry (with its seal + chain link) from an encaissé sale.
+ * Build a journal entry (with its seal + chain link) from a completed sale.
  * The entry seals the SAME canonical fields as the printed receipt, so a
  * paper receipt's seal always equals the journal entry's seal.
  */

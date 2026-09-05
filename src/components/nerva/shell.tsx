@@ -20,8 +20,8 @@ import { useLiveInfo } from '@/components/nerva/live-info'
 const NAV_LINKS = [
   { label: 'Overview', href: '/nerva', icon: Radio },
   { label: 'Explorer', href: '/nerva/explorer', icon: Radar, live: true },
-  { label: 'Caisse', href: '/nerva/caisse', icon: StoreIcon, highlight: true },
-  { label: 'Tickets prix', href: '/nerva/tickets', icon: Tag },
+  { label: 'POS', href: '/nerva/caisse', icon: StoreIcon, highlight: true },
+  { label: 'Price Tags', href: '/nerva/tickets', icon: Tag },
   { label: 'Payment Links', href: '/nerva/link', icon: Link2 },
   { label: 'Paper Wallet', href: '/nerva/paper-wallet', icon: KeyRound },
   { label: 'Mining', href: '/nerva/mining', icon: Cpu },

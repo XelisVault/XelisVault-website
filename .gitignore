@@ -76,3 +76,10 @@ worklog.md
 
 # nerva raw photo sources (processed duotones are committed)
 public/images/nerva/raw/
+
+# runtime artifacts (Prisma dev db)
+/db/*.db
+/db/*.db-journal
+
+# PDF test output
+scripts/gen-img-tmp/

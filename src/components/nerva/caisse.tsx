@@ -1,25 +1,29 @@
 'use client'
 
 /**
- * Caisse NERVA — the merchant point-of-sale terminal.
+ * NERVA POS — the merchant point-of-sale terminal.
  *
- * The shop keeper types an amount on a big keypad, hits "Encaisser", the
- * customer scans the full-screen QR with their wallet, and the page
- * watches the chain (mempool → 10 confirmations) until it lands. Every
- * encaissé sale is sealed (SHA-256) and chained into a local journal,
- * and a thermal-style PDF receipt is one click away.
+ * The shop keeper types an amount on a big keypad, hits "Charge", the
+ * customer scans the full-screen QR with their wallet (or any phone
+ * camera via the checkout link), and the page watches the chain
+ * (mempool → 10 confirmations) until it lands. Every completed sale is
+ * sealed (SHA-256) and chained into a local journal, and a thermal-style
+ * PDF receipt is one click away.
+ *
+ * The XNV/EUR conversion is LIVE by default (CoinGecko → CoinPaprika via
+ * /api/nerva/price); a manual override is available in settings.
  *
  * Everything is local: config, journal and receipts never leave the
  * browser. No account, no server, no keys.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Store, Settings2, Delete, Printer, Download, Check, NotebookText,
   Volume2, VolumeX, ArrowLeft, ArrowRight, ShieldCheck, Trash2, FileJson,
   CheckCircle2, Loader2, Radar, AlertTriangle, QrCode, Wallet, ScanLine, X,
+  RefreshCw,
 } from 'lucide-react'
 import {
   encodeInvoice, generatePaymentId, buildNervaUri, renderQrDataUrl,
@@ -28,9 +32,10 @@ import {
 } from '@/lib/nerva/nlink'
 import { parseXnv, formatXnv, getBlockCount, NERVA_CONSTANTS } from '@/lib/nerva/api'
 import {
-  loadMerchantConfig, saveMerchantConfig, configReady, xnvAtomicToEur,
+  loadMerchantConfig, saveMerchantConfig, configReady,
   type MerchantConfig,
 } from '@/lib/nerva/merchant'
+import { useNervaPrice, xnvAtomicToEur as xnvAtomicToEurLive, priceCaption } from '@/lib/nerva/price'
 import {
   loadJournal, appendJournal, buildJournalEntry, verifyJournal, clearJournal,
   exportJournalJson, type JournalEntry,
@@ -71,6 +76,7 @@ function ConfigForm({ initial, onSave, onBack }: {
 }) {
   const [c, setC] = useState<MerchantConfig>(initial)
   const [touched, setTouched] = useState(false)
+  const { price } = useNervaPrice()
   const addrOk = useMemo(() => configReady({ ...c }), [c])
   return (
     <motion.div
@@ -80,13 +86,13 @@ function ConfigForm({ initial, onSave, onBack }: {
       <div className="flex items-center gap-2.5">
         <Settings2 className="w-4 h-4 text-[oklch(0.78_0.06_237)]" />
         <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.012_250)]">
-          Réglages de la caisse
+          POS settings
         </span>
       </div>
       <div className="mt-6 space-y-5">
         <div>
           <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.62_0.025_250)]">
-            Votre adresse NERVA
+            Your NERVA address
           </label>
           <div className="mt-2">
             <input
@@ -99,14 +105,14 @@ function ConfigForm({ initial, onSave, onBack }: {
           </div>
           {touched && !addrOk && (
             <div className="mt-1.5 font-mono text-[10px] text-[oklch(0.75_0.13_25)]">
-              adresse invalide (doit commencer par NV, 95 caractères)
+              invalid address (must start with NV, ~95 characters)
             </div>
           )}
         </div>
         <div className="grid sm:grid-cols-2 gap-5">
           <div>
             <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.62_0.025_250)]">
-              Nom de la boutique
+              Shop name
             </label>
             <div className="mt-2">
               <input
@@ -119,18 +125,18 @@ function ConfigForm({ initial, onSave, onBack }: {
           </div>
           <div>
             <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.62_0.025_250)]">
-              Taux EUR / XNV (optionnel)
+              EUR / XNV rate override
             </label>
             <div className="mt-2">
               <input
                 value={c.eurRate}
                 onChange={(e) => setC({ ...c, eurRate: e.target.value.replace(',', '.') })}
-                placeholder="ex. 0.085"
+                placeholder="leave empty = live rate"
                 className={inputCls} inputMode="decimal"
               />
             </div>
             <div className="mt-1.5 font-mono text-[9.5px] text-[oklch(0.5_0.01_250)]">
-              affichage seul, entré à la main
+              {price ? `live: 1 XNV = €${price.eur.toFixed(4)} · ${price.source}` : 'live EUR rate loads automatically'}
             </div>
           </div>
         </div>
@@ -141,7 +147,7 @@ function ConfigForm({ initial, onSave, onBack }: {
             onChange={(e) => setC({ ...c, sound: e.target.checked })}
             className="w-4 h-4 accent-[oklch(0.78_0.06_237)]"
           />
-          <span className="text-[13px] text-white/80">Sonnerie quand un paiement arrive</span>
+          <span className="text-[13px] text-white/80">Chime when a payment lands</span>
           {c.sound ? <Volume2 className="w-4 h-4 text-[oklch(0.78_0.06_237)]" /> : <VolumeX className="w-4 h-4 text-white/30" />}
         </label>
       </div>
@@ -150,14 +156,14 @@ function ConfigForm({ initial, onSave, onBack }: {
           onClick={() => { setTouched(true); if (addrOk) onSave(c) }}
           className="inline-flex h-12 items-center justify-center gap-2.5 rounded-md px-8 text-[14.5px] font-semibold bg-[oklch(0.66_0.083_233)] text-[oklch(0.13_0.02_255)] hover:bg-[oklch(0.7_0.08_236)] transition-colors"
         >
-          <Check className="w-[17px] h-[17px]" /> Enregistrer
+          <Check className="w-[17px] h-[17px]" /> Save
         </button>
         {onBack && (
           <button
             onClick={onBack}
             className="inline-flex h-12 items-center justify-center gap-2 rounded-md px-6 text-[13.5px] font-medium border border-white/12 bg-white/[0.03] hover:bg-white/8 text-white/75 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" /> Retour
+            <ArrowLeft className="w-4 h-4" /> Back
           </button>
         )}
       </div>
@@ -176,7 +182,7 @@ interface Sale {
 
 const SALE_TTL = 900 // 15 minutes: a shop sale is paid now, not next week
 
-/* ─────────────── the caisse ─────────────── */
+/* ─────────────── the POS ─────────────── */
 
 type View = 'keypad' | 'charge' | 'paid' | 'journal'
 
@@ -206,16 +212,29 @@ export function Caisse() {
   const knownTx = useRef<string | undefined>(undefined)
   const landedRef = useRef(false)
 
+  /* live XNV/EUR rate, shared singleton */
+  const { price, refresh } = useNervaPrice()
+
   /* boot: load config + journal */
   useEffect(() => {
     setConfig(loadMerchantConfig())
     setJournal(loadJournal())
   }, [])
 
-  /* derived: the amount as atomic, from the active input mode */
-  const rate = Number((config?.eurRate ?? '').replace(',', '.'))
-  const hasRate = Number.isFinite(rate) && rate > 0
+  /* effective EUR/XNV rate: manual override wins, otherwise live */
+  const manualRate = Number((config?.eurRate ?? '').replace(',', '.'))
+  const hasManual = Number.isFinite(manualRate) && manualRate > 0
+  const liveRate = price?.eur ?? 0
+  const rate = hasManual ? manualRate : liveRate
+  const hasRate = rate > 0
 
+  /* atomic → EUR string with the effective rate (manual or live), integer math */
+  const atomicToEur = useCallback((atomic: string | bigint): string | null => {
+    if (!hasRate) return null
+    return xnvAtomicToEurLive(atomic, rate)
+  }, [hasRate, rate])
+
+  /* derived: the amount as atomic, from the active input mode */
   const atomic = useMemo(() => {
     if (!amount) return null
     if (curInput === 'eur') {
@@ -227,7 +246,7 @@ export function Caisse() {
     return parseXnv(amount)
   }, [amount, curInput, hasRate, rate])
 
-  const eurEquiv = atomic && hasRate ? xnvAtomicToEur(atomic.toString(), config!.eurRate) : null
+  const eurEquiv = atomic !== null && atomic > 0n ? atomicToEur(atomic) : null
 
   /* ── keypad actions ── */
   const key = (k: string) => {
@@ -242,7 +261,7 @@ export function Caisse() {
   }
 
   /* ── mint the invoice and open the charge screen ── */
-  const encaisser = async () => {
+  const charge = async () => {
     if (!config || atomic === null || atomic <= 0n) return
     setBusy(true)
     try {
@@ -338,8 +357,9 @@ export function Caisse() {
     return buildReceiptPdf(sale.inv, frozen, {
       verifyUrl: sale.verifyUrl,
       generatedAt: entry?.ts,
+      eur: atomicToEur(sale.inv.amt) ?? undefined,
     })
-  }, [sale, frozen, entry?.ts])
+  }, [sale, frozen, entry?.ts, atomicToEur])
 
   const printReceipt = async () => {
     const bytes = await receiptBytes()
@@ -347,7 +367,7 @@ export function Caisse() {
   }
   const downloadReceipt = async () => {
     const bytes = await receiptBytes()
-    if (bytes) downloadPdf(bytes, `recu-${sale?.inv.pid.slice(0, 12)}.pdf`)
+    if (bytes) downloadPdf(bytes, `receipt-${sale?.inv.pid.slice(0, 12)}.pdf`)
   }
 
   /* ── journal: verify / export / clear ── */
@@ -355,18 +375,18 @@ export function Caisse() {
     const v = await verifyJournal(journal)
     setChainOk(v.ok)
     setChainMsg(v.ok
-      ? `chaîne intacte · ${v.entries} ventes · tête ${v.head.slice(0, 16)}…`
-      : `chaîne rompue à la vente #${v.firstBad + 1} — donnée modifiée ou supprimée`)
+      ? `chain intact · ${v.entries} sales · head ${v.head.slice(0, 16)}…`
+      : `chain broken at sale #${v.firstBad + 1} — data was modified or removed`)
   }
   const exportJournal = () => {
     const blob = new Blob([exportJournalJson(journal)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    a.href = url; a.download = `caisse-journal-${new Date().toISOString().slice(0, 10)}.json`; a.click()
+    a.href = url; a.download = `pos-journal-${new Date().toISOString().slice(0, 10)}.json`; a.click()
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   }
   const wipeJournal = () => {
-    if (!window.confirm('Effacer tout le journal des ventes ? Irréversible (les reçus papier restent valides).')) return
+    if (!window.confirm('Erase the entire sales journal? Irreversible (printed receipts stay valid).')) return
     clearJournal()
     setJournal([])
     setChainOk(null)
@@ -374,7 +394,7 @@ export function Caisse() {
 
   /* ── unpaid sale guard: leaving the charge screen ── */
   const abandonSale = () => {
-    if (!landedRef.current && !window.confirm('Abandonner cette vente ? Si le client paie après, la transaction restera visible dans votre wallet (référence en clair).')) return
+    if (!landedRef.current && !window.confirm('Abandon this sale? If the customer pays after that, the transaction will still be visible in your wallet (reference in clear).')) return
     newSale()
   }
 
@@ -424,9 +444,9 @@ export function Caisse() {
               <Store className="w-5 h-5 text-[oklch(0.78_0.06_237)]" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Caisse NERVA</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">NERVA POS</h1>
               <div className="mt-0.5 font-mono text-[10px] text-[oklch(0.58_0.025_250)]">
-                terminal point de vente · XNV · 100 % local
+                point-of-sale terminal · XNV · 100% local
               </div>
             </div>
           </div>
@@ -445,20 +465,20 @@ export function Caisse() {
               onClick={() => setEditConfig(true)}
               className="inline-flex h-10 items-center gap-2 rounded-md px-4 font-mono text-[11px] border border-white/10 bg-white/[0.03] text-white/55 hover:border-white/25 transition-all"
             >
-              <Settings2 className="w-3.5 h-3.5" /> Réglages
+              <Settings2 className="w-3.5 h-3.5" /> Settings
             </button>
           </div>
         </div>
 
         <AnimatePresence mode="wait">
 
-          {/* ══════════ KEYBOARD ══════════ */}
+          {/* ══════════ KEYPAD ══════════ */}
           {view === 'keypad' && (
             <motion.div key="keypad" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
               className="mt-10 grid lg:grid-cols-[minmax(0,1fr)_320px] gap-8 items-start">
               <div className="panel-nerva rounded-lg p-6 sm:p-8">
                 <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.012_250)]">
-                  Montant à encaisser
+                  Amount to charge
                 </div>
 
                 {/* display */}
@@ -470,24 +490,46 @@ export function Caisse() {
                     </span>
                   </div>
                   <div className="mt-2 font-mono text-[11px] text-[oklch(0.6_0.012_250)]">
-                    {atomic !== null && atomic > 0n && curInput === 'eur' && `≈ ${formatXnv(atomic)} XNV`}
-                    {atomic !== null && atomic > 0n && curInput === 'xnv' && eurEquiv && `≈ ${eurEquiv} EUR`}
+                    {atomic !== null && atomic > 0n && curInput === 'eur' && `≈ ${formatXnv(atomic, 4)} XNV`}
+                    {atomic !== null && atomic > 0n && curInput === 'xnv' && eurEquiv && `≈ €${eurEquiv}`}
                   </div>
                 </div>
 
-                {/* currency toggle */}
-                {hasRate && (
-                  <div className="mt-4 flex rounded-md border border-white/10 bg-[oklch(0.12_0.018_255)] p-0.5 w-fit">
-                    {(['xnv', 'eur'] as const).map((m) => (
-                      <button key={m} onClick={() => { setCurInput(m); setAmount('') }}
-                        className={`inline-flex h-8 items-center gap-1.5 rounded-[5px] px-4 font-mono text-[10.5px] uppercase tracking-[0.1em] transition-all ${
-                          curInput === m ? 'bg-[oklch(0.78_0.06_237)]/18 text-[oklch(0.83_0.055_237)]' : 'text-white/45 hover:text-white/70'
-                        }`}>
-                        {m === 'xnv' ? 'XNV' : 'EUR'}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                {/* currency toggle + live rate strip */}
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  {hasRate && (
+                    <div className="flex rounded-md border border-white/10 bg-[oklch(0.12_0.018_255)] p-0.5 w-fit">
+                      {(['xnv', 'eur'] as const).map((m) => (
+                        <button key={m} onClick={() => { setCurInput(m); setAmount('') }}
+                          className={`inline-flex h-8 items-center gap-1.5 rounded-[5px] px-4 font-mono text-[10.5px] uppercase tracking-[0.1em] transition-all ${
+                            curInput === m ? 'bg-[oklch(0.78_0.06_237)]/18 text-[oklch(0.83_0.055_237)]' : 'text-white/45 hover:text-white/70'
+                          }`}>
+                          {m === 'xnv' ? 'XNV' : 'EUR'}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {price ? (
+                    <span className="inline-flex items-center gap-1.5 font-mono text-[10px] text-[oklch(0.72_0.12_160)]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[oklch(0.72_0.12_160)]" />
+                      {priceCaption(price)}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-2 font-mono text-[10px] text-[oklch(0.6_0.012_250)]">
+                      <Loader2 className="w-3 h-3 animate-spin" /> fetching live XNV/EUR rate…
+                    </span>
+                  )}
+                  {hasManual && (
+                    <span className="font-mono text-[10px] text-[oklch(0.75_0.13_25)]">manual override: 1 XNV = €{manualRate}</span>
+                  )}
+                  <button
+                    onClick={refresh}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 text-white/50 hover:text-white/85 hover:border-white/25 transition-all"
+                    title="Refresh rate"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                  </button>
+                </div>
 
                 {/* keypad */}
                 <div className="mt-6 grid grid-cols-3 gap-2.5">
@@ -506,31 +548,31 @@ export function Caisse() {
                   onClick={() => setAmount('')}
                   className="mt-2.5 h-10 w-full rounded-lg border border-white/8 bg-white/[0.02] font-mono text-[11px] text-white/45 hover:text-white/80 hover:border-white/20 transition-all"
                 >
-                  C · tout effacer
+                  C · clear all
                 </button>
 
                 {/* note */}
                 <div className="mt-6">
                   <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.62_0.025_250)]">
-                    Note (optionnel)
+                    Note (optional)
                   </label>
                   <div className="mt-2">
                     <input
                       value={desc}
                       onChange={(e) => setDesc(e.target.value.slice(0, 140))}
-                      placeholder="table 4, 2 cafés…"
+                      placeholder="table 4, 2 coffees…"
                       className={inputCls}
                     />
                   </div>
                 </div>
 
                 <button
-                  onClick={() => void encaisser()}
+                  onClick={() => void charge()}
                   disabled={busy || atomic === null || atomic <= 0n}
                   className="mt-8 w-full inline-flex h-14 items-center justify-center gap-3 rounded-md text-[15px] font-semibold bg-[oklch(0.66_0.083_233)] text-[oklch(0.13_0.02_255)] hover:bg-[oklch(0.7_0.08_236)] transition-colors disabled:opacity-50"
                 >
                   {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
-                  Encaisser {atomic !== null && atomic > 0n ? `${curInput === 'xnv' ? formatXnv(atomic) + ' XNV' : amount + ' EUR'}` : ''}
+                  Charge {atomic !== null && atomic > 0n ? `${curInput === 'xnv' ? formatXnv(atomic) + ' XNV' : amount + ' EUR'}` : ''}
                 </button>
               </div>
 
@@ -538,13 +580,13 @@ export function Caisse() {
               <div className="space-y-4">
                 <div className="panel-nerva rounded-lg p-6">
                   <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.012_250)]">
-                    Déroulé
+                    Flow
                   </div>
                   <ol className="mt-4 space-y-3">
                     {[
-                      ['1 · Montant', 'tapez la somme, XNV ou EUR si un taux est réglé'],
-                      ['2 · QR client', 'le client scanne avec son wallet NERVA'],
-                      ['3 · Encaissé', 'détection live, reçu PDF imprimable, vente scellée dans le journal'],
+                      ['1 · Amount', 'type the sum, XNV or EUR at the live rate'],
+                      ['2 · Customer QR', 'the customer scans with their NERVA wallet or phone'],
+                      ['3 · Paid', 'live detection, printable PDF receipt, sale sealed into the journal'],
                     ].map(([k, v]) => (
                       <li key={k} className="flex items-start gap-2.5">
                         <Check className="w-3.5 h-3.5 text-[oklch(0.72_0.12_160)] shrink-0 mt-0.5" />
@@ -558,28 +600,29 @@ export function Caisse() {
                 </div>
                 <div className="panel-nerva rounded-lg p-6">
                   <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.012_250)]">
-                    Journal chaîné
+                    Chained journal
                   </div>
                   <p className="mt-3 text-[12px] leading-relaxed text-[oklch(0.66_0.025_250)]">
-                    Chaque vente est scellée par SHA-256 et chaînée à la précédente :
-                    modifier ou supprimer une vente casse toutes les suivantes. Un
-                    mini-blockchain de comptabilité, local à cette caisse.
+                    Every sale is sealed with SHA-256 and chained to the
+                    previous one: editing or removing a sale breaks all the
+                    following ones. An accounting mini-blockchain, local to
+                    this terminal.
                   </p>
                 </div>
               </div>
             </motion.div>
           )}
 
-          {/* ══════════ CHARGE (écran client) ══════════ */}
+          {/* ══════════ CHARGE (customer screen) ══════════ */}
           {view === 'charge' && sale && (
             <motion.div key="charge" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
               className="mt-10 grid lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] gap-8 items-start">
               <div className="panel-nerva rounded-lg p-6 sm:p-8 flex flex-col items-center">
                 <div className="self-start w-full flex items-center justify-between gap-4 pb-4 mb-5 border-b border-white/8">
                   <div className="min-w-0">
-                    <div className="font-semibold text-[14px] text-white">{config.name || 'Paiement NERVA'}</div>
+                    <div className="font-semibold text-[14px] text-white">{config.name || 'NERVA payment'}</div>
                     <div className="mt-0.5 font-mono text-[10px] text-[oklch(0.58_0.025_250)]">
-                      {desc.trim() || 'encaissement en cours'}
+                      {desc.trim() || 'charge in progress'}
                     </div>
                   </div>
                   <span className="inline-flex items-center gap-1.5 shrink-0 font-mono tabular-nums text-[12px] font-semibold text-white/85 rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-1.5">
@@ -589,18 +632,18 @@ export function Caisse() {
                 </div>
 
                 <div className="text-center">
-                  <div className="font-mono text-[9.5px] uppercase tracking-[0.26em] text-[oklch(0.58_0.025_250)]">À payer</div>
+                  <div className="font-mono text-[9.5px] uppercase tracking-[0.26em] text-[oklch(0.58_0.025_250)]">To pay</div>
                   <div className="mt-2 font-mono font-bold tabular-nums text-[40px] leading-none text-gradient-nerva">
                     {atomicToDisplay(sale.inv.amt)}
                     <span className="text-[20px] ml-2 text-[oklch(0.7_0.08_220)]">XNV</span>
                   </div>
                   {eurEquiv && (
-                    <div className="mt-1.5 font-mono text-[12px] text-[oklch(0.6_0.012_250)]">≈ {eurEquiv} EUR</div>
+                    <div className="mt-1.5 font-mono text-[12px] text-[oklch(0.6_0.012_250)]">≈ €{eurEquiv}</div>
                   )}
                 </div>
 
                 <div className="mt-6 flex rounded-md border border-white/10 bg-[oklch(0.12_0.018_255)] p-0.5">
-                  {([['wallet', 'Wallet', Wallet], ['page', 'Téléphone', ScanLine]] as const).map(([m, label, Icon]) => (
+                  {([['wallet', 'Wallet', Wallet], ['page', 'Phone', ScanLine]] as const).map(([m, label, Icon]) => (
                     <button key={m} onClick={() => setQrMode(m)}
                       className={`inline-flex h-8 items-center gap-1.5 rounded-[5px] px-3.5 font-mono text-[10.5px] transition-all ${
                         qrMode === m ? 'bg-[oklch(0.78_0.06_237)]/18 text-[oklch(0.83_0.055_237)]' : 'text-white/45 hover:text-white/70'
@@ -611,7 +654,7 @@ export function Caisse() {
                 </div>
 
                 {qr ? (
-                  <img src={qr} alt="QR de paiement NERVA"
+                  <img src={qr} alt="NERVA payment QR"
                     className="mt-5 w-[260px] h-[260px] rounded-md bg-[#eef4fb] border border-white/15" />
                 ) : (
                   <div className="mt-5 w-[260px] h-[260px] rounded-md bg-white/[0.04] border border-white/10 flex items-center justify-center">
@@ -621,22 +664,22 @@ export function Caisse() {
 
                 <p className="mt-4 text-[12px] text-[oklch(0.62_0.012_250)] text-center max-w-xs leading-relaxed">
                   {qrMode === 'wallet'
-                    ? 'Le client scanne avec NervaOne ou tout wallet NERVA : adresse, montant et référence sont pré-remplis.'
-                    : 'Le client scanne avec l’appareil photo : la page de paiement s’ouvre, QR wallet inclus.'}
+                    ? 'The customer scans with NervaOne or any NERVA wallet: address, amount and reference are pre-filled.'
+                    : 'The customer scans with any camera app: the checkout page opens with a wallet QR included.'}
                 </p>
 
                 <button
                   onClick={abandonSale}
                   className="mt-6 inline-flex h-11 items-center gap-2 rounded-md px-5 text-[13px] font-medium border border-white/12 bg-white/[0.03] hover:bg-white/8 text-white/70 transition-colors"
                 >
-                  <X className="w-4 h-4" /> Annuler la vente
+                  <X className="w-4 h-4" /> Cancel sale
                 </button>
               </div>
 
               {/* merchant side: live status */}
               <div className="panel-nerva rounded-lg p-6 sm:p-8">
                 <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.012_250)]">
-                  Suivi du paiement
+                  Payment tracking
                 </div>
                 <div className="mt-6 flex items-center gap-5">
                   <div className="relative w-[92px] h-[92px] shrink-0">
@@ -652,12 +695,12 @@ export function Caisse() {
                   </div>
                   <div>
                     <div className="font-semibold text-[16px] text-white">
-                      {paid ? 'Paiement reçu' : 'En écoute du réseau…'}
+                      {paid ? 'Payment received' : 'Listening to the network…'}
                     </div>
                     <div className="mt-1.5 text-[12.5px] text-[oklch(0.66_0.025_250)]">
                       {paid
-                        ? `${result!.confirmations}/${NERVA_CONSTANTS.spendableAge} confirmations · hauteur ${netHeight.toLocaleString('fr-FR')}`
-                        : `mempool + blocs scannés · réseau à ${netHeight.toLocaleString('fr-FR')}`}
+                        ? `${result!.confirmations}/${NERVA_CONSTANTS.spendableAge} confirmations · height ${netHeight.toLocaleString('en-US')}`
+                        : `mempool + blocks scanned · network at ${netHeight.toLocaleString('en-US')}`}
                     </div>
                     {result?.txHash && (
                       <button onClick={() => void copyText(result.txHash!)}
@@ -669,9 +712,10 @@ export function Caisse() {
                 </div>
                 <div className="mt-6 rounded-md border border-white/8 bg-white/[0.02] p-4">
                   <p className="text-[11.5px] leading-relaxed text-[oklch(0.64_0.012_250)]">
-                    La détection tourne dans ce navigateur contre l’API publique de
-                    l’explorer. RingCT chiffre les montants on-chain : c’est votre
-                    wallet qui associera la référence affichée au montant exact.
+                    Detection runs in this browser against the public explorer
+                    API. RingCT encrypts amounts on-chain: your wallet is
+                    what will match the displayed reference to the exact
+                    amount.
                   </p>
                 </div>
               </div>
@@ -689,13 +733,13 @@ export function Caisse() {
                   className="relative w-16 h-16 mx-auto rounded-full bg-[oklch(0.72_0.12_160)]/15 border border-[oklch(0.72_0.12_160)]/40 flex items-center justify-center">
                   <CheckCircle2 className="w-8 h-8 text-[oklch(0.72_0.12_160)]" />
                 </motion.div>
-                <h2 className="relative mt-5 text-2xl font-bold text-white">Encaissé</h2>
+                <h2 className="relative mt-5 text-2xl font-bold text-white">Paid</h2>
                 <div className="relative mt-2 font-mono font-bold tabular-nums text-[30px] text-gradient-nerva">
                   {atomicToDisplay(sale.inv.amt)} <span className="text-[16px] text-[oklch(0.7_0.08_220)]">XNV</span>
                 </div>
-                {eurEquiv && <div className="relative mt-1 font-mono text-[12px] text-[oklch(0.6_0.012_250)]">≈ {eurEquiv} EUR</div>}
+                {eurEquiv && <div className="relative mt-1 font-mono text-[12px] text-[oklch(0.6_0.012_250)]">≈ €{eurEquiv}</div>}
                 <div className="relative mt-3 font-mono text-[10.5px] text-[oklch(0.58_0.025_250)]">
-                  vente scellée · empreinte {entry.seal.slice(0, 14)}…
+                  sale sealed · seal {entry.seal.slice(0, 14)}…
                   {result && ` · ${result.confirmations}/${NERVA_CONSTANTS.spendableAge} confirmations`}
                 </div>
 
@@ -704,20 +748,20 @@ export function Caisse() {
                     onClick={() => void printReceipt()}
                     className="inline-flex h-12 items-center justify-center gap-2.5 rounded-md text-[14px] font-semibold bg-[oklch(0.66_0.083_233)] text-[oklch(0.13_0.02_255)] hover:bg-[oklch(0.7_0.08_236)] transition-colors"
                   >
-                    <Printer className="w-[17px] h-[17px]" /> Imprimer le reçu
+                    <Printer className="w-[17px] h-[17px]" /> Print receipt
                   </button>
                   <button
                     onClick={() => void downloadReceipt()}
                     className="inline-flex h-12 items-center justify-center gap-2.5 rounded-md text-[14px] font-medium border border-white/12 bg-white/[0.03] hover:bg-white/8 text-white/80 transition-colors"
                   >
-                    <Download className="w-[17px] h-[17px]" /> Reçu PDF
+                    <Download className="w-[17px] h-[17px]" /> Receipt PDF
                   </button>
                 </div>
                 <button
                   onClick={newSale}
                   className="relative mt-3 w-full inline-flex h-12 items-center justify-center gap-2 rounded-md text-[13.5px] font-medium text-[oklch(0.83_0.055_237)] hover:bg-[oklch(0.78_0.06_237)]/10 transition-colors"
                 >
-                  <ArrowRight className="w-4 h-4" /> Nouvelle vente
+                  <ArrowRight className="w-4 h-4" /> New sale
                 </button>
               </div>
             </motion.div>
@@ -730,20 +774,20 @@ export function Caisse() {
               <div className="panel-nerva rounded-lg overflow-hidden">
                 <div className="px-6 sm:px-7 py-5 border-b border-white/8 flex flex-wrap items-center justify-between gap-3">
                   <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.62_0.025_250)]">
-                    Journal des ventes · chaîne SHA-256
+                    Sales journal · SHA-256 chain
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button onClick={() => void runVerify()}
                       className="inline-flex h-9 items-center gap-1.5 rounded-md px-3.5 font-mono text-[10.5px] border border-white/10 bg-white/[0.03] text-white/65 hover:border-[oklch(0.72_0.12_160)]/50 hover:text-[oklch(0.78_0.13_160)] transition-all">
-                      <ShieldCheck className="w-3.5 h-3.5" /> Vérifier la chaîne
+                      <ShieldCheck className="w-3.5 h-3.5" /> Verify chain
                     </button>
                     <button onClick={exportJournal} disabled={journal.length === 0}
                       className="inline-flex h-9 items-center gap-1.5 rounded-md px-3.5 font-mono text-[10.5px] border border-white/10 bg-white/[0.03] text-white/65 hover:border-white/30 transition-all disabled:opacity-40">
-                      <FileJson className="w-3.5 h-3.5" /> Exporter
+                      <FileJson className="w-3.5 h-3.5" /> Export
                     </button>
                     <button onClick={wipeJournal} disabled={journal.length === 0}
                       className="inline-flex h-9 items-center gap-1.5 rounded-md px-3.5 font-mono text-[10.5px] border border-white/10 bg-white/[0.03] text-white/45 hover:border-[oklch(0.7_0.13_25)]/50 hover:text-[oklch(0.75_0.13_25)] transition-all disabled:opacity-40">
-                      <Trash2 className="w-3.5 h-3.5" /> Effacer
+                      <Trash2 className="w-3.5 h-3.5" /> Erase
                     </button>
                   </div>
                 </div>
@@ -760,16 +804,18 @@ export function Caisse() {
                 {/* today's total */}
                 <div className="px-6 sm:px-7 py-5 border-b border-white/8 flex flex-wrap items-baseline gap-x-8 gap-y-2">
                   <div>
-                    <div className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-[oklch(0.55_0.01_250)]">Total encaissé aujourd’hui</div>
+                    <div className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-[oklch(0.55_0.01_250)]">Collected today</div>
                     <div className="mt-1 font-mono font-bold tabular-nums text-[22px] text-gradient-nerva">
                       {formatXnv(journal.filter(isToday).reduce((s, e) => s + BigInt(e.amountAtomic), 0n))} XNV
                     </div>
                   </div>
                   {hasRate && (
                     <div>
-                      <div className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-[oklch(0.55_0.01_250)]">≈ EUR (taux réglé)</div>
+                      <div className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-[oklch(0.55_0.01_250)]">
+                        ≈ EUR · {hasManual ? 'manual rate' : 'live rate'}
+                      </div>
                       <div className="mt-1 font-mono font-bold tabular-nums text-[22px] text-white/70">
-                        {xnvAtomicToEur(String(journal.filter(isToday).reduce((s, e) => s + BigInt(e.amountAtomic), 0n)), config.eurRate) ?? '—'}
+                        {atomicToEur(journal.filter(isToday).reduce((s, e) => s + BigInt(e.amountAtomic), 0n)) ?? '—'}
                       </div>
                     </div>
                   )}
@@ -779,32 +825,32 @@ export function Caisse() {
                   <div className="px-6 py-14 text-center">
                     <QrCode className="w-8 h-8 mx-auto text-white/15" />
                     <p className="mt-4 text-[13px] text-[oklch(0.6_0.012_250)]">
-                      Aucune vente pour l’instant — le premier encaissement scellera le bloc genesis.
+                      No sales yet — the first charge will seal the genesis block.
                     </p>
                   </div>
                 ) : (
                   <div className="divide-y divide-white/6">
-                    {[...journal].reverse().map((e, ri) => (
+                    {[...journal].reverse().map((e) => (
                       <div key={e.pid} className="px-6 sm:px-7 py-4 flex flex-wrap items-center gap-x-5 gap-y-2 hover:bg-white/[0.02] transition-colors">
                         <div className="font-mono text-[10.5px] text-white/40 tabular-nums w-[112px] shrink-0">
-                          {new Date(e.ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                          <div className="text-[9px] text-white/25">{new Date(e.ts).toLocaleDateString('fr-FR')}</div>
+                          {new Date(e.ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                          <div className="text-[9px] text-white/25">{new Date(e.ts).toLocaleDateString('en-US')}</div>
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="font-mono font-semibold tabular-nums text-[13px] text-white/90">
                             {formatXnv(BigInt(e.amountAtomic))} XNV
                           </div>
                           <div className="mt-0.5 text-[11px] text-[oklch(0.6_0.012_250)] truncate">
-                            {e.desc || 'sans note'} · réf {e.pid.slice(0, 10)}…
+                            {e.desc || 'no note'} · ref {e.pid.slice(0, 10)}…
                           </div>
                         </div>
                         <div className="font-mono text-[9.5px] text-[oklch(0.8_0.13_290)]/60 w-[86px] shrink-0 hidden sm:block" title={e.seal}>
-                          sceau {e.seal.slice(0, 10)}…
+                          seal {e.seal.slice(0, 10)}…
                         </div>
                         <span className={`shrink-0 inline-flex items-center gap-1 rounded-md border px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] ${
                           e.status === 'settled' ? 'border-[oklch(0.72_0.12_160)]/30 text-[oklch(0.72_0.12_160)]' : 'border-[oklch(0.78_0.06_237)]/30 text-[oklch(0.78_0.06_237)]'
                         }`}>
-                          {e.status === 'settled' ? 'règlé' : e.status === 'pending' ? 'attente' : 'confirmé'}
+                          {e.status === 'settled' ? 'settled' : e.status === 'pending' ? 'pending' : 'confirmed'}
                         </span>
                         <ReprintButton entry={e} />
                       </div>
@@ -815,8 +861,9 @@ export function Caisse() {
 
               <div className="mt-6 flex justify-center">
                 <button onClick={() => setView(sale ? 'charge' : 'keypad')}
-                  className="inline-flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.16em] text-white/40 hover:text-[oklch(0.78_0.06_237)] transition-colors">
-                  <ArrowLeft className="w-3.5 h-3.5" /> retour à la caisse
+                  className="inline-flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.16em] text-white/40 hover:text-[oklch(0.78_0.06_237)] transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" /> back to the terminal
                 </button>
               </div>
             </motion.div>
@@ -849,7 +896,7 @@ function ReprintButton({ entry }: { entry: JournalEntry }) {
         inPool: false, confirmations: entry.confirmations ?? 0, checkedTxs: 0, scannedBlocks: 0, networkHeight: 0,
       } : null
       const bytes = await buildReceiptPdf(inv, r, { generatedAt: entry.ts })
-      downloadPdf(bytes, `recu-${entry.pid.slice(0, 12)}.pdf`)
+      downloadPdf(bytes, `receipt-${entry.pid.slice(0, 12)}.pdf`)
     } finally {
       setBusy(false)
     }
@@ -859,9 +906,9 @@ function ReprintButton({ entry }: { entry: JournalEntry }) {
       onClick={() => void reprint()}
       disabled={busy}
       className="shrink-0 inline-flex h-9 items-center gap-1.5 rounded-md px-3 font-mono text-[10.5px] border border-white/10 bg-white/[0.03] text-white/60 hover:border-[oklch(0.78_0.06_237)]/50 hover:text-[oklch(0.83_0.055_237)] transition-all disabled:opacity-40"
-      title="Réimprimer le reçu de cette vente"
+      title="Reprint the receipt of this sale"
     >
-      {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Printer className="w-3.5 h-3.5" />} reçu
+      {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Printer className="w-3.5 h-3.5" />} receipt
     </button>
   )
 }
