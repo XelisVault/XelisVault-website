@@ -69,6 +69,23 @@ export function isPaymentLinkPath(): boolean {
   }
 }
 
+/**
+ * Crawlers and social preview bots never see the entry ritual: their job is
+ * to read the page content, so the gate stays closed for them. The page
+ * itself is fully server-rendered underneath either way — this just keeps
+ * the rendered screenshot clean. Keep in sync with the bot regex in the
+ * boot-veil script in app/layout.tsx.
+ */
+const BOT_RE = /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|twitterbot|linkedinbot|discordbot|telegrambot|whatsapp|slackbot|google-inspectiontool|lighthouse|headlesschrome|puppeteer|playwright|chrome-lighthouse/i
+
+function isAutomatedVisitor(): boolean {
+  try {
+    return typeof navigator !== 'undefined' && BOT_RE.test(navigator.userAgent)
+  } catch {
+    return false
+  }
+}
+
 export const useSide = create<SideState>((set) => ({
   side: null,
   gateOpen: false,
@@ -85,6 +102,11 @@ export const useSide = create<SideState>((set) => ({
     if (isPaymentLinkPath()) {
       writeSessionSide('nerva')
       set({ side: 'nerva', gateOpen: false, hydrated: true })
+      return
+    }
+    // Search crawlers and link-preview bots: content, not theatre.
+    if (isAutomatedVisitor()) {
+      set({ side: 'xelis', gateOpen: false, hydrated: true })
       return
     }
     // No choice yet this session → open the gate (the site entry ritual).

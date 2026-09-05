@@ -16,6 +16,7 @@ import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { useSide } from '@/lib/side-store'
 import { BootVeil, SideGate } from '@/components/side/side-gate'
+import { FaviconSync } from '@/components/side/favicon-sync'
 import { LaunchExperience } from '@/components/site/launch-experience'
 import { VaultDoorTransition } from '@/components/site/vault-door-transition'
 
@@ -31,6 +32,9 @@ export function GlobalChrome() {
 
   return (
     <>
+      {/* tab icon follows the active world across SPA navigation */}
+      <FaviconSync />
+
       {/* lifts the pre-paint veil (html.xv-booting) once the gate is up */}
       <BootVeil />
 
