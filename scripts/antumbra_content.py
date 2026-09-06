@@ -316,7 +316,7 @@ table(
 body("Un mot d'honnêteté : le BlockDAG CPU privé est un défi d'ingénierie "
      "réel — greffer un DAG à convergence rapide sur un socle CryptoNote est "
      "du travail de fond, pas un drapeau de configuration. La feuille de "
-     "route (chapitre 16) le traite comme le premier risque technique du "
+     "route (chapitre 19) le traite comme le premier risque technique du "
      "projet, avec un prototype isolé et un audit dédié avant tout mainnet. "
      "Mais le cahier des charges est précis, la littérature GHOSTDAG est "
      "publique et solide, et aucune des primitives utilisées n'est exotique : "
@@ -573,6 +573,18 @@ body("Une précision d'honnêteté, parce qu'un document qui ne la donnerait pas
      "construisent lentement. La gouvernance pourra l'assouplir (décroissance, "
      "plafonds, pondérations) ; elle ne pourra pas la supprimer sans casser "
      "la promesse même du réseau.")
+body("Une précision tardive mais décisive, ajoutée par la version 3 : la "
+     "simulation déterministe du noyau social (chapitre 17) a montré que "
+     "ces règles seules laissaient une fenêtre d'attaque — une ferme de "
+     "faux profils pouvait franchir le seuil de candidature à l'Anneau "
+     "avant le réseau honnête. Quatre règles correctives, toutes "
+     "dérivées de la thèse présente — le mur du temps appliqué à la "
+     "candidature, le poids nul des témoins non établis, la responsabilité "
+     "des attestations, la réduction de l'activité mutualisée — referment "
+     "cette fenêtre : la même attaque maximale ne prend plus un seul "
+     "siège sur seize ans. Le Kléos décrit ici est donc celui, corrigé "
+     "par sa propre simulation, que le reste du document considère comme "
+     "acquis.")
 
 # ═══ 13. GOUVERNANCE ═══
 h1("Gouvernance tricamérale et trésorerie")
@@ -739,7 +751,10 @@ body("Deux menaces méritent un développement. La collusion de l'Anneau "
      "subis : la transparence du mécanisme est la meilleure défense de "
      "l'opacité des données.")
 
-# ═══ 16. FEUILLE DE ROUTE ═══
+# ═══ 16-18. ADDENDA v3 : contrats, méthode, chantier ═══
+import antumbra_addenda  # ajoute les chapitres 16-18 à C
+
+# ═══ 19. FEUILLE DE ROUTE ═══
 h1("Feuille de route et conclusion")
 body("Le calendrier est réaliste parce qu'il est pensé pour deux "
      "développeurs, pas pour une fondation. Le socle est un fork de "
@@ -762,7 +777,7 @@ table(
         ["6 · Genesis", "M16-M18", "Cérémonie publique, binaries 5 cibles signés, document Lumen pour régulateurs publié", "Tous les critères précédents"],
     ],
     ratios=[0.17, 0.10, 0.45, 0.28],
-    caption="Tableau 14 — Dix-huit mois, six phases, un NO-GO toujours acceptable",
+    caption="Tableau 22 — Dix-huit mois, six phases, un NO-GO toujours acceptable",
 )
 bullet("Le code se partage dès la phase 1 : le porteur du projet et son "
        "assistant codent ensemble — l'un dans le protocole, l'autre dans "
@@ -773,13 +788,16 @@ bullet("L'écosystème XelisVault (caisse, tickets, paper wallet) devient "
        "réécriture — NERVA d'abord, ANTUMBRA à la suite.")
 bullet("Réservation des identités (domaine, réseaux sociaux, dépôts) dès "
        "validation du nom ANTUMBRA, avant même la phase 2.")
-body("Trois décisions humaines attendent, et tout le reste est mécanique : "
+body("Quatre décisions humaines attendent, et tout le reste est mécanique : "
      "valider le nom ANTUMBRA et son ticker ATU ; valider l'architecture "
-     "Kléos à trois couches — le Fait, l'Écho, la Durée — et son usage "
-     "pour l'Anneau, les parrainages et la gouvernance ; valider le "
-     "contrat du nombre d'or — 16 180 339 ATU, éclipses dorées de quatre "
-     "ans, cap strict atteint en 136 ans, trésorerie 6,18 %. Une fois ces "
-     "trois oui prononcés, la "
+     "Kléos à trois couches — le Fait, l'Écho, la Durée — greffée de ses "
+     "quatre règles correctives R1-R4, découvertes par simulation (chapitre "
+     "17), et son usage pour l'Anneau, les parrainages et la gouvernance ; "
+     "valider le contrat du nombre d'or — 16 180 339 ATU, éclipses dorées "
+     "de quatre ans, cap strict atteint en 136 ans, trésorerie 6,18 % ; "
+     "valider les contrats en trois étages — natifs, Mandats, Machine — "
+     "et leur périmètre assumé (chapitre 16). Une fois ces quatre oui "
+     "prononcés, la "
      "semaine 1 est écrite : dépôt public, README bilingue, ADR 001, et "
      "le premier bloc de devnet n'est plus qu'une question de mois.")
 body("Ce document est une base de discussion, pas un engagement ferme — et "

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: 1000px 720px; margin: 0; }
+  html, body { margin: 0; padding: 0; width: 1000px; height: 720px;
+               background: #ffffff; font-family: 'Liberation Sans', 'DejaVu Sans', Arial, sans-serif; }
+  .canvas { width: 1000px; height: 720px; position: relative; box-sizing: border-box; padding: 26px 28px; }
+
+  .stack { position: absolute; left: 28px; top: 26px; width: 640px; }
+
+  .band { border-radius: 10px; padding: 13px 16px; box-sizing: border-box; }
+  .band-label { font-size: 12px; font-weight: 700; letter-spacing: 2.5px;
+                text-transform: uppercase; color: #2d7ab3; margin-bottom: 8px; }
+
+  /* pale fills, saturated borders only */
+  .b-machine { background: #eef6fd; border: 1.5px solid #7ab0d6; }
+  .b-mandat { background: #f0f9f1; border: 1.5px solid #79b98a; }
+  .b-natif  { background: #f2effc; border: 1.5px solid #9a86d3; }
+
+  .nodes { display: flex; gap: 12px; }
+  .node { flex: 1; background: #ffffff; border: 1px solid #c9d8e6; border-radius: 7px;
+          padding: 9px 11px; text-align: center; }
+  .node-t { font-size: 17px; font-weight: 700; color: #142840; margin-bottom: 4px; }
+  .node-d { font-size: 13px; color: #45607a; line-height: 1.45; }
+
+  .wide-node { background: #ffffff; border: 1px solid #c9d8e6; border-radius: 7px;
+               padding: 10px 12px; text-align: center; }
+
+  .arrow { width: 0; height: 0; margin: 0 auto;
+            border-left: 11px solid transparent; border-right: 11px solid transparent;
+            border-top: 14px solid #8fb2cd; }
+  .arrow.up { border-top: none; border-bottom: 14px solid #8fb2cd; }
+  .gap { height: 14px; display: flex; align-items: center; justify-content: center; gap: 240px; }
+
+  /* side panel: escrow example */
+  .escrow { position: absolute; right: 28px; top: 122px; width: 268px;
+            border: 2px dashed #c9992a; border-radius: 10px; background: #fffdf4;
+            padding: 14px 15px; box-sizing: border-box; }
+  .escrow-t { font-size: 17px; font-weight: 700; color: #142840; margin-bottom: 2px; }
+  .escrow-l { font-size: 11.5px; font-weight: 700; letter-spacing: 2.2px; text-transform: uppercase;
+              color: #c9992a; margin-bottom: 8px; }
+  .step { display: flex; gap: 9px; margin-bottom: 9px; }
+  .step-n { width: 22px; height: 22px; border-radius: 50%; background: #c9992a; color: #fff;
+            font-size: 12.5px; font-weight: 700; text-align: center; line-height: 22px; flex: none; }
+  .step-d { font-size: 12.5px; color: #45607a; line-height: 1.5; }
+
+  .rule-note { position: absolute; right: 28px; top: 470px; width: 268px;
+               font-size: 12.5px; color: #3f5568; line-height: 1.55;
+               border-left: 3px solid #2d7ab3; padding-left: 10px;
+               background: #f5f8fc; padding: 10px 10px 10px 13px; border-radius: 0 7px 7px 0; }
+  .foot { position: absolute; left: 28px; bottom: 26px; width: 640px;
+          font-size: 12.5px; color: #5a7a96; line-height: 1.5;
+          border-left: 3px solid #79b98a; padding-left: 10px; }
+</style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="stack">
+      <div class="band b-machine">
+        <div class="band-label">Tier 3 · la Machine — phase 3</div>
+        <div class="nodes">
+          <div class="node"><div class="node-t">VM déterministe</div>
+            <div class="node-d">exécution mesurée (WASM)<br>sur l'état public</div></div>
+          <div class="node"><div class="node-t">Lit l'identité</div>
+            <div class="node-d">Kléos, Braises, Ciphers,<br>registres et noms</div></div>
+          <div class="node"><div class="node-t">Touche l'argent</div>
+            <div class="node-d">uniquement par Mandats,<br>avec preuve de plafond</div></div>
+        </div>
+      </div>
+      <div class="gap"><div class="arrow up"></div><div class="arrow up"></div></div>
+      <div class="band b-mandat">
+        <div class="band-label" style="color:#3f8a54;">Tier 2 · les Mandats — sorties à prédicat</div>
+        <div class="nodes">
+          <div class="node"><div class="node-t">Séquestre 2/3</div>
+            <div class="node-d">acheteur, vendeur, arbitre<br>deux signatures libèrent</div></div>
+          <div class="node"><div class="node-t">Versements</div>
+            <div class="node-d">T engagements successifs<br>loyers, abonnements</div></div>
+          <div class="node"><div class="node-t">Plafonds</div>
+            <div class="node-d">Δ ≤ N prouvé (range proof)<br>budgets d'agents</div></div>
+          <div class="node"><div class="node-t">Échange inter-chaînes</div>
+            <div class="node-d">secret révélé = paiement<br>HTLC, atomique</div></div>
+        </div>
+      </div>
+      <div class="gap"><div class="arrow up"></div><div class="arrow up"></div></div>
+      <div class="band b-natif">
+        <div class="band-label" style="color:#6a55ad;">Tier 1 · contrats natifs — le droit du protocole, en dur</div>
+        <div class="wide-node">
+          <div class="node-t">Kléos · Braise · Cipher · gouvernance · trésorerie · l'Anneau</div>
+          <div class="node-d">machines à états du protocole lui-même — pas de machine virtuelle, règles auditables une à une, mises à jour par gouvernance</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="escrow">
+      <div class="escrow-t">Un Mandat de séquestre</div>
+      <div class="escrow-l">Exemple, pas à pas</div>
+      <div class="step"><div class="step-n">1</div>
+        <div class="step-d">L'acheteur verrouille le paiement sur un engagement à trois clés — le montant reste invisible.</div></div>
+      <div class="step"><div class="step-n">2</div>
+        <div class="step-d">La livraison : deux signatures sur trois libèrent les fonds, sans jamais dévoiler le montant.</div></div>
+      <div class="step"><div class="step-n">3</div>
+        <div class="step-d">Litige : l'arbitre tranche — un arbitre partial brûle son Kléos.</div></div>
+    </div>
+
+    <div class="rule-note">Les engagements Pedersen s'additionnent : dépenser un Mandat de v produit deux sorties v₁ et v₂ avec C = C₁ + C₂ — la conservation se prouve sans révéler les montants.</div>
+
+    <div class="foot">L'argent reste dans l'ombre (engagements chiffrés) ; la logique vit dans la lumière (état public vérifiable) — la leçon de Xelis, adaptée au socle CryptoNote.</div>
+  </div>
+</body>
+</html>
