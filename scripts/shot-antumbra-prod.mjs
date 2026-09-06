@@ -1,0 +1,15 @@
+import { chromium } from 'playwright'
+const b = await chromium.launch()
+const p = await b.newPage({ viewport: { width: 1280, height: 900 } })
+await p.goto('https://www.xelisvault.xyz/antumbra', { waitUntil: 'networkidle', timeout: 60000 })
+await p.waitForTimeout(1800)
+await p.screenshot({ path: '/tmp/qa-antumbra-prod-top.png' })
+await p.evaluate(() => window.scrollTo(0, document.body.scrollHeight * 0.42))
+await p.waitForTimeout(900)
+await p.screenshot({ path: '/tmp/qa-antumbra-prod-mid.png' })
+// check the whitepaper download link
+const href = await p.getAttribute('a[href*="ANTUMBRA-whitepaper"]', 'href')
+const count = await p.locator('a[href*="ANTUMBRA-whitepaper"]').count()
+console.log('whitepaper links found:', count, '| first href:', href)
+await b.close()
+console.log('shots ok')
