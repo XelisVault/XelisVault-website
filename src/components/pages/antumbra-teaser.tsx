@@ -100,12 +100,12 @@ const STATS = [
 
 const PILLARS = [
   {
-    name: 'Kléos',
+    name: 'Kleos',
     tag: 'reputation',
     text: 'A three-layer consensus score: deeds, peer attestations, and time. Non-transferable, corroded by absence, crushed by cheating. The one resource money cannot fabricate, because it takes years to build.',
   },
   {
-    name: 'Braise',
+    name: 'Ember',
     tag: 'human identity',
     text: 'One person, one voice, no biometrics. Presence, capped sponsorship and seniority instead of iris scans. Nothing about your body is ever collected, anywhere, by anyone.',
   },
@@ -120,17 +120,17 @@ const PILLARS = [
     text: 'Private by default, provable on demand. Three levels of view keys let you show one payment, one ledger, or one compliance fact, without ever exposing anyone else.',
   },
   {
-    name: "l'Anneau",
+    name: 'The Ring',
     tag: 'finality',
     text: 'Fifty-five seats drawn by reputation sign a checkpoint every four seconds. Payments become irreversible in under six seconds, with zero capital locked: this is not proof of stake.',
   },
 ] as const
 
 const ROADMAP = [
-  { phase: '01', when: 'now', what: 'Specification, whitepaper v1.0, architecture decisions, social-core simulation green' },
+  { phase: '01', when: 'now', what: 'Specification, whitepaper v1.1, architecture decisions, social-core simulation green' },
   { phase: '02', when: 'M3–M5', what: 'CPU BlockDAG prototype on devnet, Dandelion++ propagation, 24 h without unexpected reorgs' },
-  { phase: '03', when: 'M6–M8', what: 'The Ring and Kléos v0: signed checkpoints, sub-6 s finality over 100 000 replayed blocks' },
-  { phase: '04', when: 'M9–M12', what: 'Braise and Cipher identities, Lumen view keys, external audit of the diff' },
+  { phase: '03', when: 'M6–M8', what: 'The Ring and Kleos v0: signed checkpoints, sub-6 s finality over 100 000 replayed blocks' },
+  { phase: '04', when: 'M9–M12', what: 'Ember and Cipher identities, Lumen view keys, external audit of the diff' },
   { phase: '05', when: 'M13–M15', what: 'Public testnet: faucet, explorer, 100 nodes, three consecutive no-incident upgrades' },
   { phase: '06', when: 'M16–M18', what: 'Genesis: public ceremony, signed binaries for five platforms, Lumen documentation for authorities' },
 ] as const
@@ -212,12 +212,12 @@ export function AntumbraTeaser() {
           className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-4"
         >
           <a
-            href="/docs/ANTUMBRA-livre-blanc-v1.0.pdf"
-            download="ANTUMBRA-livre-blanc-v1.0.pdf"
+            href="/docs/ANTUMBRA-whitepaper-v1.1.pdf"
+            download="ANTUMBRA-whitepaper-v1.1.pdf"
             onClick={onDownload}
             className="group relative font-mono text-[11px] uppercase tracking-[0.3em] px-7 py-4 border border-[oklch(0.85_0.1_88_/_0.55)] text-[oklch(0.9_0.08_88)] transition-all duration-300 hover:bg-[oklch(0.85_0.1_88_/_0.1)] hover:shadow-[0_0_38px_oklch(0.85_0.1_88_/_0.3)]"
           >
-            {downloading ? 'Opening the whitepaper…' : 'Whitepaper · v1.0 (PDF)'}
+            {downloading ? 'Opening the whitepaper…' : 'Whitepaper · v1.1 (PDF)'}
           </a>
           <a
             href="https://github.com/XelisVault/Antumbra"
@@ -235,7 +235,7 @@ export function AntumbraTeaser() {
           transition={{ delay: 1.2, duration: 0.8 }}
           className="mt-5 font-mono text-[9px] tracking-[0.2em] text-white/30 uppercase"
         >
-          30 pages · formulas · simulation results · 18-month roadmap · French edition
+          20 pages · formulas · simulation results · 18-month roadmap · English edition
         </motion.div>
       </section>
 
@@ -308,7 +308,7 @@ export function AntumbraTeaser() {
           <Reveal delay={0.35}>
             <div className="h-full rounded-lg border border-[oklch(0.85_0.1_88_/_0.3)] bg-[oklch(0.09_0.014_75_/_0.5)] p-6">
               <div className="flex items-baseline justify-between">
-                <div className="font-mono text-[15px] font-bold text-white">Éclipses</div>
+                <div className="font-mono text-[15px] font-bold text-white">Eclipses</div>
                 <div className="font-mono text-[8.5px] uppercase tracking-[0.24em] text-[oklch(0.8_0.09_88)]">
                   emission
                 </div>
@@ -369,7 +369,7 @@ export function AntumbraTeaser() {
               {[
                 ['55 / 55', 'seats captured, v2 rules'],
                 ['0 / 55', 'seats captured, R1–R4'],
-                ['11.9 vs 76.5', 'median Kléos, fake vs honest'],
+                ['11.9 vs 76.5', 'median Kleos, fake vs honest'],
               ].map(([k, v]) => (
                 <div key={v} className="rounded border border-white/10 py-4 px-2">
                   <div className="text-[15px] sm:text-[17px] font-bold text-[oklch(0.85_0.09_88)] tabular-nums">{k}</div>
@@ -433,7 +433,7 @@ export function AntumbraTeaser() {
             </p>
             <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-4">
               <a
-                href="/docs/ANTUMBRA-livre-blanc-v1.0.pdf"
+                href="/docs/ANTUMBRA-whitepaper-v1.1.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-mono text-[11px] uppercase tracking-[0.3em] px-7 py-4 bg-[oklch(0.85_0.11_88)] text-[oklch(0.13_0.02_75)] font-bold transition-shadow duration-300 hover:shadow-[0_0_44px_oklch(0.85_0.11_88_/_0.45)]"

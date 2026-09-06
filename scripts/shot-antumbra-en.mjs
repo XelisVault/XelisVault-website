@@ -1,0 +1,11 @@
+import { chromium } from 'playwright'
+const b = await chromium.launch()
+const p = await b.newPage({ viewport: { width: 1280, height: 900 } })
+await p.goto('http://localhost:3457/antumbra', { waitUntil: 'networkidle' })
+await p.waitForTimeout(1800)
+await p.screenshot({ path: '/tmp/qa-antumbra-en.png', fullPage: false })
+await p.evaluate(() => window.scrollTo(0, document.body.scrollHeight * 0.45))
+await p.waitForTimeout(900)
+await p.screenshot({ path: '/tmp/qa-antumbra-en2.png' })
+await b.close()
+console.log('shots ok')
