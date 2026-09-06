@@ -112,7 +112,12 @@ const PILLARS = [
   {
     name: 'Cipher',
     tag: 'AI agents',
-    text: 'Agents that pay on your behalf, by construction accountable: a human sponsor who answers for them, a declarative spending perimeter, a revocation switch that freezes them in one transaction.',
+    text: 'Agents that pay on your behalf, by construction accountable: a human sponsor who answers for them, a declarative spending perimeter, a revocation that gates every future spend.',
+  },
+  {
+    name: 'The Corona',
+    tag: 'machine governance',
+    text: 'AI senators propose, red-team and implement protocol changes under human veto: a seven-step pipeline, three blind implementations, juror inspection, progressive rollout with rollback. Paid like miners, ruined like attackers. Post-genesis, staged, audited.',
   },
   {
     name: 'Lumen',
@@ -127,12 +132,12 @@ const PILLARS = [
 ] as const
 
 const ROADMAP = [
-  { phase: '01', when: 'now', what: 'Specification, whitepaper v1.1, architecture decisions, social-core simulation green' },
-  { phase: '02', when: 'M3–M5', what: 'CPU BlockDAG prototype on devnet, Dandelion++ propagation, 24 h without unexpected reorgs' },
-  { phase: '03', when: 'M6–M8', what: 'The Ring and Kleos v0: signed checkpoints, sub-6 s finality over 100 000 replayed blocks' },
-  { phase: '04', when: 'M9–M12', what: 'Ember and Cipher identities, Lumen view keys, external audit of the diff' },
-  { phase: '05', when: 'M13–M15', what: 'Public testnet: faucet, explorer, 100 nodes, three consecutive no-incident upgrades' },
-  { phase: '06', when: 'M16–M18', what: 'Genesis: public ceremony, signed binaries for five platforms, Lumen documentation for authorities' },
+  { phase: '01', when: 'now', what: 'Specification, whitepaper v1.2 (audit closed), architecture decisions, social-core simulation green on 12 seeds' },
+  { phase: '02', when: 'M4–M8', what: 'CPU BlockDAG prototype on devnet, Dandelion++ propagation, 24 h without unexpected reorgs, capacity budget measured' },
+  { phase: '03', when: 'M9–M13', what: 'The Ring and Kleos v0: signed checkpoints, bootstrap ratchet, sub-6 s finality over 100 000 replayed blocks' },
+  { phase: '04', when: 'M14–M18', what: 'Ember and Cipher identities, Lumen view keys, external audit of the diff' },
+  { phase: '05', when: 'M19–M23', what: 'Public testnet: faucet, explorer, 100 nodes, three consecutive no-incident upgrades, Arena drills' },
+  { phase: '06', when: 'M24+', what: 'Genesis when every exit criterion is green: public ceremony, signed binaries for five platforms' },
 ] as const
 
 /* emission of the first 8 eclipses, in ATU (from the whitepaper table) */
@@ -212,12 +217,12 @@ export function AntumbraTeaser() {
           className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-4"
         >
           <a
-            href="/docs/ANTUMBRA-whitepaper-v1.1.pdf"
-            download="ANTUMBRA-whitepaper-v1.1.pdf"
+            href="/docs/ANTUMBRA-whitepaper-v1.2.pdf"
+            download="ANTUMBRA-whitepaper-v1.2.pdf"
             onClick={onDownload}
             className="group relative font-mono text-[11px] uppercase tracking-[0.3em] px-7 py-4 border border-[oklch(0.85_0.1_88_/_0.55)] text-[oklch(0.9_0.08_88)] transition-all duration-300 hover:bg-[oklch(0.85_0.1_88_/_0.1)] hover:shadow-[0_0_38px_oklch(0.85_0.1_88_/_0.3)]"
           >
-            {downloading ? 'Opening the whitepaper…' : 'Whitepaper · v1.1 (PDF)'}
+            {downloading ? 'Opening the whitepaper…' : 'Whitepaper · v1.2 (PDF)'}
           </a>
           <a
             href="https://github.com/XelisVault/Antumbra"
@@ -235,7 +240,7 @@ export function AntumbraTeaser() {
           transition={{ delay: 1.2, duration: 0.8 }}
           className="mt-5 font-mono text-[9px] tracking-[0.2em] text-white/30 uppercase"
         >
-          20 pages · formulas · simulation results · 18-month roadmap · English edition
+          28 pages · formulas · 12-seed simulation · the Corona · criteria-driven roadmap · English edition
         </motion.div>
       </section>
 
@@ -433,7 +438,7 @@ export function AntumbraTeaser() {
             </p>
             <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-4">
               <a
-                href="/docs/ANTUMBRA-whitepaper-v1.1.pdf"
+                href="/docs/ANTUMBRA-whitepaper-v1.2.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-mono text-[11px] uppercase tracking-[0.3em] px-7 py-4 bg-[oklch(0.85_0.11_88)] text-[oklch(0.13_0.02_75)] font-bold transition-shadow duration-300 hover:shadow-[0_0_44px_oklch(0.85_0.11_88_/_0.45)]"
