@@ -437,6 +437,10 @@ html.xv-booting::before {
   from { transform: rotate(0deg) translateX(var(--orbit-radius, 100px)) rotate(0deg); }
   to { transform: rotate(360deg) translateX(var(--orbit-radius, 100px)) rotate(-360deg); }
 }
+@keyframes antumbra-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 @keyframes scan {
   0% { transform: translateY(-100%); opacity: 0; }
   10%, 90% { opacity: 1; }

@@ -86,3 +86,6 @@ scripts/gen-img-tmp/
 
 # Axon source: local reference material for the ANTUMBRA study, not site code
 axon-src/
+
+# dépôt Antumbra (repo git séparé)
+antumbra/

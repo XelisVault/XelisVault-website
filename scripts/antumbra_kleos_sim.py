@@ -382,16 +382,16 @@ def figure(h0, hV, hA):
 
     fig, ax = plt.subplots(figsize=(10, 5.4), constrained_layout=True)
     ax.plot(years0, [h['hon_p50'] for h in h0], color='#2d7ab3', lw=2.2,
-            label='Réseau honnête — Kléos médian')
+            label='Réseau honnête · médian')
     ax.plot(years0, [h['hon_p90'] for h in h0], color='#2d7ab3', lw=1.6,
-            ls='--', label='Réseau honnête — 90e centile')
+            ls='--', label='Réseau honnête · 90e centile')
     ax.plot(yearsV, [h['fake_max'] for h in hV], color='#c0392b', lw=2.0,
             ls=(0, (5, 2)),
-            label='Règles v2 : meilleur faux profil — la faille')
+            label='Règles v2 : meilleur faux profil (la faille)')
     ax.plot(yearsA, [h['fake_max'] for h in hA], color='#8e44ad', lw=2.0,
             label='Règles R1-R4 : meilleur faux profil')
     ax.plot(yearsA, [h['fake_med'] for h in hA], color='#8e44ad', lw=1.6,
-            ls=':', label='Règles R1-R4 : faux profils — médian')
+            ls=':', label='Règles R1-R4 : faux profils · médian')
     ax.plot(years0, [h['whale_max'] for h in h0], color='#7f8c8d', lw=1.8,
             ls='-.', label='« baleine » : capital seul, inactive')
     ax.axhline(SEAT_THRESHOLD, color='#b07d2e', lw=1.4, ls=(0, (6, 3)))
@@ -401,8 +401,8 @@ def figure(h0, hV, hA):
 
     ax.set_xlabel('Années après la genèse', fontsize=11)
     ax.set_ylabel('Score Kléos (0 à 100)', fontsize=11)
-    ax.set_title('ANTUMBRA — trajectoires de Kléos sur 16 ans : la faille v2 '
-                 'et le correctif R1-R4 (graine 1618)', fontsize=12.5, pad=12)
+    ax.set_title('ANTUMBRA : trajectoires de Kléos sur 16 ans, faille v2 '
+                 'et correctif R1-R4 (graine 1618)', fontsize=12.5, pad=12)
     ax.set_xlim(0, 16)
     ax.set_ylim(0, 100)
     ax.grid(True, alpha=0.28, lw=0.7)

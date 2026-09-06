@@ -14,6 +14,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const xelis: MetadataRoute.Sitemap = [
     { path: '', priority: 1, freq: 'weekly' }, // home
     { path: '/vault-simulator', priority: 0.9, freq: 'monthly' },
+    { path: '/antumbra', priority: 0.9, freq: 'weekly' },
     { path: '/explorer', priority: 0.9, freq: 'daily' },
     { path: '/docs', priority: 0.8, freq: 'weekly' },
     { path: '/developers', priority: 0.8, freq: 'weekly' },

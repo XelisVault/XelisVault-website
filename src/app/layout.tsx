@@ -152,7 +152,7 @@ export default function RootLayout({
           id="xv-boot-veil"
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){try{var p=location.pathname.replace(/\\/+$/,'');if(p==='/nerva/pay')return;var ua=navigator.userAgent;var bot=/bot|crawl|spider|slurp|bingpreview|facebookexternalhit|twitterbot|linkedinbot|discordbot|telegrambot|whatsapp|slackbot|google-inspectiontool|lighthouse|headlesschrome|puppeteer|playwright|chrome-lighthouse/i;if(bot.test(ua))return;if(!sessionStorage.getItem('xv-side-session-v1')){document.documentElement.classList.add('xv-booting');setTimeout(function(){document.documentElement.classList.remove('xv-booting')},4000)}}catch(e){}})();",
+              "(function(){try{var p=location.pathname.replace(/\\/+$/,'');if(p==='/nerva/pay'||p==='/antumbra')return;var ua=navigator.userAgent;var bot=/bot|crawl|spider|slurp|bingpreview|facebookexternalhit|twitterbot|linkedinbot|discordbot|telegrambot|whatsapp|slackbot|google-inspectiontool|lighthouse|headlesschrome|puppeteer|playwright|chrome-lighthouse/i;if(bot.test(ua))return;if(!sessionStorage.getItem('xv-side-session-v1')){document.documentElement.classList.add('xv-booting');setTimeout(function(){document.documentElement.classList.remove('xv-booting')},4000)}}catch(e){}})();",
           }}
         />
         {children}

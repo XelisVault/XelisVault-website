@@ -70,6 +70,21 @@ export function isPaymentLinkPath(): boolean {
 }
 
 /**
+ * Is the current URL the ANTUMBRA teaser? Shared hype links must land
+ * straight on the eclipse, no ritual: the teaser is protocol-neutral.
+ * Pure-path check, safe in any environment. Keep in sync with the
+ * boot-veil script in app/layout.tsx.
+ */
+export function isAntumbraTeaserPath(): boolean {
+  try {
+    return typeof window !== 'undefined'
+      && window.location.pathname.replace(/\/+$/, '') === '/antumbra'
+  } catch {
+    return false
+  }
+}
+
+/**
  * Crawlers and social preview bots never see the entry ritual: their job is
  * to read the page content, so the gate stays closed for them. The page
  * itself is fully server-rendered underneath either way — this just keeps
@@ -102,6 +117,14 @@ export const useSide = create<SideState>((set) => ({
     if (isPaymentLinkPath()) {
       writeSessionSide('nerva')
       set({ side: 'nerva', gateOpen: false, hydrated: true })
+      return
+    }
+    // A visitor following a shared ANTUMBRA teaser link lands straight on
+    // the eclipse page: adopt the XELIS side silently (the teaser is
+    // protocol-neutral and links back to the vault by itself).
+    if (isAntumbraTeaserPath()) {
+      writeSessionSide('xelis')
+      set({ side: 'xelis', gateOpen: false, hydrated: true })
       return
     }
     // Search crawlers and link-preview bots: content, not theatre.

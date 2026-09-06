@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  @page { size: 794px 1123px; margin: 0; }
+  :root {
+    --c-bg: #0a1628;
+    --c-accent: #4da8da;
+    --c-text: #e8f0f8;
+    --c-muted: #7a9bb8;
+    --c-gold: #d8b96a;
+  }
+  html, body { margin: 0; padding: 0; width: 794px; height: 1123px; background: var(--c-bg); color: var(--c-text); font-family: 'Inter', sans-serif; }
+  @media screen {
+    html { height: auto; display: flex; justify-content: center; min-height: 100vh; background: var(--c-bg); }
+    body { transform-origin: top center; scale: min(1, calc(100vw / 794), calc(100vh / 1123)); margin: 0 auto; box-shadow: 0 0 60px rgba(0,0,0,0.4); }
+  }
+  .cover { width: 794px; height: 1123px; position: relative; box-sizing: border-box; border: none; outline: none; box-shadow: none; }
+  /* Layer 1 : l'éclipse annulaire, l'anneau de lumière autour de l'ombre */
+  .layer1 { position: absolute; inset: 0; overflow: hidden; z-index: 1; }
+  .glow-a { position: absolute; left: 40px; top: 60px; width: 420px; height: 420px;
+            background: radial-gradient(circle, rgba(45,122,179,0.14) 0%, rgba(45,122,179,0) 70%); }
+  .glow-b { position: absolute; right: 60px; bottom: 90px; width: 480px; height: 480px;
+            background: radial-gradient(circle, rgba(45,122,179,0.11) 0%, rgba(45,122,179,0) 70%); }
+  .eclipse { position: absolute; right: 96px; top: 210px; width: 190px; height: 190px; }
+  .eclipse .disk { position: absolute; inset: 14px; border-radius: 50%; background: #0a1628;
+                   box-shadow: 0 0 0 2px rgba(77,168,218,0.0); }
+  .eclipse .ring { position: absolute; inset: 0; border-radius: 50%;
+                   border: 5px solid rgba(216,185,106,0.85);
+                   box-shadow: 0 0 26px rgba(216,185,106,0.35), inset 0 0 26px rgba(216,185,106,0.18); }
+  .eclipse .tick { position: absolute; left: 50%; top: 50%; width: 1.5px; height: 88px;
+                   background: linear-gradient(180deg, rgba(77,168,218,0) 8%, rgba(77,168,218,0.5) 50%, rgba(77,168,218,0) 92%);
+                   transform-origin: center; animation: orbit 14s linear infinite; }
+  @keyframes orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  /* Layer 2 : cadre lumineux */
+  .layer2 { position: absolute; inset: 0; z-index: 2; }
+  .frame { position: absolute; left: 60px; right: 60px; top: 80px; bottom: 80px;
+           border: 2px solid var(--c-accent); }
+  /* Layer 3 : contenu */
+  .layer3 { position: absolute; inset: 0; z-index: 3; }
+  .kicker { position: absolute; left: 104px; top: 135px; font-size: 11pt; font-weight: 300;
+            color: var(--c-accent); letter-spacing: 5px; text-transform: uppercase; }
+  .hero { position: absolute; left: 104px; top: 236px; font-size: 58pt; font-weight: 900;
+          font-family: 'Playfair Display', serif; color: var(--c-text); line-height: 1.15;
+          text-shadow: 0 0 34px rgba(77,168,218,0.35); }
+  .hero-sub { position: absolute; left: 104px; top: 352px; font-size: 15pt; font-weight: 400;
+              color: var(--c-text); opacity: 0.9; letter-spacing: 1px; max-width: 430px; }
+  .summary { position: absolute; left: 104px; top: 505px; font-size: 14.5pt; line-height: 1.7;
+             color: var(--c-muted); max-width: 540px; }
+  .keyline { position: absolute; left: 104px; top: 780px; display: flex; gap: 34px; }
+  .keyline .k { font-size: 17pt; font-weight: 600; color: var(--c-gold); }
+  .keyline .k small { display: block; font-size: 8.5pt; font-weight: 300; color: var(--c-muted);
+                      letter-spacing: 1.5px; text-transform: uppercase; margin-top: 3px; }
+  .org { position: absolute; left: 104px; top: 905px; font-size: 18pt; font-weight: 600;
+         color: var(--c-text); }
+  .org-sub { position: absolute; left: 104px; top: 948px; font-size: 11pt; font-weight: 300;
+             color: var(--c-muted); }
+  .date { position: absolute; left: 104px; top: 985px; font-size: 10pt; color: var(--c-muted);
+          letter-spacing: 3px; text-transform: uppercase; font-weight: 300; }
+</style>
+</head>
+<body>
+  <div class="cover">
+    <div class="layer1">
+      <div class="glow-a"></div>
+      <div class="glow-b"></div>
+      <div class="eclipse"><div class="ring"></div><div class="disk"></div><div class="tick"></div></div>
+    </div>
+    <div class="layer2">
+      <div class="frame"></div>
+    </div>
+    <div class="layer3">
+      <div class="kicker">Livre blanc · version 1.0 · XelisVault</div>
+      <div class="hero">ANTUMBRA</div>
+      <div class="hero-sub">La couche de confiance de l'économie humains-machines</div>
+      <div class="summary">Un BlockDAG CPU privé finalisé en moins de six secondes, des
+        identités humaines sans biométrie, des agents responsables par construction,
+        une réputation que le capital ne peut pas acheter, des contrats en trois étages
+        sous le Voile, et un plafond de 16 180 339 unités : le nombre d'or.
+        Spécification complète, transaction par transaction, éprouvée par sa propre
+        simulation avant la première ligne de code de chaîne.</div>
+      <div class="keyline">
+        <div class="k">2 s<small>blocs</small></div>
+        <div class="k">&lt; 6 s<small>finalité</small></div>
+        <div class="k">16 180 339<small>ATU, plafond</small></div>
+        <div class="k">136 ans<small>émission</small></div>
+        <div class="k">0 %<small>prémine</small></div>
+      </div>
+      <div class="org">XelisVault</div>
+      <div class="org-sub">Document public de référence · code et spécification vivant dans le même dépôt</div>
+      <div class="date">Septembre 2026 · xelisvault.xyz</div>
+    </div>
+  </div>
+</body>
+</html>

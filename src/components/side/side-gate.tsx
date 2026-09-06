@@ -154,7 +154,7 @@ function WorldPanel({ world, active, dimmed, suppressed, entranceDelay, onChoose
         transition={{ duration: suppressed ? 0.5 : 0.45, ease: EASE_OUT }}
         className={`relative group flex flex-col items-center justify-center overflow-hidden h-full w-full px-8 sm:px-12 outline-none focus-visible:ring-2 ${
           isXelis ? 'focus-visible:ring-[oklch(0.52_0.09_70)]' : 'focus-visible:ring-[oklch(0.78_0.06_237)]'
-        }`}
+        } ${isXelis ? 'pb-14 md:pb-0' : 'pt-14 md:pt-0'}`}
         aria-label={isXelis ? 'Enter the XELIS side: confidential finance on BlockDAG' : 'Enter the NERVA side: private CPU-mined digital cash'}
       >
         {/* ambient world wash */}
@@ -562,6 +562,65 @@ export function SideGate() {
               }}
             />
           </div>
+
+          {/* the third door: ANTUMBRA teaser at the seam crossing.
+              Both seams (vertical on desktop, horizontal on mobile) meet at
+              the exact centre: one medallion serves both layouts. It is a
+              navigation, not a world crossing: the visitor keeps their side. */}
+          <motion.button
+            type="button"
+            onClick={() => {
+              if (phase !== 'idle') return
+              choose(side ?? 'xelis')
+              router.push('/antumbra')
+            }}
+            initial={{ opacity: 0, scale: 0.65 }}
+            animate={{ opacity: crossingWorld ? 0 : 1, scale: crossingWorld ? 0.82 : 1 }}
+            transition={{
+              opacity: { delay: crossingWorld ? 0 : 1.05, duration: crossingWorld ? 0.28 : 0.9 },
+              scale: { delay: crossingWorld ? 0 : 1.05, duration: crossingWorld ? 0.28 : 0.9 },
+              ease: EASE_OUT,
+            }}
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 group flex flex-col items-center gap-1.5 sm:gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-[oklch(0.85_0.1_88)] rounded-2xl px-3 py-2 sm:px-4 sm:py-3"
+            aria-label="Open the ANTUMBRA teaser: the third protocol, specification phase"
+          >
+            {/* the annular eclipse sigil */}
+            <span className="relative block w-[48px] h-[48px] sm:w-[96px] sm:h-[96px] transition-transform duration-500 group-hover:scale-[1.06]">
+              <span
+                className="absolute -inset-3 sm:-inset-5 rounded-full blur-xl opacity-60 group-hover:opacity-100 transition-opacity duration-500"
+                style={{ background: 'radial-gradient(circle, oklch(0.85 0.1 88 / 0.5), transparent 70%)' }}
+              />
+              <span
+                className="absolute inset-0 rounded-full border-[3px] sm:border-[4px] border-[oklch(0.85_0.11_88_/_0.85)] group-hover:border-[oklch(0.89_0.11_88)] transition-colors duration-500"
+                style={{ boxShadow: '0 0 22px oklch(0.85 0.1 88 / 0.5), inset 0 0 22px oklch(0.85 0.1 88 / 0.3)' }}
+              />
+              <span
+                className="absolute rounded-full bg-[oklch(0.05_0.012_270)] inset-[8px] sm:inset-[13px]"
+                style={{ boxShadow: 'inset 0 0 22px oklch(0.02 0.01 270)' }}
+              />
+              {!reduce && (
+                <span
+                  className="absolute inset-0"
+                  style={{ animation: 'antumbra-spin 9s linear infinite' }}
+                  aria-hidden="true"
+                >
+                  <span
+                    className="absolute left-1/2 -translate-x-1/2 -top-[1.5px] sm:-top-[2px] w-[3.5px] h-[3.5px] sm:w-[5px] sm:h-[5px] rounded-full bg-[oklch(0.93_0.08_92)]"
+                    style={{ boxShadow: '0 0 10px oklch(0.9 0.1 90 / 0.95)' }}
+                  />
+                </span>
+              )}
+            </span>
+            {/* label */}
+            <span className="flex flex-col items-center">
+              <span className="font-mono font-bold tracking-[0.3em] sm:tracking-[0.34em] text-[8.5px] sm:text-[12px] text-[oklch(0.88_0.09_88)]">
+                ANTUMBRA
+              </span>
+              <span className="mt-1 hidden sm:block font-mono text-[8px] uppercase tracking-[0.3em] text-white/35 group-hover:text-white/60 transition-colors duration-400">
+                the third door · coming
+              </span>
+            </span>
+          </motion.button>
 
           {/* header */}
           <div className="absolute top-0 left-0 right-0 z-20 pt-7 sm:pt-9 pb-3 px-6 text-center pointer-events-none">
