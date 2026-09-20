@@ -153,7 +153,7 @@ const CATEGORIES: Category[] = [
     name: 'Privacy',
     color: 'vault',
     contracts: [
-      { name: 'PrivacyMixer', file: 'contracts/privacy/PrivacyMixer.slx', desc: 'Note + nullifier mixer with a shared pool; mixes XEL, xUSD and VLT (v2, v12R-7)', phase: 'core' },
+      { name: 'PrivacyMixer', file: 'contracts/mixer/PrivacyMixerV4.slx', desc: 'Recipient-bound bearer notes in a shared XEL pool · Merkle tree depth 20 · 10/100/1000 XEL denominations · 0.3% withdraw fee (V4, protocol v13)', phase: 'core' },
     ],
   },
   {
@@ -242,6 +242,13 @@ const CATEGORIES: Category[] = [
   },
 ]
 
+// v13: only contracts/mixer/PrivacyMixerV4.slx lives at the repository root —
+// every other (legacy) contract moved to legacy/contracts/ in the protocol repo.
+const ghContractHref = (file: string) =>
+  `https://github.com/XelisVault/xelis-vault/blob/main/${
+    file.startsWith('contracts/mixer/') ? '' : 'legacy/'
+  }${file}`
+
 const COLOR_CLASSES: Record<string, { text: string; dot: string }> = {
   vault: { text: 'text-vault', dot: 'bg-vault' },
   xusd: { text: 'text-xusd', dot: 'bg-xusd' },
@@ -277,20 +284,21 @@ export function Contracts() {
           </Reveal>
           <Reveal delay={0.1}>
             <h2 className="mt-6 font-display text-4xl md:text-6xl lg:text-7xl font-semibold tracking-[-0.03em] leading-[1]">
-              51 contracts.
+              1 audited mixer live.
               <br />
-              <span className="text-gradient-vault">966 entry functions.</span>
+              <span className="text-gradient-vault">Core suite in consolidation.</span>
               <br />
-              <span className="text-muted-foreground">v11.5 · audit-remediated core.</span>
+              <span className="text-muted-foreground">v13 · legacy preserved.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.2}>
             <p className="mt-8 text-lg text-muted-foreground leading-relaxed">
-              Every contract is open-source (MIT-licensed). The 37 core contracts are v11.5
-              audit-remediated (9 critical bugs fixed in v10.5 + 34 cross-contract call bugs
-              fixed in v11.1) and will deploy on testnet August 30.
-              The 13 Phase 5+ contracts are written, security-reviewed internally, and gated
-              behind a governance vote; they will not deploy until the core protocol is stable.
+              Every contract is open-source (MIT-licensed). PrivacyMixer V4 is the one
+              audited, mainnet-ready contract of the v13 protocol — recipient-bound bearer
+              notes, a depth-20 Merkle tree and a shared XEL pool. The catalog below is the
+              legacy suite: 38 contracts that ran on testnet as a live demo while the core
+              protocol consolidates, plus 13 Phase 5+ drafts gated behind review. None of
+              the legacy set is mainnet-bound until it is rebuilt to the V4 standard.
             </p>
           </Reveal>
         </div>
@@ -309,7 +317,7 @@ export function Contracts() {
               />
             </div>
             <div className="mt-2 text-xs font-mono text-muted-foreground">
-              Showing {totalShown} of 51 contracts · 37 core + 13 Phase 5+
+              Showing {totalShown} of 51 contracts · PrivacyMixer V4 live · legacy suite in consolidation
             </div>
           </div>
         </Reveal>
@@ -364,7 +372,7 @@ export function Contracts() {
                             {cat.contracts.map((contract) => (
                               <a
                                 key={contract.name}
-                                href={`https://github.com/XelisVault/xelis-vault/blob/main/${contract.file}`}
+                                href={ghContractHref(contract.file)}
                                 target="_blank"
                                 rel="noreferrer"
                                 className={`group border-l-2 border-foreground/10 hover:border-vault pl-4 transition-all ${contract.phase === 'future' ? 'opacity-80' : ''}`}

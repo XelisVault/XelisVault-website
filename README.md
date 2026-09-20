@@ -1,182 +1,144 @@
-# XelisVault
+# XelisVault Website
 
-Two protocols, one standard: privacy. XelisVault is a fully client-side
-gateway for the **XELIS** and **NERVA (XNV)** privacy networks — live
-network telemetry, explorers, a merchant toolkit, and cold-storage tools.
-No accounts, no tracking, no keys held by anyone but you.
+[![Site CI](https://github.com/XelisVault/XelisVault-website/actions/workflows/site-ci.yml/badge.svg)](https://github.com/XelisVault/XelisVault-website/actions/workflows/site-ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-- Site: https://xelisvault.xyz
-- XELIS world: `/` (vault simulator, mixer, oracle, contracts explorer)
+Source code of **https://www.xelisvault.xyz/** — a fully client-side gateway for
+the XELIS and NERVA (XNV) privacy networks: live network telemetry, explorers,
+a merchant toolkit, cold-storage tools, and the XelisVault protocol app.
+
+The site never holds keys and never sees user funds. Everything — invoicing,
+payment matching, PDF generation, wallet encryption, transaction signing —
+runs in the visitor's browser. There are no accounts and no tracking.
+
+- XELIS world: `/` (protocol app, vault simulator, mixer, explorer)
 - NERVA world: `/nerva` (explorer, merchant toolkit, paper wallet, mining)
 
-## The NERVA merchant toolkit
+Protocol status (v13): the audited **PrivacyMixer V4** is the one
+mainnet-ready contract; the 51-contract legacy core is consolidating in the
+[protocol repository](https://github.com/XelisVault/xelis-vault) (see its
+[SECURITY.md](https://github.com/XelisVault/xelis-vault/blob/main/docs/SECURITY.md)
+and `legacy/` directory).
 
-| Tool | Route | What it does |
-| --- | --- | --- |
-| **POS terminal** | `/nerva/caisse` | Type an amount (XNV or USD at the live rate), the customer scans an integrated-address QR, the terminal matches the payment (auto with your optional view key, or customer-declared) to 10 confirmations, then prints a PDF receipt. Every sale is sealed into a SHA-256 chained local journal. |
-| **Price tags** | `/nerva/tickets` | Printable A4 shelf labels (10 per sheet). Each tag QR encodes a checkout link — any phone camera opens the payment page with the product, the exact amount and the live USD equivalent. |
-| **Payment links** | `/nerva/link` | Stripe-style checkout with zero infrastructure: the whole invoice lives inside its URL (base64url JSON). |
-| **Paper wallet** | `/nerva/paper-wallet` | Cold-storage key generation in your browser — see the security section below. |
-| **Watch-only** | `/nerva/watch` | Address + view key: watch payments arrive without exposing a spend key. |
-| **Mining center** | `/nerva/mining` | Live hashrate/difficulty and an honest solo-mining odds calculator. |
+## Stack
 
-### Live XNV/USD rate (reference) + EUR secondary
-
-All fiat equivalents (POS keypad, price tags, checkout pages, journals) are
-**live by default**, quoted in **USD — the market's reference currency —
-with EUR shown alongside**. They are fetched through our own aggregator
-route `GET /api/nerva/price`:
-
-1. **CoinGecko** — direct USD/EUR/BTC quotes for `nerva`
-2. **CoinPaprika** — USD quote, EUR via the ECB reference rate
-   (frankfurter.dev) if CoinGecko is unreachable
-
-The route caches for 60 s server-side and serves a stale quote (flagged
-`stale: true`) for up to 30 min during a full outage, so a terminal keeps
-working through exchange downtime. Merchants can set a manual USD rate
-override in the POS settings — the override always wins.
-
-## Security model — how to verify it
-
-The site's core promise: **your keys and your money never touch our
-servers, because nothing is ever sent to one.** Everything (invoices,
-detection, PDFs, journals) runs in your browser.
-
-### Paper wallet (the sensitive one)
-
-**How it is built:**
-
-- The spend key comes from `crypto.getRandomValues` — the operating
-  system's CSPRNG. No `Math.random` anywhere in the key path
-  (`src/lib/nerva/cryptonote.ts`, a byte-exact TypeScript port of NERVA's
-  C++ `account.cpp` / `crypto.cpp` / `base58.cpp` / `electrum-words.cpp`).
-- The view key is `sc_reduce32(keccak(spend))`, the address is base58
-  with a keccak checksum — the exact account math the official NERVA
-  wallet uses. `scripts/test-nerva-crypto.ts` runs 70 assertions,
-  including full round-trips (mnemonic → keys → address → decode).
-- **Mnemonic encoding is cross-checked against the C++ itself**:
-  `scripts/nerva-mnemonic-xcheck.cpp` is a verbatim copy of NERVA's
-  `electrum-words.cpp` loops (little-endian 4-byte groups, base-1626
-  carry encoding, CRC-32 checksum word); compile it and run
-  `scripts/test-nerva-mnemonic-xcheck.ts` — 48 vectors must match the
-  TypeScript output bit-for-bit. This is what guarantees that a seed
-  printed here restores the **same address** in `nerva-wallet-cli`.
-- The page performs **zero network requests after load** and **writes
-  nothing to any storage**. Load it, go offline, generate — it works.
-- The on-screen sheet self-verifies in front of you: the address is
-  decoded back and compared byte-for-byte to the generated keys, plus a
-  mnemonic restore round-trip. Red mark = do not fund.
-- Print via the browser, or download a vector A5 PDF (fold line hides
-  the secrets) built by the same dependency-free PDF writer as the
-  receipts.
-
-**How anyone can audit it:**
-
-```bash
-bun run audit:paper-wallet   # static audit: fails on any network/storage
-bun run test:crypto          # 70 CryptoNote round-trip assertions
-g++ -O2 -o /tmp/mnemonic-xcheck scripts/nerva-mnemonic-xcheck.cpp
-bun run scripts/test-nerva-mnemonic-xcheck.ts   # 48 vectors vs C++ verbatim
-```
-
-The audit script scans the exact modules the page executes and fails on
-any network primitive (`fetch`, `XMLHttpRequest`, `WebSocket`,
-`sendBeacon`, …) or storage primitive (`localStorage`, `indexedDB`,
-`document.cookie`, …), and verifies the entropy source. Runtime proof:
-open DevTools → Network, clear it, click *Generate paper wallet* — the
-tab stays empty. Stronger: airplane mode, then generate.
-
-### Payment matching (honest disclosure)
-
-NervaLink invoices are **v2**: the QR pays an **integrated address** — the
-merchant address with a random 8-byte payment id embedded (prefix 0x7081).
-Every default NERVA wallet then encrypts and attaches that reference
-automatically (tx_extra tag 0x02 → 0x01). We do not use the legacy
-unencrypted 64-hex payment id: nerva-wallet refuses it by default
-(`--long-payment-id-support` = false), which is why first-generation links
-could miss real payments.
-
-Because references travel **encrypted** (that's NERVA's privacy doing its
-job), matching works on three honest levels:
-
-1. **Merchant auto-detection** — with the optional secret view key in the
-   POS settings, the terminal decrypts every integrated reference with
-   `D = 8·viewKey·txPub`, exactly what an official wallet does. The key
-   stays in the merchant's browser; it can see incoming funds, never
-   spend them.
-2. **Payer declaration** — the checkout page lets the payer paste the
-   transaction hash for an instant receipt; with the transaction secret
-   key (`get_tx_key`) the page verifies the reference cryptographically:
-   `pid = enc ⊕ keccak(D‖0x8d)[0..8]`, `D = 8·txKey·viewPub`.
-3. **Legacy links (v1)** still resolve through the clear long-id scan.
-
-RingCT encrypts amounts on-chain; the receiving wallet always has the
-final word on the exact sum. Everything is queried directly from your
-browser, results cached only in your `localStorage`.
+| Layer | Choice |
+| --- | --- |
+| Framework | Next.js 16 (App Router, webpack build), React 19 |
+| Language | TypeScript (strict, `ignoreBuildErrors: false` — errors fail the build) |
+| Styling | Tailwind CSS v4, shadcn/ui (Radix primitives), Framer Motion |
+| State | Zustand stores, React hooks |
+| Crypto | @noble/hashes, @noble/curves (blake3, ed25519, XSWD signing flows) |
+| Charts / 3D | Recharts, three.js (explorer visualization) |
+| Deployment | Vercel (static-friendly; single dynamic route for the NERVA price aggregator) |
 
 ## Repository layout
 
 ```
 src/
   app/                    Next.js App Router routes
-    api/nerva/price/      live XNV rate aggregator (CoinGecko → CoinPaprika)
-    nerva/                POS, price tags, checkout, paper wallet, mining, …
+    api/nerva/price/      live XNV/USD-EUR rate aggregator (CoinGecko → CoinPaprika)
+    api/quest/verify/     quest answer verification (server-side only)
+    nerva/                POS, price tags, checkout, paper wallet, mining, explorer
+    <pages>/              about, docs, security, developers, compare, learn, …
   components/
-    nerva/                NERVA world UI (POS, tickets, pay-page, explorer…)
-    sections/             XELIS landing sections
-    site/                 shared site chrome, ceremony, quest
+    app/                  XELIS protocol app (dashboard, mixer, vault engine, …)
+    explorer/             XELIS block explorer UI
+    nerva/                NERVA world UI (POS, tickets, pay-page, explorer)
+    pages/                static marketing pages
+    quest/                community quest/puzzle layer
+    sections/             landing page sections
+    site/                 shared chrome, launch experience, feature tour
+    ui/                   shadcn/ui primitives
   lib/
-    nerva/                nlink (stateless invoices), pdf (zero-dep PDF
-                          writer), cryptonote (key math), receipt-chain
-                          (SHA-256 journal), price (live rate), api (RPC)
-    xelis/                XELIS network client (RPC, WS, XSWD, contracts)
-scripts/                  dev & QA tooling (see table below)
-scripts/archive/          one-off build artifacts kept for history
-download/                 generated deliverables (blockchain proposal, …)
+    xelis/                XELIS network client (RPC, WS, XSWD, contracts, tx)
+    nerva/                CryptoNote key math, invoices, PDF writer, price
+    wallet/               local encrypted wallet storage (PBKDF2 + AES-GCM)
+scripts/                  dev & QA tooling (excluded from the app build)
+public/                   static assets (images, audio, docs)
 ```
 
-### Development
+## Getting started
+
+Requires Node.js >= 20 (CI uses 22). npm is the canonical package manager
+(`package-lock.json` is committed; `bun.lock` also exists for the Bun-based
+test scripts).
 
 ```bash
-bun install          # dependencies
-bun run dev          # dev server on :3000
-bun run lint         # ESLint
-bun run build        # production build (webpack)
+npm install          # install dependencies
+npm run dev          # dev server on http://localhost:3000
+npm run lint         # ESLint (must pass — enforced in CI)
+npm run typecheck    # tsc --noEmit (must pass — enforced in CI)
+npm run build        # production build; TypeScript errors fail the build
+npm start            # serve the production build
 ```
 
-### Tests & QA scripts
+## Environment variables
+
+None are required. The site is 100% client-side and reads no secrets at
+build or runtime. Optionally, `NEXT_TELEMETRY_DISABLED=1` disables Next.js
+telemetry during local builds. All network endpoints (XELIS mainnet/testnet
+nodes, NERVA explorer API, CoinGecko/CoinPaprika for the price route) are
+public and hardcoded in `src/lib/`.
+
+## Security model
+
+- **No server-side custody.** The browser talks directly to public nodes;
+  the only dynamic routes aggregate public price data and verify quest
+  answers. No keys, no sessions, no database.
+- **Local wallet encryption.** Optional in-browser wallets are encrypted
+  with PBKDF2-SHA256 (600k iterations) + AES-256-GCM
+  (`src/lib/wallet/secure-storage.ts`); the seed never leaves the browser.
+- **XSWD signing.** Transactions are signed by the user's local wallet
+  (Genesix) over `ws://127.0.0.1:44325` — the site cannot sign anything.
+- **Security headers.** CSP, HSTS, X-Frame-Options: DENY, nosniff,
+  Referrer-Policy and Permissions-Policy are set both in `next.config.ts`
+  and `vercel.json`. Known limitation: `script-src 'unsafe-inline'` (Next.js
+  App Router needs inline bootstrap scripts; no nonce infrastructure yet).
+- **Paper wallet.** Cold-storage generation with zero post-load network
+  requests, self-verifying sheets, and a static audit:
+  `npm run audit:paper-wallet` (fails on any network/storage primitive).
+
+## Tests & QA scripts
 
 | Script | Purpose |
 | --- | --- |
-| `bun run test:crypto` | CryptoNote key math vs NERVA's C++ semantics (70 assertions) |
-| `bun run scripts/test-nerva-mnemonic-xcheck.ts` | Mnemonic encoding vs verbatim C++ port (48 vectors) |
-| `bun run scripts/test-nlink-v2.ts` | Integrated addresses, encrypted-pid matching, v2 URIs |
-| `bun run test:pdf` | Receipt / price-tag / paper-wallet PDFs, then `qpdf --check` |
-| `python3 scripts/decode-qr-pdf.py <png…>` | zbar + OpenCV decode of every QR in rendered pages |
-| `bun run test:nlink` | Payment-link detection engine (mocked chain fixtures) |
-| `bun run audit:paper-wallet` | Static security audit of the paper-wallet code path |
-| `scripts/qa-explorer*.sh`, `qa-overflow.sh`, `qa-privacy.sh` | Playwright-driven UI QA passes |
-| `scripts/probe-*.mjs` | one-shot live probes of the public APIs |
-
-PDF/QR pipeline check end-to-end:
-
-```bash
-bun run test:pdf
-cd scripts/gen-img-tmp && pdftoppm -r 150 -png tags-test.pdf tag
-cd ../.. && python3 scripts/decode-qr-pdf.py scripts/gen-img-tmp/tag-1.png
-```
+| `npm run test:crypto` | CryptoNote key math vs NERVA's C++ semantics (70 assertions) |
+| `npm run test:pdf` | Receipt / price-tag / paper-wallet PDFs (run with Bun) |
+| `npm run test:nlink` | Payment-link detection engine (mocked chain fixtures) |
+| `npm run audit:paper-wallet` | Static security audit of the paper-wallet code path |
+| `scripts/test-nerva-mnemonic-xcheck.ts` | Mnemonic encoding vs verbatim C++ port (48 vectors) |
+| `scripts/qa-*.sh`, `scripts/probe-*.mjs` | Playwright-driven UI QA and live API probes |
 
 ## Deployment
 
-Static-friendly Next.js (App Router) — deploys on Vercel with zero
-configuration (`vercel.json` included). The single dynamic endpoint is
-`/api/nerva/price` (server-side aggregation, 60 s cache). No database is
-required at runtime; the Prisma/SQLite dev schema is used only by the
-local quest feature and is git-ignored.
+Vercel, zero configuration (`vercel.json` included). Every push to `main`
+deploys production; `site-ci.yml` gates pushes and pull requests with
+lint + typecheck + build (10-minute budget, read-only token).
+
+## Contributing
+
+1. Fork the repository and create a feature branch.
+2. `npm run lint && npm run typecheck && npm run build` must pass locally.
+3. Keep everything client-side: no new server routes, no secrets, no
+   third-party trackers. Additions to `connect-src` in the CSP
+   (`next.config.ts` + `vercel.json`) must be justified in the PR.
+4. Do not commit generated artifacts, QA screenshots or local databases
+   (see `.gitignore`).
+5. Open a pull request against `main`.
+
+Security issues: follow the
+[responsible disclosure policy](https://github.com/XelisVault/xelis-vault/security/policy)
+— never open a public issue for a vulnerability.
+
+## Related repositories
+
+- **Protocol (Silex contracts, audits, CLI):** https://github.com/XelisVault/xelis-vault
+- XELIS blockchain: https://github.com/xelis-project/xelis-blockchain
+- Genesix wallet (XSWD): https://github.com/xelis-project/xelis-genesix-wallet
 
 ## License & credits
 
-Code: MIT. Not affiliated with the Nerva or Xelis projects — grateful
-guests of both. Network data: public explorer APIs queried client-side.
-XNV unit: 10¹² atomic units · ring size 5 · 60 s blocks · one CPU, one
-vote.
+Code: MIT. Not affiliated with the Nerva or Xelis projects — grateful guests
+of both. Network data comes from public explorer/node APIs queried
+client-side.

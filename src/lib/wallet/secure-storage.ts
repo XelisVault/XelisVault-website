@@ -57,7 +57,7 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary)
 }
 
-function base64ToBytes(b64: string): Uint8Array {
+function base64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
   const binary = atob(b64)
   const bytes = new Uint8Array(binary.length)
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
@@ -66,7 +66,7 @@ function base64ToBytes(b64: string): Uint8Array {
 
 // ---- key derivation ----
 
-async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+async function deriveKey(password: string, salt: Uint8Array<ArrayBuffer>): Promise<CryptoKey> {
   const enc = new TextEncoder()
   const passwordKey = await crypto.subtle.importKey(
     'raw',
@@ -138,7 +138,11 @@ export async function storeWallet(
 
   const enc = new TextEncoder()
   const ciphertext = new Uint8Array(
-    await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, privateKey)
+    await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      privateKey as Uint8Array<ArrayBuffer>
+    )
   )
 
   const data: EncryptedWallet = {

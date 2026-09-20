@@ -13,9 +13,9 @@ const MILESTONES = [
     status: 'done',
     title: 'Core Protocol v11.5',
     items: [
-      '51 contracts total · 966 entry functions · MIT license',
-      '37 core contracts deployed at testnet launch',
-      '13 Phase 5+ contracts written, gated behind governance vote',
+      '51 contracts written under v11.5 · MIT license, preserved in legacy/',
+      '34-contract core ran live on the v12R testnet deployment',
+      '13 Phase 5+ contracts written, gated behind review',
       'VaultEngineV3 confidential mode · StakedOracle v10 · VaultSwapV2',
       'Progressive slashing · trimmed median · anti-Sybil stake',
     ],
@@ -45,6 +45,17 @@ const MILESTONES = [
       'Wallet connection via Genesix + local RPC',
     ],
     date: 'Aug 30, 2026 · 14:00 UTC',
+  },
+  {
+    phase: 'Active',
+    status: 'active',
+    title: 'Protocol v13 — Consolidation',
+    items: [
+      'PrivacyMixer V4: recipient-bound notes, Merkle depth 20, 10/100/1000 XEL — the one audited, mainnet-ready contract',
+      '51 legacy contracts moved to legacy/, non-deployable as-is',
+      'Core protocol rebuilt to the V4 standard before any mainnet deployment',
+    ],
+    date: 'Now',
   },
   {
     phase: 'Planned',
@@ -230,8 +241,8 @@ export function CTA() {
         {/* Quick stats: hairline band on ink */}
         <RevealStagger className="mt-16 grid grid-cols-2 md:grid-cols-4 border-t border-b border-ink-foreground/15 max-w-4xl mx-auto">
           {[
-            { value: '51', label: 'Smart Contracts' },
-            { value: '14', label: 'Categories' },
+            { value: '1', label: 'Audited Mixer Live' },
+            { value: '51', label: 'Legacy Contracts' },
             { value: '10M', label: 'VLT Supply' },
             { value: '5s', label: 'Block Time' },
           ].map((s, i) => (
@@ -291,8 +302,8 @@ export function Footer() {
     {
       title: 'Documentation',
       links: [
-        { label: 'Whitepaper', href: 'https://github.com/XelisVault/xelis-vault/blob/main/docs/WHITEPAPER.md', ext: true },
-        { label: 'Audit Report', href: 'https://github.com/XelisVault/xelis-vault/blob/main/docs/AUDIT.md', ext: true },
+        { label: 'Whitepaper', href: 'https://github.com/XelisVault/xelis-vault/blob/main/legacy/docs/WHITEPAPER.md', ext: true },
+        { label: 'Audit Report', href: 'https://github.com/XelisVault/xelis-vault/blob/main/docs/SECURITY.md', ext: true },
         { label: 'XELIS Docs', href: 'https://docs.xelis.io', ext: true },
         { label: 'XSWD Protocol', href: 'https://docs.xelis.io/features/wallet/xswd', ext: true },
         { label: 'Silex Language', href: 'https://docs.xelis.io/features/smart-contracts/silex', ext: true },

@@ -13,7 +13,7 @@ import { Reveal, SectionLabel } from '@/components/site/reveal'
 //
 // Sources:
 //  - XELIS: https://xelis.io, https://docs.xelis.io
-//  - XELIS Vault whitepaper: https://github.com/XelisVault/xelis-vault/blob/main/docs/WHITEPAPER.md
+//  - XELIS Vault whitepaper: https://github.com/XelisVault/xelis-vault/blob/main/legacy/docs/WHITEPAPER.md
 //  - Aztec: https://aztec.network (zk-rollup L2 on Ethereum)
 //  - Railgun: https://railgun.org (privacy protocol on Ethereum/BNB/Polygon)
 //  - Secret Network: https://scrt.network (L1 with SGX-based privacy)
@@ -40,7 +40,7 @@ const ROWS: Row[] = [
   { feature: 'AMM with MEV protection', xelis: 'VaultSwapV2 (TWAP + vol fees)', aztec: 'L2 sequencer (single block)', railgun: 'L2 host', secret: 'No native AMM' },
   { feature: 'Decentralized oracle', xelis: 'StakedOracle (5-tier reputation, slashing)', aztec: 'No native', railgun: 'No native', secret: 'Band Protocol (external)', xelisHighlight: true },
   { feature: 'Encrypted messaging', xelis: 'VaultChat (E2E, Merkle anchoring)', aztec: 'No', railgun: 'No', secret: 'No', xelisHighlight: true },
-  { feature: 'Privacy mixer', xelis: 'PrivacyMixer v2 (notes + shared pool, XEL native)', aztec: 'Native (shielded addresses)', railgun: 'Native (shielded pools)', secret: 'No native', xelisHighlight: true },
+  { feature: 'Privacy mixer', xelis: 'PrivacyMixer V4 (recipient-bound notes, shared XEL pool)', aztec: 'Native (shielded addresses)', railgun: 'Native (shielded pools)', secret: 'No native', xelisHighlight: true },
   { feature: 'Governance', xelis: 'On-chain VLT + 48h Timelock', aztec: 'Off-chain', railgun: 'Off-chain (DAO)', secret: 'On-chain (SCRT staking)' },
 
   // Tokenomics
@@ -176,7 +176,7 @@ export function ComparePage() {
                 the comparative analysis against each of the projects above.
               </p>
               <a
-                href="https://github.com/XelisVault/xelis-vault/blob/main/docs/WHITEPAPER.md"
+                href="https://github.com/XelisVault/xelis-vault/blob/main/legacy/docs/WHITEPAPER.md"
                 target="_blank"
                 rel="noreferrer"
                 className="mt-6 inline-flex h-11 items-center gap-2 rounded-none bg-vault px-6 text-sm font-semibold text-white hover:bg-vault/85 transition-all hover:"

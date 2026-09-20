@@ -1,14 +1,21 @@
 'use client'
 
-// PrivacyMixer v2 — note + nullifier + shared pool (v12R-7, 2026-08-27)
+// PrivacyMixer V4 — recipient-bound bearer notes + shared pool (protocol v13)
 //
-// Contract model (contracts/privacy/PrivacyMixer.slx):
-//   deposit(asset, secret)  → stores ONLY commitment = blake3(secret), credits
-//                             the shared pool. No sender, no recipient stored.
-//   withdraw(recipient, asset, amount, secret) → destroys the note (nullifier)
-//                             and pays ANY recipient from the shared pool.
-//   Any amount (XELIS encrypts attached amounts) · XEL = Hash::zero() ·
-//   admin fee 1 bps on deposit (live) · withdraw fee 0 bps (live).
+// V4 contract model (contracts/mixer/PrivacyMixerV4.slx — the one audited,
+// mainnet-ready contract of the v13 protocol):
+//   deposit → the user picks a denomination (10 / 100 / 1000 XEL) and the
+//             redeeming recipient; the contract stores ONLY the commitment
+//             blake3("XVMIX4:NOTE:" || secret || recipient || amount) as a
+//             leaf of an incremental Merkle tree (depth 20, ~1M notes,
+//             64-root history) and credits the shared pool.
+//   withdraw → pays the recipient embedded in the commitment: a leaked
+//             secret cannot be redirected (anti-theft) and a front-run
+//             attempt pays the legitimate recipient anyway (anti-frontrun).
+//   0.3% withdraw fee (hard cap 1%) · no deposit fee · owner can pause and
+//   trigger an irreversible community emergency exit (pro-rata, no fee) —
+//   but has NO function that can touch deposited funds, and ownership can
+//   be renounced entirely.
 //
 // The secret is generated in the browser (crypto.getRandomValues) and NEVER
 // sent anywhere except as an invoke param to the user's own wallet (XSWD).
@@ -190,15 +197,15 @@ export function Mixer() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="XEL pool" value={formatAmount(info?.poolXel)} sub="live shared pool" loading={loading && !info} />
-        <StatCard label="Total mixed" value={formatAmount(info?.totalMixedXel)} sub="XEL since v12R-7" accent="emerald" />
+        <StatCard label="Total mixed" value={formatAmount(info?.totalMixedXel)} sub="XEL all-time" accent="emerald" />
         <StatCard label="Mixes" value={info?.totalMixes ?? '–'} sub="withdrawals executed" accent="vlt" />
         <StatCard label="Notes created" value={info?.noteCount ?? '–'} sub={info?.paused ? '⚠ paused' : 'active pool'} accent={info?.paused ? 'amber' : 'xusd'} />
       </div>
 
       <Panel
-        title="Privacy Mixer v2"
-        desc="Deposit with a random secret, the contract stores only blake3(secret) and credits a shared pool. Withdraw by presenting the secret, to any address. No sender, no recipient, no amount-per-identity ever touches contract storage."
-        actions={<span className="font-mono text-xs text-vault">v2 · v12R-7</span>}
+        title="Privacy Mixer V4"
+        desc="Deposit XEL into the shared pool as a bearer note bound to your recipient address. The contract stores only a Merkle commitment — no sender, no recipient in the clear — and withdrawals always pay the address embedded in the note."
+        actions={<span className="font-mono text-xs text-vault">V4 · protocol v13</span>}
       >
         {!address ? (
           <ConnectPrompt note="Connect your XELIS wallet to mix funds. The secret is generated locally in your browser." />
@@ -235,9 +242,10 @@ export function Mixer() {
 
             {tab === 'deposit' && (
               <div className="space-y-4">
-                <AmountInput value={amount} onChange={setAmount} symbol={asset} max={assetBalance} placeholder={asset === 'XEL' ? '0.1' : '10'} />
+                <AmountInput value={amount} onChange={setAmount} symbol={asset} max={assetBalance} placeholder={asset === 'XEL' ? '10' : '10'} />
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Any amount, XELIS encrypts the attached transfer. A {(info?.adminFeeBps ?? 1) / 100}% admin fee is taken on deposit, the rest joins the shared {asset} pool.
+                  Fixed denominations on V4: 10, 100 or 1000 XEL, deposited exactly. XELIS encrypts the attached
+                  transfer, and no fee is taken on deposit — the full amount joins the shared pool.
                   Your balance stays private: the contract never records who deposited.
                 </p>
                 <div className="flex items-center gap-3">
@@ -269,8 +277,8 @@ export function Mixer() {
                     </div>
                     <ul className="space-y-1 text-[11px] text-amber-200/70 leading-relaxed">
                       <li>· It is the ONLY way to withdraw your funds later, no reset, no recovery.</li>
-                      <li>· It never touches the blockchain: only blake3(secret) is stored.</li>
-                      <li>· Hand it to anyone off-chain to let them withdraw on your behalf.</li>
+                      <li>· It never touches the blockchain: only the note commitment — a hash of secret, recipient and amount — is stored.</li>
+                      <li>· Keep it with the recipient address: the note pays only the address it was created for.</li>
                     </ul>
                   </motion.div>
                 )}
@@ -289,9 +297,9 @@ export function Mixer() {
                     spellCheck={false}
                     className="w-full rounded-none border border-border bg-background/60 px-3.5 py-2.5 font-mono text-xs outline-none focus:border-vault/50 transition-colors"
                   />
-                  <p className="mt-1.5 text-[11px] text-muted-foreground">The recipient can be any address, including one that never deposited. Funds come from the shared pool.</p>
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">The recipient is bound into the note at deposit time — withdrawals always pay that address, so a leaked secret cannot be redirected. A 0.3% withdraw fee applies (hard-capped at 1%).</p>
                 </div>
-                <AmountInput value={amount} onChange={setAmount} symbol={asset} placeholder={asset === 'XEL' ? '0.1' : '10'} />
+                <AmountInput value={amount} onChange={setAmount} symbol={asset} placeholder="10" />
                 <SecretField value={secret} onChange={setSecret} />
                 <div className="flex items-center gap-3">
                   <ActionButton
@@ -358,23 +366,23 @@ export function Mixer() {
       </Panel>
 
       {/* Model explainer */}
-      <Panel title="How the v2 mixer works" desc="Note + nullifier + shared pool, rewritten after the v1 privacy audit (v12R-7).">
+      <Panel title="How the V4 mixer works" desc="Bearer notes bound to the recipient, a Merkle tree of commitments, one shared pool.">
         <div className="grid sm:grid-cols-3 gap-3">
           {[
             {
               step: '1 · Deposit',
-              title: 'Create a note',
-              body: 'Deposit any amount of XEL, xUSD or VLT with a random secret. The contract stores only blake3(secret) and credits the shared pool, never your address, never the recipient.',
+              title: 'Mint a bearer note',
+              body: 'Pick a denomination — 10, 100 or 1000 XEL — and the address allowed to redeem. The contract stores only blake3(secret‖recipient‖amount) as a leaf of an incremental Merkle tree (depth 20, up to ~1M notes) and credits the shared pool.',
             },
             {
               step: '2 · Hold',
-              title: 'Pool anonymity',
-              body: 'Funds sit in one fungible pool per asset. XELIS encrypted transfers plus the shared pool make the anonymity set every depositor of that asset, timing analysis is the only remaining vector.',
+              title: 'Shared-pool anonymity',
+              body: 'All denominations sit in one fungible XEL pool. XELIS encrypted transfers plus the shared pool make the anonymity set every depositor; the tree keeps a 64-root history so proofs stay valid against recent roots.',
             },
             {
               step: '3 · Withdraw',
               title: 'Nullifier & pay',
-              body: 'Present the secret to withdraw any portion, to ANY address. The note is destroyed (nullifier) and the pool pays out, no on-chain field links your deposit to the withdrawal.',
+              body: 'Present the secret and a Merkle proof: the nullifier destroys the note and the pool pays the recipient embedded in the commitment — a stolen secret cannot be redirected and a front-run attempt pays the rightful owner. 0.3% fee, hard cap 1%.',
             },
           ].map((s) => (
             <div key={s.step} className="rounded-none border border-vault/25 bg-vault/5 p-4">
@@ -385,11 +393,12 @@ export function Mixer() {
           ))}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Badge tone="emerald">Mixes XEL · xUSD · VLT</Badge>
-          <Badge tone="vault">Any amount</Badge>
-          <Badge tone="vlt">Transferable secrets</Badge>
-          <Badge tone="amber">{(info?.adminFeeBps ?? 1) / 100}% deposit fee</Badge>
-          <Badge tone="muted">{(info?.withdrawFeeBps ?? 0) / 100}% withdraw fee</Badge>
+          <Badge tone="emerald">XEL only</Badge>
+          <Badge tone="vault">10 · 100 · 1000 XEL notes</Badge>
+          <Badge tone="vlt">Merkle depth 20 · 1M notes</Badge>
+          <Badge tone="amber">0.3% withdraw fee · cap 1%</Badge>
+          <Badge tone="muted">Pausable · community emergency exit</Badge>
+          <Badge tone="muted">Owner cannot touch funds</Badge>
         </div>
       </Panel>
     </div>

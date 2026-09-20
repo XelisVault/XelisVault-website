@@ -81,7 +81,7 @@ export function Solution() {
                 <div className="absolute bottom-3 left-3 right-3 text-ink-foreground">
                   <div className="font-display italic text-sm">Engineered in layers.</div>
                   <div className="text-[9px] font-mono uppercase tracking-[0.18em] opacity-85 mt-0.5">
-                    6 layers · 51 contracts
+                    1 audited mixer · core in consolidation
                   </div>
                 </div>
               </div>
@@ -126,10 +126,10 @@ export function Solution() {
         <Reveal delay={0.2}>
           <div className="mt-16 grid grid-cols-2 md:grid-cols-4 border-t border-b border-foreground/10">
             {[
-              { value: '51', label: 'Smart Contracts', sub: '966 entry functions' },
+              { value: '1', label: 'Audited Mixer Live', sub: 'PrivacyMixer V4 · XEL only' },
+              { value: '51', label: 'Legacy Contracts', sub: 'Core protocol in consolidation' },
               { value: '5s', label: 'Block Time', sub: 'XELIS BlockDAG' },
               { value: '10M', label: 'VLT Fixed Supply', sub: 'Deflationary · MIT' },
-              { value: '$1', label: 'xUSD Peg', sub: 'PSM + overcollateral' },
             ].map((s, i) => (
               <div key={`solution-stat-${i}`} className="py-6 md:py-8 px-5 md:px-6 md:border-l md:first:border-l-0 border-foreground/10">
                 <div className="font-display text-3xl md:text-4xl font-semibold text-gradient-vault">

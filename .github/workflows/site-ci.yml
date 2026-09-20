@@ -1,0 +1,43 @@
+# XelisVault website CI — lint, typecheck and production build.
+#
+# The build runs with TypeScript strictness enforced (next.config.ts sets
+# typescript.ignoreBuildErrors: false), so type errors fail the build.
+# Next.js 16 no longer runs ESLint during `next build`, so lint runs as an
+# explicit step here.
+name: Site CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Lint, typecheck and build (Node 22)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build

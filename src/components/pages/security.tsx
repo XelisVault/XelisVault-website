@@ -37,7 +37,7 @@ const SECURITY_FEATURES = [
     icon: Users,
     title: 'Guardian Multisig (3-of-5)',
     description:
-      'A 3-of-5 guardian multisig can pause any contract in case of emergency. Every governance action passes through a 48-hour Timelock, so the community has time to inspect and exit positions before a malicious proposal can execute. Guardians are doxxed community members elected by VLT holders.',
+      'A 3-of-5 guardian multisig can pause any contract in case of emergency. Every governance action passes through a 48-hour Timelock, so the community has time to inspect and exit positions before a malicious proposal can execute. Guardians are anonymous community members elected by VLT holders — the team is anonymous by design, the same privacy standard as the wider XELIS ecosystem.',
   },
   {
     icon: Zap,
@@ -266,7 +266,7 @@ export function SecurityPage() {
 
                     <div className="mt-4 flex items-center gap-3">
                       <a
-                        href="https://github.com/XelisVault/xelis-vault/blob/main/docs/AUDIT.md"
+                        href="https://github.com/XelisVault/xelis-vault/blob/main/docs/SECURITY.md"
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1.5 text-xs font-medium text-vault hover:underline"

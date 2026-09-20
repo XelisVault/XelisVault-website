@@ -42,7 +42,7 @@ export function Xusd() {
                 encrypted: recipients, amounts, and balances stay private by default. The
                 peg is enforced by two complementary mechanisms, a Peg Stability Module for
                 instant mint and redeem at $1 oracle price, and overcollateralized vaults that
-                back every xUSD with XEL collateral at a minimum 150% collateral ratio.
+                back every xUSD with XEL collateral at a minimum 200% collateral ratio.
               </p>
             </Reveal>
 
@@ -111,7 +111,7 @@ export function Xusd() {
           <div className="mt-20 grid grid-cols-3 border-t border-b border-foreground/10">
             {[
               { value: '$1.00', label: 'Target Peg', sub: 'USD oracle median', color: 'text-xusd' },
-              { value: '150%', label: 'Collateral Ratio', sub: 'Liquidation threshold', color: 'text-vault' },
+              { value: '200%', label: 'Min Collateral Ratio', sub: 'Liquidation threshold', color: 'text-vault' },
               { value: '0.5%', label: 'PSM Fee', sub: 'Mint or redeem at $1', color: 'text-xusd' },
             ].map((s, i) => (
               <div key={`xusd-stat-${i}`} className="py-6 md:py-8 px-5 md:px-6 md:border-l md:first:border-l-0 border-foreground/10">

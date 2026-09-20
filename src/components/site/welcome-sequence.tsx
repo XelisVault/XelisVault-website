@@ -561,11 +561,11 @@ export function WelcomeSequence({
             className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-mono text-xs md:text-sm"
           >
             <span style={{ color: EMERALD }}>
-              <b className="text-lg md:text-xl font-display">51</b> contracts
+              <b className="text-lg md:text-xl font-display">1</b> audited mixer
             </span>
             <span className="text-muted-foreground/40">·</span>
             <span style={{ color: 'oklch(0.78 0.16 195)' }}>
-              <b className="text-lg md:text-xl font-display">966</b> entry points
+              <b className="text-lg md:text-xl font-display">51</b> legacy contracts
             </span>
             <span className="text-muted-foreground/40">·</span>
             <span style={{ color: GOLD }}>

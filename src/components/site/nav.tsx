@@ -61,7 +61,7 @@ const RESOURCES = [
 ]
 
 const UTILITY_LINKS = [
-  { label: 'Whitepaper', href: 'https://github.com/XelisVault/xelis-vault/blob/main/docs/WHITEPAPER.md' },
+  { label: 'Whitepaper', href: 'https://github.com/XelisVault/xelis-vault/blob/main/legacy/docs/WHITEPAPER.md' },
   { label: 'GitHub', href: 'https://github.com/XelisVault/xelis-vault' },
   { label: 'Discord', href: 'https://discord.gg/UHpYAWbG' },
 ]

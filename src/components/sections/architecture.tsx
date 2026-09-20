@@ -94,9 +94,11 @@ export function Architecture() {
           </Reveal>
           <Reveal delay={0.2}>
             <p className="mt-8 text-lg text-muted-foreground leading-relaxed">
-              51 smart contracts, organized in 6 layers. Each layer secures the one above,
-              and every byte of state is encrypted at the XELIS BlockDAG level, long before
-              it ever reaches a contract.
+              One audited mixer live today — PrivacyMixer V4, mainnet-ready. The
+              51 contracts of the original suite are preserved under the v13
+              reorganization and consolidating behind it; the map below traces
+              the full legacy stack, where every byte of state is encrypted at
+              the XELIS BlockDAG level long before it ever reaches a contract.
             </p>
           </Reveal>
         </div>
@@ -107,7 +109,7 @@ export function Architecture() {
           <Reveal>
             <div>
               <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/70 pb-3 border-b border-foreground/10">
-                The six layers
+                The legacy stack, layer by layer
               </div>
               {LAYERS.map((layer, i) => {
                 const isActive = active === i

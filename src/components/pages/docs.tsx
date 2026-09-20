@@ -12,7 +12,9 @@ import { Reveal, SectionLabel } from '@/components/site/reveal'
 import { Badge } from '@/components/app/shared'
 import { CLI_INSTALL, CLI_UNINSTALL, DISCORD_URL, GITHUB_URL, GENESIX_URL, XELIS_FAUCET_URL } from '@/lib/xelis/cli'
 
-const GITHUB_DOCS = `${GITHUB_URL}/blob/main/docs`
+// v13 reorganization: the legacy protocol docs live under legacy/docs/ in the
+// protocol repository; docs/SECURITY.md is the one current document.
+const GITHUB_DOCS = `${GITHUB_URL}/blob/main/legacy/docs`
 
 // ---------------------------------------------------------------------------
 // Data
@@ -119,9 +121,9 @@ const SPECS = [
 ]
 
 const REFERENCE = [
-  { label: 'Contracts', value: '51', note: '34 core deployed · 13 Phase 5+ brainstorming · 4 vault engine variants' },
-  { label: 'Entry functions', value: '966', note: '739 wallet-invokable chunks across 35 compiled contracts' },
-  { label: 'Deployment', value: 'v12R', note: 'Live since 2026-08-24 · registry-resolved addresses' },
+  { label: 'Live contract', value: 'V4', note: 'PrivacyMixer V4 — audited, mainnet-ready (protocol v13)' },
+  { label: 'Legacy suite', value: '51', note: 'Moved to legacy/ in v13 · core protocol in consolidation' },
+  { label: 'Testnet demo', value: 'v12R', note: '34-contract demo deployment · registry-resolved addresses' },
   { label: 'Block time', value: '5 s', note: 'XELIS BlockDAG · 8-digit atomic precision everywhere' },
 ]
 
@@ -341,7 +343,7 @@ export function DocsPage() {
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {[
                   { label: 'Protocol repository', href: GITHUB_URL },
-                  { label: 'ENTRY_IDS.md (966 entries)', href: `${GITHUB_DOCS}/ENTRY_IDS.md` },
+                  { label: 'ENTRY_IDS.md (legacy suite)', href: `${GITHUB_DOCS}/ENTRY_IDS.md` },
                   { label: 'Deployment state (v12R)', href: `${GITHUB_DOCS}/deployment_state.json` },
                   { label: 'Testnet explorer', href: 'https://testnet-explorer.xelis.io' },
                   { label: 'XELIS faucet', href: XELIS_FAUCET_URL },

@@ -86,7 +86,7 @@ const SCENES: SceneDef[] = [
     kicker: 'Module 03 · Privacy',
     title: 'Privacy Mixer',
     tagline: 'Break the link between what goes in and what comes out',
-    stat: 'NOTE + NULLIFIER · SHARED POOL · v2',
+    stat: 'RECIPIENT-BOUND NOTES · SHARED POOL · V4',
     color: C.amber,
     glyph: '⊗',
   },

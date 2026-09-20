@@ -238,7 +238,7 @@ function SceneIntro() {
         transition={{ delay: 0.6 }}
         className="relative"
       >
-        <div className="text-xs font-mono uppercase tracking-[0.4em] text-vault mb-3">v11.5 · Audit-remediated (18/18)</div>
+        <div className="text-xs font-mono uppercase tracking-[0.4em] text-vault mb-3">v13 · PrivacyMixer V4 · audited</div>
         <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-semibold tracking-[-0.04em] leading-[0.9]">
           <span className="text-gradient-mono">XELIS</span>
           <br />
@@ -447,7 +447,7 @@ function SceneXUSD() {
         <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-xl mx-auto mb-6">
           USD-pegged. Encrypted transfers.
           <br />
-          Backed by XEL collateral at 150% ratio.
+          Backed by XEL collateral at 200% ratio.
         </p>
 
         {/* Stats */}
@@ -459,7 +459,7 @@ function SceneXUSD() {
         >
           {[
             { value: '$1', label: 'Peg' },
-            { value: '150%', label: 'Collateral' },
+            { value: '200%', label: 'Collateral' },
             { value: '0.5%', label: 'PSM fee' },
           ].map((s, i) => (
             <motion.div
@@ -748,13 +748,13 @@ function SceneFinale() {
           transition={{ delay: 1.2 }}
           className="flex flex-wrap items-center justify-center gap-4 text-xs font-mono text-muted-foreground"
         >
-          <span>51 contracts</span>
+          <span>1 audited mixer</span>
           <span className="text-vault">·</span>
-          <span>966 entries</span>
+          <span>51 legacy contracts</span>
           <span className="text-vault">·</span>
           <span>MIT licensed</span>
           <span className="text-vault">·</span>
-          <span>v11.5</span>
+          <span>v13</span>
         </motion.div>
 
         <motion.div

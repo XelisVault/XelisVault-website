@@ -317,7 +317,7 @@ export function VaultChatSection() {
             </div>
             <p className="mt-5 text-xs text-muted-foreground">
               Full guide:{' '}
-              <a href="https://github.com/XelisVault/xelis-vault/blob/main/docs/CHAT_GUIDE.md" target="_blank" rel="noreferrer" className="text-vault border-b border-vault/40 hover:border-vault transition-colors">
+              <a href="https://github.com/XelisVault/xelis-vault/blob/main/legacy/docs/CHAT_GUIDE.md" target="_blank" rel="noreferrer" className="text-vault border-b border-vault/40 hover:border-vault transition-colors">
                 docs/CHAT_GUIDE.md
               </a>
             </p>

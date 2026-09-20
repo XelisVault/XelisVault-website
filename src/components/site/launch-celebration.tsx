@@ -945,16 +945,16 @@ export function LaunchCelebration({
                 >
                   <span className="text-vault">
                     <b className="text-lg md:text-xl font-display">
-                      <CountUp to={51} active delay={1500} />
+                      <CountUp to={1} active delay={1500} />
                     </b>{' '}
-                    contracts
+                    audited mixer
                   </span>
                   <span className="text-muted-foreground/40">·</span>
                   <span className="text-xusd">
                     <b className="text-lg md:text-xl font-display">
-                      <CountUp to={966} active delay={1650} />
+                      <CountUp to={51} active delay={1650} />
                     </b>{' '}
-                    entry points
+                    legacy contracts
                   </span>
                   <span className="text-muted-foreground/40">·</span>
                   <span className="text-vlt">

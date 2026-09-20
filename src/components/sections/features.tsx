@@ -85,8 +85,8 @@ export function Features() {
           {[
             {
               title: 'PrivacyMixer',
-              tag: 'XEL · xUSD · VLT',
-              desc: 'Tornado-style note mixing for XEL, xUSD and VLT. Deposit with a secret, withdraw from the shared pool to any address; the contract stores no sender, no recipient.',
+              tag: 'Bearer notes · XEL',
+              desc: 'Deposit XEL as a bearer note bound to your recipient address. The contract stores only a Merkle commitment and always pays the address embedded in the note: no sender, no amounts, no redirectable secrets.',
             },
             {
               title: 'ComplianceModule',

@@ -87,7 +87,7 @@ export function Hero() {
               />
               {isLaunched
                 ? 'Testnet live · Connect your wallet'
-                : 'v11.5 · 51 contracts · XELIS BlockDAG'}
+                : 'v13 · 1 audited mixer live · core in consolidation'}
             </motion.div>
 
             {/* Headline: the private-bank statement */}
@@ -198,10 +198,10 @@ export function Hero() {
           transition={{ duration: 1, delay: 1.3 }}
           className="mt-16 md:mt-20 border-t border-b border-foreground/10 grid grid-cols-2 md:grid-cols-5"
         >
-          <Figure value={51} label="Smart Contracts" sub="Silex · MIT licensed" />
-          <Figure value={966} label="Entry Functions" sub="Audited surface" />
+          <Figure value={1} label="Audited Contract" sub="PrivacyMixer V4 · live" />
+          <Figure value={51} label="Legacy Contracts" sub="Consolidating · v13" />
           <Figure value={5} suffix="s" label="Block Time" sub="XELIS BlockDAG" />
-          <Figure value={150} suffix="%" label="Min Collateral" sub="VaultEngine" />
+          <Figure value={200} suffix="%" label="Min Collateral" sub="VaultEngine" />
           <Figure value={0} label="Linkable Data Points" sub="Encrypted by default" delay={0.15} />
         </motion.div>
       </div>

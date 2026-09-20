@@ -430,7 +430,7 @@ export function MiningDelegation() {
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
               <a
-                href="https://github.com/XelisVault/xelis-vault/blob/main/docs/MINER_GUIDE.md"
+                href="https://github.com/XelisVault/xelis-vault/blob/main/legacy/docs/MINER_GUIDE.md"
                 target="_blank"
                 rel="noreferrer"
                 className="group inline-flex h-11 items-center rounded-none bg-vault px-7 text-sm font-semibold text-white hover:bg-vault/85 transition-all"
@@ -438,7 +438,7 @@ export function MiningDelegation() {
                 Read the miner guide
               </a>
               <a
-                href="https://github.com/XelisVault/xelis-vault/blob/main/docs/REWARD_SYSTEM.md"
+                href="https://github.com/XelisVault/xelis-vault/blob/main/legacy/docs/REWARD_SYSTEM.md"
                 target="_blank"
                 rel="noreferrer"
                 className="group inline-flex items-center gap-1.5 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"

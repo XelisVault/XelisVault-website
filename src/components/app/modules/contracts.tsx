@@ -56,7 +56,7 @@ export function Contracts() {
         <div className="rounded-none border border-border bg-card/40 p-4">
           <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground mb-2">Contracts</div>
           <div className="font-mono text-xl font-semibold text-vault">{PROTOCOL_CONTRACTS.length}</div>
-          <div className="text-[11px] text-muted-foreground">51 in the repo · 34 core deployed</div>
+          <div className="text-[11px] text-muted-foreground">v12 legacy catalog · 34 live on testnet</div>
         </div>
         <div className="rounded-none border border-border bg-card/40 p-4">
           <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground mb-2">Live on testnet</div>
@@ -64,9 +64,9 @@ export function Contracts() {
           <div className="text-[11px] text-muted-foreground">v12R deployment · registry-resolved</div>
         </div>
         <div className="rounded-none border border-border bg-card/40 p-4">
-          <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground mb-2">Entry functions</div>
-          <div className="font-mono text-xl font-semibold">966</div>
-          <div className="text-[11px] text-muted-foreground">739 wallet-invokable chunks</div>
+          <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground mb-2">Mainnet-ready</div>
+          <div className="font-mono text-xl font-semibold text-vault">1</div>
+          <div className="text-[11px] text-muted-foreground">PrivacyMixer V4 · audited</div>
         </div>
         <div className="rounded-none border border-border bg-card/40 p-4">
           <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground mb-2">Categories</div>

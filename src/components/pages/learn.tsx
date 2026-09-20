@@ -24,7 +24,7 @@ const CATEGORIES = [
       { title: 'What is homomorphic encryption?', readTime: '5 min', href: 'https://en.wikipedia.org/wiki/Homomorphic_encryption' },
       { title: 'How Twisted ElGamal works on XELIS', readTime: '10 min', href: 'https://docs.xelis.io/features/privacy' },
       { title: 'Zero-knowledge proofs explained', readTime: '8 min', href: 'https://en.wikipedia.org/wiki/Zero-knowledge_proof' },
-      { title: 'Why privacy matters in DeFi', readTime: '6 min', href: 'https://github.com/XelisVault/xelis-vault/blob/main/docs/WHITEPAPER.md' },
+      { title: 'Why privacy matters in DeFi', readTime: '6 min', href: 'https://github.com/XelisVault/xelis-vault/blob/main/legacy/docs/WHITEPAPER.md' },
     ],
   },
   {
@@ -35,7 +35,7 @@ const CATEGORIES = [
       { title: 'What is a CDP (collateralized debt position)?', readTime: '7 min', href: 'https://en.wikipedia.org/wiki/Collateralized_debt_position' },
       { title: 'How liquidations work', readTime: '10 min', href: '/vault-simulator' },
       { title: 'Understanding LTV and health factor', readTime: '5 min', href: '/vault-simulator' },
-      { title: 'Oracle manipulation risks', readTime: '12 min', href: 'https://github.com/XelisVault/xelis-vault/blob/main/docs/AUDIT.md' },
+      { title: 'Oracle manipulation risks', readTime: '12 min', href: 'https://github.com/XelisVault/xelis-vault/blob/main/docs/SECURITY.md' },
     ],
   },
   {
@@ -43,10 +43,10 @@ const CATEGORIES = [
     title: 'Protocol deep dives',
     description: 'XELIS Vault internals, straight from the source.',
     articles: [
-      { title: 'StakedOracle architecture', readTime: '15 min', href: 'https://github.com/XelisVault/xelis-vault/blob/main/contracts/oracle/StakedOracle.slx' },
-      { title: 'VaultEngineV3 security model', readTime: '20 min', href: 'https://github.com/XelisVault/xelis-vault/blob/main/contracts/vault/VaultEngineV3.slx' },
-      { title: 'MEV protection mechanisms', readTime: '10 min', href: 'https://github.com/XelisVault/xelis-vault/blob/main/contracts/amm/VaultSwapV2.slx' },
-      { title: 'Governance and Timelock', readTime: '8 min', href: 'https://github.com/XelisVault/xelis-vault/blob/main/contracts/governance/Governor.slx' },
+      { title: 'StakedOracle architecture', readTime: '15 min', href: 'https://github.com/XelisVault/xelis-vault/blob/main/legacy/contracts/oracle/StakedOracle.slx' },
+      { title: 'VaultEngineV3 security model', readTime: '20 min', href: 'https://github.com/XelisVault/xelis-vault/blob/main/legacy/contracts/vault/VaultEngineV3.slx' },
+      { title: 'MEV protection mechanisms', readTime: '10 min', href: 'https://github.com/XelisVault/xelis-vault/blob/main/legacy/contracts/amm/VaultSwapV2.slx' },
+      { title: 'Governance and Timelock', readTime: '8 min', href: 'https://github.com/XelisVault/xelis-vault/blob/main/legacy/contracts/governance/Governor.slx' },
     ],
   },
 ]
