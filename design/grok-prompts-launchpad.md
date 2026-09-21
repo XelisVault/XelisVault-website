@@ -1,10 +1,14 @@
-# Pack de prompts Grok « Imagine » — VaultLaunch
+# Pack de prompts Grok « Imagine » — VaultLaunch (édition complète v2)
 
 > À destination du fondateur : chaque prompt ci-dessous se copie-colle
 > tel quel dans Grok (onglet Imagine). Générer en grand, exporter en PNG,
 > puis déposer le fichier au chemin indiqué. Aucun texte ne doit apparaître
 > dans les images : les mots sont ajoutés ensuite par le site (police
 > Fraunces), toujours nets.
+>
+> Pourquoi les prompts sont en anglais : les modèles d'images comprennent
+> bien mieux le vocabulaire de style en anglais (« engraving », « guilloché »,
+> « institutional »). Les en-têtes et consignes restent en français.
 
 ## Les 5 règles d'or (à lire avant de générer)
 
@@ -107,14 +111,39 @@ institutional stationery aesthetic, no text, no letters, no words, no
 symbols.
 ```
 
-## 5 & 6. Deux icônes de statut (les plus utiles du set de 6)
+## 5 à 10. Les six icônes de statut (le système complet)
 
 Le système a 6 statuts (validation, bonding, graduated, trusted,
-untrusted, recovery). Les 4 autres se déclinent du même style une fois
-celles-ci validées. Style commun : **icône ligne fine bronze sur ivoire,
-1:1, marges généreuses**.
+untrusted, recovery). Style commun : **icône ligne fine bronze sur
+ivoire, ratio 1:1, marges généreuses, flat vector**. Générer les six
+dans la même session pour garder un trait identique.
 
-**5. « Graduated » (diplômé)** — fichier `public/images/status-graduated.png` :
+**5. « Validation » (en votation)** — fichier
+`public/images/status-validation.png` :
+
+```
+Minimal line icon for a community voting period, a classical ballot urn
+shape in fine engraving line style with three small abstract arcs rising
+above it like raised hands, champagne bronze #A0764B on ivory paper
+#F8F6F1, single deep teal #3F6E75 accent, institutional private banking
+aesthetic, centered, generous margins, flat vector, no text, no letters,
+no words.
+```
+
+**6. « Bonding » (vente sur la courbe)** — fichier
+`public/images/status-bonding.png` :
+
+```
+Minimal line icon for a token sale on a bonding curve, a perfect circle
+in fine engraving line style enclosing a smooth ascending curve from
+lower left to upper right, champagne bronze #A0764B on ivory paper
+#F8F6F1, single deep teal #3F6E75 accent dot at the curve end,
+institutional private banking aesthetic, centered, generous margins,
+flat vector, no text, no letters, no words.
+```
+
+**7. « Graduated » (diplômé)** — fichier
+`public/images/status-graduated.png` :
 
 ```
 Minimal line icon for a graduated token launch, a classical laurel
@@ -124,7 +153,19 @@ teal #3F6E75 accent, institutional private banking aesthetic, centered,
 generous margins, flat vector, no text, no letters, no words.
 ```
 
-**6. « Untrusted » (confiance perdue)** — fichier
+**8. « Trusted » (confiance long terme)** — fichier
+`public/images/status-trusted.png` :
+
+```
+Minimal line icon for long-term community trust, a sober shield shape in
+fine engraving line style with a small ascending curve inside it,
+champagne bronze #A0764B on ivory paper #F8F6F1, single deep teal
+#3F6E75 accent, institutional private banking aesthetic, centered,
+generous margins, flat vector, no text, no letters, no words, no
+checkmark.
+```
+
+**9. « Untrusted » (confiance perdue)** — fichier
 `public/images/status-untrusted.png` :
 
 ```
@@ -136,7 +177,18 @@ centered, generous margins, flat vector, no text, no letters, no words,
 no exclamation mark.
 ```
 
-## 7. Base favicon / icône launchpad
+**10. « Recovery » (période de récupération)** — fichier
+`public/images/status-recovery.png` :
+
+```
+Minimal line icon for a recovery period, a single elegant circular arrow
+almost completing a full loop, in fine engraving line style, champagne
+bronze #A0764B on ivory paper #F8F6F1, single deep teal #3F6E75 accent
+at the arrow head, institutional private banking aesthetic, centered,
+generous margins, flat vector, no text, no letters, no words.
+```
+
+## 11. Base favicon / icône launchpad
 
 **Usage** : icône de la page launchpad et future PWA.
 **Fichier** : `public/images/launchpad-icon.png` — carré, 512×512 si
@@ -150,7 +202,7 @@ line weight, institutional private banking aesthetic, no text, no
 letters, no words, no gradient, readable at very small size.
 ```
 
-## 8. Illustration « cycle de vie » (section explication, optionnelle)
+## 12. Illustration « cycle de vie » (section explication)
 
 **Usage** : visuel pédagogique du cycle propose → vote → courbe →
 graduation → confiance (le site posera les libellés en HTML).
@@ -168,21 +220,113 @@ the connecting line, institutional annual report aesthetic, calm and
 precise, no text, no letters, no numbers, no words, no labeled arrows.
 ```
 
+## 13. Illustration « avantages de la migration » (section §2b)
+
+**Usage** : section expliquant pourquoi être gradué/migré change tout
+(frais divisés, liquidité permanente, badge trusted, déblocage équipe).
+**Fichier** : `public/images/launchpad-migration.png` — ratio large ≈2:1.
+
+```
+Wide editorial illustration for the benefits of moving to a permanent
+liquidity pool, a small shallow elliptical pool on the left connected by
+one fine engraved rising line to a large deep calm pool on the right,
+champagne bronze #A0764B main lines on ivory paper #F8F6F1, deep teal
+#3F6E75 water fill at low opacity, small champagne gold #D2A76F
+milestone dots along the connecting line, guilloché engraving texture,
+luxury annual report aesthetic, large calm negative space, no text, no
+letters, no numbers, no words, no fish, no coins, no crypto clichés.
+```
+
+## 14. Illustration « vesting équipe » (section §3)
+
+**Usage** : section allocation équipe — claim immédiat à la migration,
+vesting linéaire volontaire, ou fallback long lock si jamais gradué.
+**Fichier** : `public/images/launchpad-vesting.png` — ratio large 3:1.
+
+```
+Wide horizontal editorial diagram illustration of a token vesting
+schedule, one continuous fine engraved horizontal timeline with five
+evenly spaced milestone nodes, the first node shown as a small closed
+padlock shape, the middle nodes as half-open padlocks, the last node as
+a fully open padlock, champagne bronze #A0764B line art on ivory paper
+#F8F6F1, single deep teal #3F6E75 accent on the final open node,
+guilloché engraving texture in the timeline, institutional annual report
+aesthetic, calm and precise, large margins, no text, no letters, no
+numbers, no words, no clock.
+```
+
+## 15. Ornement séparateur (fins de sections, optionnel)
+
+**Usage** : filet décoratif discret entre les grandes sections de la
+page launchpad, même rôle qu'une règle horizontale imprimée.
+**Fichier** : `public/images/launchpad-divider.png` — très large et
+très fin (≈21:1).
+
+```
+Extremely wide and thin horizontal ornamental divider band, subtle
+guilloché engraving wave pattern like a banknote security strip,
+champagne bronze #A0764B lines at low opacity fading out at both ends,
+ivory paper #F8F6F1 background, perfectly symmetrical, calm, elegant,
+institutional stationery aesthetic, no text, no letters, no words, no
+central emblem, no crest.
+```
+
+## 16. (Bonus, exploration uniquement) Ambiance page complète
+
+**Usage** : UNE génération pour valider l'ambiance générale de la page
+launchpad auprès de l'équipe. Le texte sera illisible/généré — c'est
+normal et accepté pour ce prompt-là uniquement : le vrai texte sera
+posé en HTML par le site. Ne pas utiliser en production.
+
+```
+Full web page design mockup for an institutional crypto launchpad
+dashboard, luxury private banking annual report aesthetic, ivory paper
+#F8F6F1 background, serif headline typography, elegant data tables with
+fine bronze hairlines, small project cards in a grid with engraved line
+icons, one large hero area with an ascending engraved bonding curve
+illustration, champagne bronze #A0764B and deep teal #3F6E75 accents,
+extremely clean Swiss grid layout, generous whitespace, no photos of
+people, no neon, no dark mode, no crypto memes, no cartoon style.
+```
+
 ---
 
 ## Checklist qualité (pour chaque image retenue)
 
-- [ ] Aucune lettre ni chiffre lisible dans l'image
+- [ ] Aucune lettre ni chiffre lisible dans l'image (sauf prompt 16,
+      exploration)
 - [ ] Fond ivoire `#F8F6F1` (pas blanc pur) ou transparence propre
 - [ ] Bronze `#A0764B` dominant, teal `#3F6E75` en accent discret
 - [ ] Ça tiendrait dans un rapport annuel de banque privée (sinon :
       regénérer)
 - [ ] Export PNG, plus grande taille disponible, nom de fichier exact
 
+## Récapitulatif des fichiers à récupérer
+
+| # | Fichier | Ratio |
+|---|---------|-------|
+| 1 | `public/images/launchpad-mark.png` | 1:1 |
+| 2 | `public/images/launchpad-hero.png` | 2:1 / 21:9 |
+| 3 | `public/og/launchpad-og.png` | 1200×630 |
+| 4 | `public/images/launchpad-card-bg.png` | 1:1 / 4:3 |
+| 5 | `public/images/status-validation.png` | 1:1 |
+| 6 | `public/images/status-bonding.png` | 1:1 |
+| 7 | `public/images/status-graduated.png` | 1:1 |
+| 8 | `public/images/status-trusted.png` | 1:1 |
+| 9 | `public/images/status-untrusted.png` | 1:1 |
+| 10 | `public/images/status-recovery.png` | 1:1 |
+| 11 | `public/images/launchpad-icon.png` | 1:1 (512) |
+| 12 | `public/images/launchpad-cycle.png` | 3:1 |
+| 13 | `public/images/launchpad-migration.png` | 2:1 |
+| 14 | `public/images/launchpad-vesting.png` | 3:1 |
+| 15 | `public/images/launchpad-divider.png` | 21:1 |
+| 16 | (exploration, pas de fichier) | 16:9 |
+
 ## Et ensuite
 
-Déposez les fichiers aux chemins indiqués (ou transmets-les dans le
+Déposez les fichiers aux chemins indiqués (ou transmettez-les dans le
 chat), et j'intègre : page launchpad du site (hero + cycle de vie +
-cartes de projets branchées sur les vues du contrat), bannière OG,
-icônes de statut. Le texte restera toujours en HTML/Fraunces — net à
-toutes les tailles.
+cartes de projets branchées sur les vues du contrat v3 — proposition
+avec TOUTES les données, liens sociaux, scoreboard volume/market cap),
+bannière OG, icônes de statut. Le texte restera toujours en
+HTML/Fraunces — net à toutes les tailles.
