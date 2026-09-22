@@ -172,7 +172,7 @@ function ConnectModal({ open, onClose }: { open: boolean; onClose: () => void })
                 </div>
               )}
 
-              <p className="pt-1 text-center font-mono text-[9px] leading-relaxed text-muted-foreground/70">
+              <p className="pt-1 text-center font-mono text-[9px] leading-relaxed text-muted-foreground/85">
                 XSWD follows your wallet&apos;s network · contracts deploy at the mainnet launch,
                 trading runs on demo data until then.
               </p>
@@ -407,7 +407,7 @@ export function LaunchAppShell() {
             <nav className="flex-1 overflow-y-auto py-5 space-y-6" aria-label="VaultLaunch views">
               {groups.map((g) => (
                 <div key={g}>
-                  <div className="px-5 mb-2 text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/70">{g}</div>
+                  <div className="px-5 mb-2 text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/85">{g}</div>
                   <div>
                     {NAV.filter((n) => n.group === g).map((n) => {
                       const globalIdx = NAV.indexOf(n)
@@ -422,7 +422,7 @@ export function LaunchAppShell() {
                               : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-card/70'
                           }`}
                         >
-                          <span className={`font-mono text-[10px] tracking-wider ${isActive ? 'text-vault' : 'text-muted-foreground/70'}`}>
+                          <span className={`font-mono text-[10px] tracking-wider ${isActive ? 'text-vault' : 'text-muted-foreground/85'}`}>
                             {pad2(globalIdx)}
                           </span>
                           <span className="font-medium">{n.label}</span>
@@ -531,7 +531,7 @@ export function LaunchAppShell() {
                           isActive ? 'border-vault text-foreground' : 'border-transparent text-muted-foreground'
                         }`}
                       >
-                        <span className={`font-mono text-[9px] tracking-wider ${isActive ? 'text-vault' : 'text-muted-foreground/70'}`}>
+                        <span className={`font-mono text-[9px] tracking-wider ${isActive ? 'text-vault' : 'text-muted-foreground/85'}`}>
                           {pad2(globalIdx)}
                         </span>
                         {n.label}

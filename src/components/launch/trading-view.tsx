@@ -8,7 +8,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useEngine } from '@/lib/launch/engine'
 import { useToast } from '@/hooks/use-toast'
 import { useLaunchWallet } from '@/lib/launch/wallet'
-import { LiveChart, AnimatedNumber, Bar, BracketButton, AvatarMark, PanelHead, SquareDot } from './shared'
+import { AnimatedNumber, Bar, BracketButton, PanelHead, SquareDot } from './shared'
+import { ProjectLogo } from './logos'
+import { PriceChart } from './chart'
 import { quoteBuy, quoteSell, fmtXel, fmtPrice, fmtPct } from '@/lib/launch/math'
 import type { Project } from '@/lib/launch/types'
 import { cn } from '@/lib/utils'
@@ -39,12 +41,7 @@ function ProjectList({ projects, selectedId, onSelect }: {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span
-                    className="flex h-7 w-7 items-center justify-center border text-xs font-semibold"
-                    style={{ borderColor: `hsl(${p.hue} 60% 60% / 0.45)`, backgroundColor: `hsl(${p.hue} 60% 50% / 0.12)`, color: `hsl(${p.hue} 65% 72%)` }}
-                  >
-                    {p.avatar}
-                  </span>
+                  <ProjectLogo ticker={p.ticker} size="xs" />
                   <span className="text-sm font-semibold">{p.ticker}</span>
                 </div>
                 <span className={cn('font-mono text-xs font-semibold tabular-nums', chg >= 0 ? 'text-emerald-400' : 'text-destructive')}>
@@ -336,7 +333,7 @@ function ActivityFeed({ projectId, all }: { projectId?: string; all?: boolean })
                   {a.kind === 'swap' && a.amountXel != null && `swapped ${fmtXel(a.amountXel)} XEL${a.price ? ` @ ${fmtPrice(a.price)}` : ''}`}
                   {a.kind !== 'buy' && a.kind !== 'sell' && a.kind !== 'swap' && a.note}
                 </span>
-                <span className="ml-auto shrink-0 text-[9px] text-muted-foreground/60">
+                <span className="ml-auto shrink-0 text-[9px] text-muted-foreground/80">
                   {p?.ticker ?? ''}
                 </span>
               </motion.div>
@@ -382,17 +379,17 @@ export function TradingView({ setView, focusId }: {
   return (
     <div className="grid gap-4 xl:grid-cols-[260px_1fr_320px]">
       {/* Project list */}
-      <div className="order-2 xl:order-1">
+      <div className="order-2 min-w-0 xl:order-1">
         <ProjectList projects={bonding} selectedId={project.id} onSelect={(id) => setView('trading', id)} />
       </div>
 
       {/* Chart + stats */}
-      <div className="order-1 space-y-4 xl:order-2">
+      <div className="order-1 min-w-0 space-y-4 xl:order-2">
         <div className="border border-border/70 bg-card/50 p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-3">
-                <AvatarMark glyph={project.avatar} hue={project.hue} />
+                <ProjectLogo ticker={project.ticker} size="lg" />
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-lg font-semibold tracking-tight">{project.name}</h2>
@@ -413,7 +410,7 @@ export function TradingView({ setView, focusId }: {
           </div>
 
           <div className="mt-4">
-            <LiveChart data={curve.history} height={280} showGrid />
+            <PriceChart data={curve.history} height={340} />
           </div>
 
           {/* graduation strip */}
@@ -452,7 +449,7 @@ export function TradingView({ setView, focusId }: {
       </div>
 
       {/* Trade panel */}
-      <div className="order-3">
+      <div className="order-3 min-w-0">
         <TradePanel project={project} />
       </div>
     </div>

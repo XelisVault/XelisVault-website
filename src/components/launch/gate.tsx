@@ -104,7 +104,7 @@ export function LaunchGate({ onUnlock }: { onUnlock: () => void }) {
                 placeholder="access key"
                 autoFocus
                 aria-label="Access key"
-                className="w-full border border-border bg-background px-4 py-3 font-mono text-sm tracking-[0.12em] text-foreground placeholder:text-muted-foreground/50 focus:border-vault/60 focus:outline-none"
+                className="w-full border border-border bg-background px-4 py-3 font-mono text-sm tracking-[0.12em] text-foreground placeholder:text-muted-foreground/85 focus:border-vault/60 focus:outline-none"
               />
               <button
                 type="submit"
@@ -129,7 +129,7 @@ export function LaunchGate({ onUnlock }: { onUnlock: () => void }) {
         <div className="mt-6 text-center">
           <a
             href="/"
-            className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 transition-colors hover:text-vault"
+            className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground/85 transition-colors hover:text-vault"
           >
             ← back to xelisvault.xyz
           </a>

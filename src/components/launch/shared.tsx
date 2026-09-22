@@ -235,29 +235,12 @@ export function Countdown({
 }
 
 // ─────────────────────────────────────────────────────────────────
-// AvatarMark — typographic project mark in a hairline square
+// Chart colors (the chart itself lives in ./chart.tsx)
 // ─────────────────────────────────────────────────────────────────
-export function AvatarMark({ glyph, hue, size = 'md' }: { glyph: string; hue: number; size?: 'sm' | 'md' | 'lg' }) {
-  const s = size === 'lg' ? 'h-12 w-12 text-xl' : size === 'sm' ? 'h-8 w-8 text-sm' : 'h-10 w-10 text-base'
-  return (
-    <span
-      aria-hidden
-      className={cn('flex items-center justify-center border font-semibold', s)}
-      style={{
-        borderColor: `hsl(${hue} 60% 60% / 0.45)`,
-        backgroundColor: `hsl(${hue} 60% 50% / 0.12)`,
-        color: `hsl(${hue} 65% 72%)`,
-      }}
-    >
-      {glyph}
-    </span>
-  )
-}
+export const CHART_UP = 'var(--vault)'
+export const CHART_DOWN = 'var(--destructive)'
+export const CHART_TEAL = 'var(--xusd)'
 
-// ─────────────────────────────────────────────────────────────────
-// LiveChart — custom SVG time-series: thin line, soft area fill,
-// draw-in on mount, crosshair on hover. No chart library.
-// ─────────────────────────────────────────────────────────────────
 function smoothPath(pts: { x: number; y: number }[]): string {
   if (pts.length === 0) return ''
   if (pts.length < 3) return `M ${pts.map((p) => `${p.x},${p.y}`).join(' L ')}`
@@ -274,160 +257,6 @@ function smoothPath(pts: { x: number; y: number }[]): string {
     d += ` C ${c1x},${c1y} ${c2x},${c2y} ${p2.x},${p2.y}`
   }
   return d
-}
-
-export const CHART_UP = 'var(--vault)'
-export const CHART_DOWN = 'var(--destructive)'
-export const CHART_TEAL = 'var(--xusd)'
-
-export function LiveChart({
-  data,
-  height = 260,
-  color = 'auto',
-  className,
-  showGrid = false,
-  showCrosshair = true,
-  pad = 0.12,
-  style,
-}: {
-  data: number[]
-  height?: number
-  color?: 'auto' | string
-  className?: string
-  showGrid?: boolean
-  showCrosshair?: boolean
-  pad?: number
-  style?: CSSProperties
-}) {
-  const wrapRef = useRef<HTMLDivElement>(null)
-  const [width, setWidth] = useState(600)
-  const [hover, setHover] = useState<{ x: number; i: number } | null>(null)
-  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false)
-
-  useEffect(() => {
-    const el = wrapRef.current
-    if (!el) return
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width
-      if (w && w > 0) setWidth(w)
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
-  const stroke =
-    color === 'auto'
-      ? data.length > 1 && data[data.length - 1] < data[0]
-        ? CHART_DOWN
-        : CHART_UP
-      : color
-
-  const n = data.length
-  const min = n ? Math.min(...data) : 0
-  const max = n ? Math.max(...data) : 1
-  const range = max - min || max || 1
-  const yPad = range * pad
-  const lo = min - yPad
-  const hi = max + yPad
-
-  const padX = 2
-  const pts = data.map((v, i) => ({
-    x: padX + (i / Math.max(1, n - 1)) * (width - padX * 2),
-    y: height - ((v - lo) / (hi - lo)) * height,
-  }))
-
-  const line = smoothPath(pts)
-  const area = n > 1 ? `${line} L ${pts[n - 1].x},${height} L ${pts[0].x},${height} Z` : ''
-  const last = pts[n - 1]
-  const gid = `lc${useId().replace(/[^a-zA-Z0-9]/g, '')}`
-
-  function onMove(e: React.MouseEvent<SVGSVGElement>) {
-    if (!showCrosshair || n < 2) return
-    const rect = e.currentTarget.getBoundingClientRect()
-    const px = e.clientX - rect.left
-    const i = Math.round(((px - padX) / (width - padX * 2)) * (n - 1))
-    if (i >= 0 && i < n) setHover({ x: pts[i].x, i })
-  }
-
-  const hoverPrice = hover ? data[hover.i] : null
-
-  return (
-    <div ref={wrapRef} className={cn('relative w-full select-none', className)} style={{ height, ...style }}>
-      <svg
-        width={width}
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
-        className="overflow-visible"
-        onMouseMove={onMove}
-        onMouseLeave={() => setHover(null)}
-        role="img"
-        aria-label="Price chart"
-      >
-        <defs>
-          <linearGradient id={`${gid}-fill`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={stroke} stopOpacity="0.22" />
-            <stop offset="55%" stopColor={stroke} stopOpacity="0.06" />
-            <stop offset="100%" stopColor={stroke} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-
-        {showGrid &&
-          [0.25, 0.5, 0.75].map((f) => (
-            <line key={f} x1={0} x2={width} y1={height * f} y2={height * f} stroke="var(--border)" strokeDasharray="2 6" strokeWidth={1} />
-          ))}
-
-        {n > 1 && (
-          <>
-            <motion.path
-              d={area}
-              fill={`url(#${gid}-fill)`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 1.1, delay: 0.35 }}
-            />
-            <motion.path
-              d={line}
-              fill="none"
-              stroke={stroke}
-              strokeWidth={1.75}
-              strokeLinecap="round"
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 1.5, ease: [0.65, 0, 0.35, 1] }}
-              key={mounted ? 'mounted' : 'ssr'}
-            />
-            {/* pulsing head marker: a square, like everything here */}
-            <rect
-              x={last.x - 5} y={last.y - 5} width={10} height={10} fill={stroke} opacity={0.16}
-            >
-              <animate attributeName="opacity" values="0.28;0.06;0.28" dur="2s" repeatCount="indefinite" />
-              <animate attributeName="x" values={`${last.x - 5};${last.x - 7};${last.x - 5}`} dur="2s" repeatCount="indefinite" />
-              <animate attributeName="y" values={`${last.y - 5};${last.y - 7};${last.y - 5}`} dur="2s" repeatCount="indefinite" />
-              <animate attributeName="width" values="10;14;10" dur="2s" repeatCount="indefinite" />
-              <animate attributeName="height" values="10;14;10" dur="2s" repeatCount="indefinite" />
-            </rect>
-            <rect x={last.x - 2.5} y={last.y - 2.5} width={5} height={5} fill={stroke} stroke="var(--background)" strokeWidth={1} />
-          </>
-        )}
-
-        {hover && (
-          <>
-            <line x1={hover.x} x2={hover.x} y1={0} y2={height} stroke="var(--muted-foreground)" strokeOpacity={0.4} strokeDasharray="2 4" />
-            <rect x={pts[hover.i].x - 3} y={pts[hover.i].y - 3} width={6} height={6} fill={stroke} stroke="var(--background)" strokeWidth={1} />
-          </>
-        )}
-      </svg>
-
-      {hover && hoverPrice != null && (
-        <div
-          className="pointer-events-none absolute top-1 z-10 border border-border bg-popover/95 px-2 py-1 font-mono text-[11px] tabular-nums text-foreground"
-          style={{ left: Math.min(Math.max(hover.x - 30, 0), width - 70) }}
-        >
-          {hoverPrice < 1 ? hoverPrice.toFixed(5) : hoverPrice.toFixed(3)}
-        </div>
-      )}
-    </div>
-  )
 }
 
 /** Mini sparkline for cards and tables. */

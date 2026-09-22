@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useEngine } from '@/lib/launch/engine'
 import { useLaunchWallet } from '@/lib/launch/wallet'
 import { AnimatedNumber, Bar, BracketButton, Sparkline, SquareDot } from './shared'
+import { ProjectLogo, PairLogo } from './logos'
 import { fmtXel, fmtPrice, fmtPct } from '@/lib/launch/math'
 import { cn } from '@/lib/utils'
 import type { AppView } from './app-shell'
@@ -98,12 +99,7 @@ export function PortfolioView({ setView }: { setView: (v: AppView, id?: string) 
             {holdings.map((h) => (
               <div key={h.ticker} className="flex items-center justify-between py-3">
                 <div className="flex items-center gap-3">
-                  <span className={cn(
-                    'flex h-9 w-9 items-center justify-center border font-mono text-xs font-bold',
-                    h.ticker === 'XEL' ? 'border-vault/40 bg-vault/10 text-vault' : 'border-border bg-card text-foreground'
-                  )}>
-                    {h.ticker === 'XEL' ? '◎' : h.ticker.slice(0, 2)}
-                  </span>
+                  <ProjectLogo ticker={h.ticker} size="sm" />
                   <div>
                     <div className="text-sm font-semibold">{h.ticker}</div>
                     <div className="font-mono text-[10px] text-muted-foreground">
@@ -148,12 +144,7 @@ export function PortfolioView({ setView }: { setView: (v: AppView, id?: string) 
               <div key={pos.projectId} className="border border-border/60 bg-background/50 p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <span
-                      className="flex h-8 w-8 items-center justify-center border text-sm font-semibold"
-                      style={{ borderColor: `hsl(${project!.hue} 60% 60% / 0.45)`, backgroundColor: `hsl(${project!.hue} 60% 50% / 0.12)`, color: `hsl(${project!.hue} 65% 72%)` }}
-                    >
-                      {project!.avatar}
-                    </span>
+                    <ProjectLogo ticker={project!.ticker} size="sm" />
                     <div>
                       <div className="text-sm font-semibold">{project!.name}</div>
                       <div className="font-mono text-[10px] text-muted-foreground">
@@ -202,7 +193,7 @@ export function PortfolioView({ setView }: { setView: (v: AppView, id?: string) 
                 <div key={lp.poolId} className="border border-border/60 bg-background/50 p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <span className="flex h-8 w-8 items-center justify-center border border-xusd/40 bg-xusd/10 font-mono text-sm text-xusd">◈</span>
+                      <PairLogo ticker={project!.ticker} size="sm" />
                       <div>
                         <div className="text-sm font-semibold">XEL / {project!.ticker}</div>
                         <div className="font-mono text-[10px] text-muted-foreground">
@@ -258,7 +249,7 @@ export function PortfolioView({ setView }: { setView: (v: AppView, id?: string) 
                   <span className="text-muted-foreground">
                     {a.note ?? `${a.kind} ${a.amountXel != null ? fmtXel(a.amountXel) + ' XEL' : ''}`}
                   </span>
-                  <span className="ml-auto text-[10px] text-muted-foreground/60">
+                  <span className="ml-auto text-[10px] text-muted-foreground/80">
                     {new Date(a.ts).toLocaleTimeString('en-US', { hour12: false })}
                   </span>
                 </motion.div>

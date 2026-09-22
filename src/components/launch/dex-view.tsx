@@ -8,7 +8,9 @@ import { motion } from 'framer-motion'
 import { useEngine } from '@/lib/launch/engine'
 import { useToast } from '@/hooks/use-toast'
 import { useLaunchWallet } from '@/lib/launch/wallet'
-import { LiveChart, Sparkline, AnimatedNumber, BracketButton, PanelHead, CHART_TEAL } from './shared'
+import { Sparkline, AnimatedNumber, BracketButton, PanelHead, CHART_TEAL } from './shared'
+import { ProjectLogo, PairLogo } from './logos'
+import { PriceChart } from './chart'
 import { quoteDexSwap, quoteDexSwapToXel, fmtXel, fmtPrice, fmtPct } from '@/lib/launch/math'
 import type { Project } from '@/lib/launch/types'
 import { cn } from '@/lib/utils'
@@ -29,12 +31,7 @@ function PoolCard({ p, selected, onSelect }: { p: Project; selected: boolean; on
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <span
-            className="flex h-9 w-9 items-center justify-center border text-base font-semibold"
-            style={{ borderColor: `hsl(${p.hue} 60% 60% / 0.45)`, backgroundColor: `hsl(${p.hue} 60% 50% / 0.12)`, color: `hsl(${p.hue} 65% 72%)` }}
-          >
-            {p.avatar}
-          </span>
+          <PairLogo ticker={p.ticker} size="sm" />
           <div>
             <div className="text-sm font-semibold">XEL / {p.ticker}</div>
             <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -114,12 +111,12 @@ function SwapWidget({ project }: { project: Project }) {
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
               aria-label="Swap from amount"
-              className="h-10 w-full border-0 bg-transparent px-0 font-mono text-xl tabular-nums text-foreground placeholder:text-muted-foreground/40 focus:outline-none"
+              className="h-10 w-full border-0 bg-transparent px-0 font-mono text-xl tabular-nums text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
             />
             <span className="flex items-center gap-1.5 border border-border bg-card px-2.5 py-1.5 font-mono text-xs font-semibold">
-              {fromLabel === 'XEL' ? <span className="text-vault">◎</span> : (
-                <span style={{ color: `hsl(${project.hue} 65% 72%)` }}>{project.avatar}</span>
-              )}
+              {fromLabel === 'XEL'
+                ? <ProjectLogo ticker="XEL" size="xs" className="h-5 w-5" />
+                : <ProjectLogo ticker={project.ticker} size="xs" className="h-5 w-5" />}
               {fromLabel}
             </span>
           </div>
@@ -147,9 +144,9 @@ function SwapWidget({ project }: { project: Project }) {
               {q.out > 0 ? (q.out >= 100 ? q.out.toFixed(1) : q.out.toFixed(4)) : '0.00'}
             </span>
             <span className="flex items-center gap-1.5 border border-border bg-card px-2.5 py-1.5 font-mono text-xs font-semibold">
-              {toLabel === 'XEL' ? <span className="text-vault">◎</span> : (
-                <span style={{ color: `hsl(${project.hue} 65% 72%)` }}>{project.avatar}</span>
-              )}
+              {toLabel === 'XEL'
+                ? <ProjectLogo ticker="XEL" size="xs" className="h-5 w-5" />
+                : <ProjectLogo ticker={project.ticker} size="xs" className="h-5 w-5" />}
               {toLabel}
             </span>
           </div>
@@ -371,19 +368,22 @@ export function DexView({ setView, focusId }: {
 
       <div className="grid gap-4 lg:grid-cols-[280px_1fr_320px]">
         {/* Pool list */}
-        <div className="space-y-3">
+        <div className="min-w-0 space-y-3">
           {pools.map((p) => (
             <PoolCard key={p.id} p={p} selected={p.id === project.id} onSelect={() => setView('dex', p.id)} />
           ))}
         </div>
 
         {/* Pool detail */}
-        <div className="border border-border/70 bg-card/50 p-5">
+        <div className="min-w-0 border border-border/70 bg-card/50 p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight">XEL / {project.ticker}</h2>
-              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                {project.name} · migrated · fee 0.30% · split 50/50
+            <div className="flex items-center gap-3.5">
+              <PairLogo ticker={project.ticker} size="md" />
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight">XEL / {project.ticker}</h2>
+                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  {project.name} · migrated · fee 0.30% · split 50/50
+                </div>
               </div>
             </div>
             <div className="text-right">
@@ -393,7 +393,7 @@ export function DexView({ setView, focusId }: {
           </div>
 
           <div className="mt-4">
-            <LiveChart data={pool.history} height={220} showGrid color={CHART_TEAL} />
+            <PriceChart data={pool.history} height={260} color={CHART_TEAL} />
           </div>
 
           {/* The seed floor */}
@@ -440,7 +440,7 @@ export function DexView({ setView, focusId }: {
         </div>
 
         {/* Swap + why */}
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <SwapWidget project={project} />
           <div className="border border-border/70 bg-card/50 p-4">
             <PanelHead className="border-b-0 px-0 py-0" right="">why this pool is different</PanelHead>

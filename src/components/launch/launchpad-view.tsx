@@ -10,8 +10,9 @@ import { useEngine, graduationOf } from '@/lib/launch/engine'
 import { useToast } from '@/hooks/use-toast'
 import { useLaunchWallet } from '@/lib/launch/wallet'
 import {
-  AnimatedNumber, Bar, BracketButton, AvatarMark, Countdown, StatusTag, Sparkline, SquareDot, pad2,
+  AnimatedNumber, Bar, BracketButton, Countdown, StatusTag, Sparkline, SquareDot, pad2,
 } from './shared'
+import { ProjectLogo } from './logos'
 import { fmtXel } from '@/lib/launch/math'
 import type { Project } from '@/lib/launch/types'
 import { cn } from '@/lib/utils'
@@ -79,13 +80,13 @@ function ProjectCard({ p, rank, onOpen, onTrade }: { p: Project; rank: number; o
       )}
     >
       {/* ledger index */}
-      <span className="absolute right-4 top-4 font-mono text-[9px] text-muted-foreground/50" aria-hidden>
+      <span className="absolute right-4 top-4 font-mono text-[9px] text-muted-foreground/70" aria-hidden>
         {pad2(rank)}
       </span>
 
       <div className="flex items-start justify-between gap-3 pr-6">
         <div className="flex items-center gap-3">
-          <AvatarMark glyph={p.avatar} hue={p.hue} />
+          <ProjectLogo ticker={p.ticker} size="md" />
           <div>
             <div className="flex items-center gap-2">
               <span className="font-semibold tracking-tight">{p.name}</span>
@@ -232,7 +233,7 @@ function ProjectDialog({ p, open, onClose, onTrade }: {
 
             <div className="border-b border-border px-6 py-5">
               <div className="flex items-center gap-4 pr-8">
-                <AvatarMark glyph={p.avatar} hue={p.hue} size="lg" />
+                <ProjectLogo ticker={p.ticker} size="xl" />
                 <div>
                   <div className="flex flex-wrap items-center gap-2.5">
                     <h3 className="font-display text-2xl font-semibold tracking-tight">{p.name}</h3>
