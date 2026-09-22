@@ -85,6 +85,21 @@ export function isAntumbraTeaserPath(): boolean {
 }
 
 /**
+ * Is the current URL the VaultLaunch private preview? The preview link is
+ * opened by the founder with an access key: straight to the app, no ritual,
+ * no side gate. Pure-path check, safe in any environment. Keep in sync with
+ * the boot-veil script in app/layout.tsx.
+ */
+export function isLaunchPreviewPath(): boolean {
+  try {
+    return typeof window !== 'undefined'
+      && window.location.pathname.replace(/\/+$/, '') === '/launch'
+  } catch {
+    return false
+  }
+}
+
+/**
  * Crawlers and social preview bots never see the entry ritual: their job is
  * to read the page content, so the gate stays closed for them. The page
  * itself is fully server-rendered underneath either way — this just keeps
@@ -123,6 +138,13 @@ export const useSide = create<SideState>((set) => ({
     // the eclipse page: adopt the XELIS side silently (the teaser is
     // protocol-neutral and links back to the vault by itself).
     if (isAntumbraTeaserPath()) {
+      writeSessionSide('xelis')
+      set({ side: 'xelis', gateOpen: false, hydrated: true })
+      return
+    }
+    // The VaultLaunch private preview: opened with an access key, straight
+    // to the application. No side gate, no ritual (the app has its own).
+    if (isLaunchPreviewPath()) {
       writeSessionSide('xelis')
       set({ side: 'xelis', gateOpen: false, hydrated: true })
       return

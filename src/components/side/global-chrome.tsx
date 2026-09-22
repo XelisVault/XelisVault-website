@@ -29,6 +29,9 @@ export function GlobalChrome() {
   }, [hydrate])
 
   const inNervaWorld = pathname.startsWith('/nerva')
+  // The VaultLaunch private preview is its own application: no launch
+  // theatre, no door transitions on top of it (it has its own gate).
+  const inLaunchPreview = pathname === '/launch' || pathname.startsWith('/launch/')
 
   return (
     <>
@@ -41,8 +44,8 @@ export function GlobalChrome() {
       {/* The entry ritual — every fresh session, whichever page you land on */}
       <SideGate />
 
-      {/* XelisVault launch theatre — XELIS side only */}
-      {!inNervaWorld && (
+      {/* XelisVault launch theatre — XELIS side only, never on the launchpad preview */}
+      {!inNervaWorld && !inLaunchPreview && (
         <>
           <LaunchExperience />
           <VaultDoorTransition />

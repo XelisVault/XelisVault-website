@@ -15,6 +15,7 @@ import { Oracle } from '@/components/sections/oracle'
 import { MiningDelegation } from '@/components/sections/mining-delegation'
 import { Contracts } from '@/components/sections/contracts'
 import { VaultChatSection } from '@/components/sections/vaultchat-section'
+import { VaultLaunchSection } from '@/components/sections/vaultlaunch-section'
 import { Roadmap, CTA, Footer } from '@/components/sections/roadmap-cta'
 import { DemoApp } from '@/components/app/demo-app'
 import { Quest } from '@/components/quest/quest'
@@ -69,6 +70,7 @@ export default function Home() {
         <MiningDelegation />
         <Contracts />
         <VaultChatSection />
+        <VaultLaunchSection />
         <Roadmap />
         <CTA />
       </main>

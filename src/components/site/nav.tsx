@@ -20,6 +20,7 @@ const LINKS = [
   { label: 'Mining', href: '/#mining' },
   { label: 'Contracts', href: '/#contracts' },
   { label: 'VaultChat', href: '/#vaultchat' },
+  { label: 'VaultLaunch', href: '/#vaultlaunch' },
   { label: 'Roadmap', href: '/#roadmap' },
 ]
 
@@ -44,6 +45,7 @@ const NAV_GROUPS = [
       { label: 'StakedOracle', href: '/#oracle' },
       { label: 'Mining & Delegation', href: '/#mining' },
       { label: 'VaultChat', href: '/#vaultchat' },
+      { label: 'VaultLaunch · Launchpad', href: '/#vaultlaunch' },
     ],
   },
 ]
