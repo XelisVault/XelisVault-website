@@ -48,6 +48,11 @@ export interface CurveState {
   teamBps: number
   /** Historical price points (XEL per token) for the chart. */
   history: number[]
+  /** Absolute index of history[0] — anchors candle buckets so CLOSED
+   *  candles NEVER move, even when the capped array slides. */
+  histStart: number
+  /** Total price points ever emitted (histStart + history.length). */
+  points: number
   /** 24h volume in XEL. */
   volume24h: number
   /** Unique holders (demo counter). */
@@ -73,6 +78,10 @@ export interface DexPool {
   withdrawableParts: number
   /** Historical pool price points. */
   history: number[]
+  /** Absolute index of history[0] (candle anchoring — see CurveState). */
+  histStart: number
+  /** Total price points ever emitted. */
+  points: number
   volume24h: number
   fees24h: number
 }

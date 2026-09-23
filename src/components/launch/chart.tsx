@@ -3,16 +3,22 @@
 // One component, two renderings, switched live from the chart header:
 //   • LINE    the signature curve: smooth stroke, gradient fill,
 //             draw-in animation, pulsing square head
-//   • CANDLES classic OHLC candlesticks derived from the same series:
-//             wicks + bodies, volume strip, crosshair with OHLC legend
+//   • CANDLES classic OHLC candlesticks with true exchange semantics:
+//             buckets are anchored to ABSOLUTE point indices, so a CLOSED
+//             candle is FROZEN FOREVER — only the live candle moves.
 // Both modes share the same plumbing: right-hand price scale, dashed
 // hairline grid, last-price line with a live tag, and a snapping
 // crosshair. No chart library — hand-drawn SVG, house style.
 //
-// Candles are derived deterministically: the series is chunked from the
-// end (most recent points last) so the latest price is always inside
-// the live candle: open = first point of the chunk, close = last,
-// high/low = extremes.
+// ── Why absolute anchoring matters ─────────────────────────────────
+// The engine appends one price point per topo (and one per user trade)
+// and tracks `points` (total ever emitted) + `histStart` (absolute index
+// of history[0]). Candle bucket N covers absolute indices
+// [N*chunk, (N+1)*chunk). Because buckets are keyed by ABSOLUTE index:
+//   • appending a point only ever touches the LAST bucket (live candle)
+//   • the capped window sliding left changes nothing — same absolute
+//     indices, same data, same frozen candles
+// This is exactly how a real exchange buckets ticks by timestamp.
 
 'use client'
 
@@ -26,27 +32,66 @@ export const CHART_TEAL = 'var(--xusd)'
 
 type Mode = 'line' | 'candles'
 
-export type Candle = { o: number; h: number; l: number; c: number; vol: number }
+/** One OHLC candle. `closed` candles are immutable history. */
+export type Candle = {
+  o: number; h: number; l: number; c: number; vol: number
+  /** absolute bucket id — stable identity across renders */
+  id: number
+  /** false only for the bucket containing the very last point */
+  closed: boolean
+}
 
-/** Derive ~`target` candles from a price series (chunked from the end). */
-export function toCandles(data: number[], target = 24): Candle[] {
-  if (data.length < 4) return []
-  const chunk = Math.max(2, Math.ceil(data.length / target))
+/** Interval presets. 1 point = 1 topo = 2s of simulated time. */
+export const INTERVALS = [
+  { id: '12s', label: '12s', chunk: 6 },
+  { id: '1m', label: '1m', chunk: 30 },
+  { id: '5m', label: '5m', chunk: 150 },
+  { id: '15m', label: '15m', chunk: 450 },
+] as const
+export type IntervalId = (typeof INTERVALS)[number]['id']
+
+/** Max candles drawn at once (the chart shows the most recent window). */
+const MAX_CANDLES = 88
+
+/**
+ * Derive candles from a price series with ABSOLUTE bucket anchoring.
+ * `histStart` = absolute index of data[0]. Bucket of absolute index i is
+ * floor(i / chunk). The bucket containing the LAST point is the live
+ * candle (closed: false); everything before it is frozen history.
+ */
+export function toCandles(data: number[], histStart: number, chunk: number): Candle[] {
+  if (data.length < 2 || chunk < 1) return []
   const out: Candle[] = []
-  for (let end = data.length; end > 0; end -= chunk) {
-    const start = Math.max(0, end - chunk)
-    const slice = data.slice(start, end)
+  const lastAbs = histStart + data.length - 1
+  const liveBucket = Math.floor(lastAbs / chunk)
+
+  // Walk from the live bucket DOWN, but only over buckets that START inside
+  // the visible window (bucket*chunk >= histStart). A bucket that starts
+  // before the window has lost points on its left → its o/h/l would mutate
+  // as the window slides → it is dropped entirely instead. Every rendered
+  // candle is therefore computed from complete, immutable data.
+  for (let bucket = liveBucket; bucket * chunk >= histStart; bucket--) {
+    const from = bucket * chunk - histStart
+    const to = Math.min(data.length, (bucket + 1) * chunk - histStart)
+    if (to <= from || from < 0) continue
+    const slice = data.slice(from, to)
     if (slice.length === 0) continue
     const o = slice[0]
     const c = slice[slice.length - 1]
     const h = Math.max(...slice)
     const l = Math.min(...slice)
-    // activity proxy: accumulated absolute move inside the window
+    // activity proxy: accumulated absolute move inside the bucket
     let vol = 0
     for (let i = 1; i < slice.length; i++) vol += Math.abs(slice[i] - slice[i - 1])
-    out.unshift({ o, h, l, c, vol: vol + Math.abs(c - o) * 0.5 })
+    out.unshift({
+      o, h, l, c,
+      vol: vol + Math.abs(c - o) * 0.5,
+      id: bucket,
+      closed: bucket < liveBucket,
+    })
+    if (out.length >= MAX_CANDLES + 2) break // safety: never explode
   }
-  return out
+  return out.slice(-MAX_CANDLES)
 }
 
 function fmtAxis(v: number): string {
@@ -76,14 +121,19 @@ function smoothPath(pts: { x: number; y: number }[]): string {
 
 export function PriceChart({
   data,
+  histStart = 0,
   height = 300,
   color = 'auto',
   className,
   style,
   unit = 'XEL',
   defaultMode = 'line',
+  defaultInterval = '1m',
+  accent = 'gold',
 }: {
   data: number[]
+  /** absolute index of data[0] — REQUIRED for frozen closed candles */
+  histStart?: number
   height?: number
   /** line color; candles are always gold-up / red-down */
   color?: 'auto' | string
@@ -91,10 +141,15 @@ export function PriceChart({
   style?: CSSProperties
   unit?: string
   defaultMode?: Mode
+  defaultInterval?: IntervalId
+  /** gold (curve) or teal (dex) — tints the interval pills' active state */
+  accent?: 'gold' | 'teal'
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
+  const scaleRef = useRef<{ key: string; lo: number; hi: number } | null>(null)
   const [width, setWidth] = useState(640)
   const [mode, setMode] = useState<Mode>(defaultMode)
+  const [iv, setIv] = useState<IntervalId>(defaultInterval)
   const [hover, setHover] = useState<number | null>(null) // candle idx / point idx
   const mounted = useSyncExternalStore(() => () => {}, () => true, () => false)
 
@@ -110,10 +165,12 @@ export function PriceChart({
   }, [])
 
   const gid = `pc${useId().replace(/[^a-zA-Z0-9]/g, '')}`
-  const headerH = 28
+  const headerH = 30
   const chartH = Math.max(120, height - headerH)
   const n = data.length
-  const candles = toCandles(data)
+  const chunk = INTERVALS.find((i) => i.id === iv)?.chunk ?? 30
+  const candles = toCandles(data, histStart, chunk)
+  const liveIdx = candles.length - 1 // live candle is always last
 
   // ── shared geometry ──
   const padR = 56
@@ -137,16 +194,43 @@ export function PriceChart({
   const hi = mode === 'candles' && candles.length
     ? Math.max(...candles.map((k) => k.h))
     : n ? Math.max(...data) : 1
-  const range = hi - lo || hi || 1
-  const yPad = range * 0.1
-  const yLo = lo - yPad
-  const yHi = hi + yPad
+
+  // ── STABLE Y SCALE (candles) ────────────────────────────────
+  // A closed candle must never move. The scale is therefore refit ONLY
+  // when a new bucket opens (or the interval changes); within a bucket it
+  // can merely EXTEND when the live price escapes the frame — exactly how
+  // an exchange terminal behaves. Line mode keeps the continuous fit.
+  let yLo: number
+  let yHi: number
+  const liveBucketId = candles.length ? candles[liveIdx].id : -1
+  const scaleKey = `${iv}:${liveBucketId}`
+  if (mode === 'candles') {
+    const rawRange = hi - lo || hi || 1
+    const pad = rawRange * 0.1
+    let s = scaleRef.current
+    if (!s || s.key !== scaleKey) {
+      s = { key: scaleKey, lo: lo - pad, hi: hi + pad }
+    } else {
+      // same bucket: extend only if the data escapes the current frame
+      const margin = (s.hi - s.lo) * 0.05
+      const nextLo = lo - margin < s.lo ? lo - margin : s.lo
+      const nextHi = hi + margin > s.hi ? hi + margin : s.hi
+      s = { key: s.key, lo: nextLo, hi: nextHi }
+    }
+    scaleRef.current = s
+    yLo = s.lo
+    yHi = s.hi
+  } else {
+    const pad = (hi - lo || hi || 1) * 0.1
+    yLo = lo - pad
+    yHi = hi + pad
+  }
+  const range = yHi - yLo || yHi || 1
   const yOf = (v: number) => padT + priceH - ((v - yLo) / (yHi - yLo)) * priceH
 
   // grid ticks
   const ticks = 5
   const tickVals = Array.from({ length: ticks }, (_, i) => yLo + ((yHi - yLo) * i) / (ticks - 1))
-
   // ── hover plumbing ──
   const hoverIdx = hover
   const hoverPrice = mode === 'candles'
@@ -185,7 +269,7 @@ export function PriceChart({
   const maxVol = candles.length ? Math.max(...candles.map((k) => k.vol)) : 1
   const volTop = padT + priceH + gapVol
 
-  const lastCandle = candles.length ? candles[candles.length - 1] : null
+  const lastCandle = candles.length ? candles[liveIdx] : null
   const legendCandle = (hoverIdx != null && mode === 'candles' && candles[hoverIdx]) || lastCandle
   const legendUp = legendCandle ? legendCandle.c >= legendCandle.o : upTrend
 
@@ -193,31 +277,58 @@ export function PriceChart({
     ? (lastCandle ? lastCandle.c >= lastCandle.o : true)
     : upTrend
 
+  const accentText = accent === 'teal' ? 'text-xusd' : 'text-vault'
+  const accentBorder = accent === 'teal' ? 'border-xusd/60 bg-xusd/12' : 'border-vault/60 bg-vault/12'
+
   return (
     <div ref={wrapRef} className={cn('relative w-full select-none', className)} style={{ height, ...style }}>
-      {/* terminal header: label left, mode toggle right */}
-      <div className="flex h-[28px] items-center justify-between">
-        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-muted-foreground/85">
+      {/* terminal header: label left, interval + mode toggle right */}
+      <div className="flex h-[30px] items-center justify-between gap-2">
+        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
           price · {unit}
         </span>
-        <div className="flex">
-          {(['line', 'candles'] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => { setMode(m); setHover(null) }}
-              aria-pressed={mode === m}
-              className={cn(
-                'border px-2.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.18em] transition-colors',
-                m === 'line' ? 'border-r-0' : '',
-                mode === m
-                  ? 'border-vault/60 bg-vault/12 text-vault'
-                  : 'border-border bg-background/60 text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {m === 'line' ? 'curve' : 'candles'}
-            </button>
-          ))}
+        <div className="flex items-center gap-1.5">
+          {/* interval selector (candles only — line shows the raw feed) */}
+          {mode === 'candles' && (
+            <div className="flex" role="group" aria-label="Candle interval">
+              {INTERVALS.map((ivl) => (
+                <button
+                  key={ivl.id}
+                  type="button"
+                  onClick={() => { setIv(ivl.id); setHover(null) }}
+                  aria-pressed={iv === ivl.id}
+                  title={`1 candle = ${ivl.label} of simulated time`}
+                  className={cn(
+                    'border px-1.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.1em] transition-colors',
+                    iv === ivl.id
+                      ? accentBorder + ' ' + accentText
+                      : 'border-border bg-background/60 text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  {ivl.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex">
+            {(['line', 'candles'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => { setMode(m); setHover(null) }}
+                aria-pressed={mode === m}
+                className={cn(
+                  'border px-2.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.18em] transition-colors',
+                  m === 'line' ? 'border-r-0' : '',
+                  mode === m
+                    ? 'border-vault/60 bg-vault/12 text-vault'
+                    : 'border-border bg-background/60 text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {m === 'line' ? 'curve' : 'candles'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -250,7 +361,6 @@ export function PriceChart({
               y={yOf(tv) + 3}
               className="fill-[var(--muted-foreground)] font-mono tabular-nums"
               fontSize={9.5}
-              opacity={0.85}
             >
               {fmtAxis(tv)}
             </text>
@@ -301,7 +411,8 @@ export function PriceChart({
           </>
         )}
 
-        {/* ── CANDLE MODE ── */}
+        {/* ── CANDLE MODE — closed candles are FROZEN (keyed by absolute
+             bucket id), only the live candle re-renders each tick ── */}
         {mode === 'candles' && candles.length > 0 && (
           <>
             {/* volume strip */}
@@ -309,26 +420,23 @@ export function PriceChart({
               const vh = maxVol > 0 ? (k.vol / maxVol) * (volH - 2) : 0
               const up = k.c >= k.o
               return (
-                <motion.rect
-                  key={`v${i}`}
+                <rect
+                  key={`v${k.id}`}
                   x={i * cStep + (cStep - cW) / 2}
                   y={volTop + (volH - 2) - Math.max(1, vh)}
                   width={cW}
                   height={Math.max(1, vh)}
                   fill={up ? CHART_UP : CHART_DOWN}
-                  opacity={hoverIdx === i ? 0.5 : 0.22}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: hoverIdx === i ? 0.5 : 0.22 }}
-                  transition={{ duration: 0.2 }}
+                  opacity={hoverIdx === i ? 0.55 : 0.26}
                 />
               )
             })}
-            {/* candles, revealed left to right */}
+            {/* candles, revealed left to right on mode/interval change only */}
             <motion.g
-              key={`cg-${mode}`}
+              key={`cg-${mode}-${iv}`}
               initial={{ clipPath: 'inset(0 100% 0 0)' }}
               animate={{ clipPath: 'inset(0 0% 0 0)' }}
-              transition={{ duration: 0.85, ease: [0.65, 0, 0.35, 1] }}
+              transition={{ duration: 0.7, ease: [0.65, 0, 0.35, 1] }}
             >
               {candles.map((k, i) => {
                 const up = k.c >= k.o
@@ -341,8 +449,9 @@ export function PriceChart({
                 const bodyH = Math.max(1.6, Math.abs(yO - yC))
                 const col = up ? CHART_UP : CHART_DOWN
                 const hovered = hoverIdx === i
+                const isLive = i === liveIdx && !k.closed
                 return (
-                  <g key={i} opacity={hoverIdx != null && !hovered ? 0.45 : 1}>
+                  <g key={k.id} opacity={hoverIdx != null && !hovered ? 0.5 : 1}>
                     {/* wick */}
                     <line x1={cx} x2={cx} y1={yH} y2={yL} stroke={col} strokeWidth={hovered ? 1.8 : 1.3} strokeLinecap="round" />
                     {/* body */}
@@ -356,8 +465,8 @@ export function PriceChart({
                       stroke={col}
                       strokeWidth={hovered ? 1.5 : 0.75}
                     />
-                    {/* live candle marker */}
-                    {i === candles.length - 1 && (
+                    {/* live candle marker — the ONLY candle that moves */}
+                    {isLive && (
                       <rect x={cx - cW / 2 - 2.5} y={bodyTop - 2.5} width={cW + 5} height={bodyH + 5} fill="none" stroke={col} strokeWidth={1} opacity={0.5}>
                         <animate attributeName="opacity" values="0.55;0.12;0.55" dur="1.8s" repeatCount="indefinite" />
                       </rect>
@@ -376,7 +485,7 @@ export function PriceChart({
               x1={0} x2={plotW}
               y1={yOf(last)} y2={yOf(last)}
               stroke={lastPriceUp ? CHART_UP : CHART_DOWN}
-              strokeOpacity={0.5}
+              strokeOpacity={0.55}
               strokeDasharray="3 5"
               strokeWidth={1}
             />
@@ -404,7 +513,7 @@ export function PriceChart({
               y1={padT}
               y2={hasVol ? chartH : padT + priceH}
               stroke="var(--muted-foreground)"
-              strokeOpacity={0.45}
+              strokeOpacity={0.5}
               strokeDasharray="2 4"
               strokeWidth={1}
             />
@@ -412,7 +521,7 @@ export function PriceChart({
               x1={0} x2={plotW}
               y1={yOf(hoverPrice)} y2={yOf(hoverPrice)}
               stroke="var(--muted-foreground)"
-              strokeOpacity={0.45}
+              strokeOpacity={0.5}
               strokeDasharray="2 4"
               strokeWidth={1}
             />
@@ -434,7 +543,7 @@ export function PriceChart({
 
       {/* OHLC legend (candles) / price legend (line) */}
       {mode === 'candles' && legendCandle ? (
-        <div className="pointer-events-none absolute left-1.5 top-1 z-10 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 border border-border/70 bg-background/85 px-2 py-1 font-mono text-[9.5px] tabular-nums">
+        <div className="pointer-events-none absolute left-1.5 top-1 z-10 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 border border-border bg-background/90 px-2 py-1 font-mono text-[9.5px] tabular-nums">
           {[
             ['O', legendCandle.o], ['H', legendCandle.h], ['L', legendCandle.l], ['C', legendCandle.c],
           ].map(([k, v]) => (
@@ -445,9 +554,14 @@ export function PriceChart({
           <span className={legendUp ? 'text-vault' : 'text-destructive'}>
             {(((legendCandle.c - legendCandle.o) / legendCandle.o) * 100).toFixed(2)}%
           </span>
+          {legendCandle === lastCandle && !legendCandle.closed && (
+            <span className="border border-vault/50 bg-vault/10 px-1 py-px text-[8px] font-bold uppercase tracking-[0.18em] text-vault">
+              live
+            </span>
+          )}
         </div>
       ) : mode === 'line' && hoverIdx != null && data[hoverIdx] != null ? (
-        <div className="pointer-events-none absolute left-1.5 top-1 z-10 border border-border/70 bg-background/85 px-2 py-1 font-mono text-[10px] tabular-nums text-foreground">
+        <div className="pointer-events-none absolute left-1.5 top-1 z-10 border border-border bg-background/90 px-2 py-1 font-mono text-[10px] tabular-nums text-foreground">
           {data[hoverIdx] < 1 ? data[hoverIdx].toFixed(5) : data[hoverIdx].toFixed(3)}
           <span className="ml-1.5 text-muted-foreground">{unit}</span>
         </div>

@@ -73,12 +73,23 @@ const internal: {
   timer: ReturnType<typeof setInterval> | null
   rnd: () => number
   migrating: Set<string>
-} = { timer: null, rnd: Math.random, migrating: new Set() }
+  navTimers: ReturnType<typeof setTimeout>[]
+} = { timer: null, rnd: Math.random, migrating: new Set(), navTimers: [] }
 
 const START_TOPO = 4_812_340
-const HISTORY_CAP = 150
+const HISTORY_CAP = 900
 const ACTIVITY_CAP = 60
-const TOTAL_SUPPLY: Record<string, number> = { nova: 96_000, cyph: 120_000, kleos: 100_000 }
+const TOTAL_SUPPLY: Record<string, number> = { vlt: 250_000, nova: 96_000, cyph: 120_000, kleos: 100_000 }
+
+/** Append a price point to a curve/pool history, tracking the absolute
+ *  point index so candle buckets stay anchored when the capped array slides. */
+function pushPoint<T extends { history: number[]; histStart: number; points: number }>(
+  h: T, price: number
+): T {
+  const history = [...h.history, price]
+  if (history.length > HISTORY_CAP) history.splice(0, history.length - HISTORY_CAP)
+  return { ...h, history, points: h.points + 1, histStart: h.points + 1 - history.length }
+}
 
 function uid(): string {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
@@ -113,7 +124,7 @@ export const useEngine = create<EngineState>((set, get) => ({
     { projectId: 'nova', tokens: 6_800, avgPrice: 0.0612 },
   ],
   lps: [
-    { poolId: 'vlt', parts: 18_400, xelProvided: 8_900, feesEarnedXel: 412.6 },
+    { poolId: 'xpay', parts: 3_200, xelProvided: 3_000, feesEarnedXel: 58.4 },
   ],
   votes: {},
 
@@ -181,13 +192,15 @@ export const useEngine = create<EngineState>((set, get) => ({
             }
           }
         }
-        // Graduation check: freeze the curve, run the celebration sequence
+        // Graduation check: freeze the curve, run the celebration sequence.
+        // The migration is deliberately NOT instant: the overlay walks through
+        // the real steps for ~7s, then the pool goes live and the app lands on
+        // the asset automatically (pump.fun-style redirect, no page change).
         if (isGraduated(p.curve.reserves, p.curve.seed)) {
           internal.migrating.add(p.id)
           event = { kind: 'graduating', projectId: p.id, name: p.name, ticker: p.ticker, ts: Date.now() }
           pushActivity({ kind: 'graduation', projectId: p.id, actor: 'protocol', note: `${p.ticker} crossed ${p.curve.seed * 4} XEL · graduation triggered` })
-          setTimeout(() => migrateProject(p.id), 3000)
-          setTimeout(() => useEngine.getState().clearEvent(), 9000)
+          scheduleMigration(p.id)
         }
       }
 
@@ -223,6 +236,8 @@ export const useEngine = create<EngineState>((set, get) => ({
               history: Array.from({ length: 30 }, (_, i) =>
                 (PROTOCOL.minLiquidity / 25_000) * (0.985 + Math.sin(i / 5) * 0.01)
               ),
+              histStart: -30, // pre-seeded points: live points start at 0
+              points: 0,
               volume24h: 0,
               holders: 1,
             }
@@ -263,7 +278,7 @@ export const useEngine = create<EngineState>((set, get) => ({
         }
         // Chart point
         const price = p.pool.xel / p.pool.token
-        p.pool.history = [...p.pool.history, price].slice(-HISTORY_CAP)
+        p.pool = pushPoint(p.pool, price)
       }
     }
 
@@ -273,7 +288,7 @@ export const useEngine = create<EngineState>((set, get) => ({
       // Push chart points for bonding projects (once per tick, not per step)
       const projectsWithHistory = projects.map((p) => {
         if (p.curve && p.status === 'bonding' && !internal.migrating.has(p.id)) {
-          return { ...p, curve: { ...p.curve, history: [...p.curve.history, p.curve.reserves / p.curve.circulating].slice(-HISTORY_CAP) } }
+          return { ...p, curve: pushPoint(p.curve, p.curve.reserves / p.curve.circulating) }
         }
         return p
       })
@@ -304,13 +319,12 @@ export const useEngine = create<EngineState>((set, get) => ({
       if (x.id !== projectId) return x
       return {
         ...x,
-        curve: x.curve && {
+        curve: x.curve && pushPoint({
           ...x.curve,
           reserves: x.curve.reserves + q.net,
           circulating: x.curve.circulating - q.out,
           volume24h: x.curve.volume24h + xelAmount,
-          history: [...x.curve.history, q.priceAfter].slice(-HISTORY_CAP),
-        },
+        }, q.priceAfter),
       }
     })
 
@@ -335,7 +349,7 @@ export const useEngine = create<EngineState>((set, get) => ({
       ].slice(0, ACTIVITY_CAP),
     })
 
-    // Graduation?
+    // Graduation? YOUR trade crossed the line → same cinematic sequence
     const updated = projects.find((x) => x.id === projectId)
     if (updated?.curve && isGraduated(updated.curve.reserves, updated.curve.seed)) {
       internal.migrating.add(projectId)
@@ -343,8 +357,7 @@ export const useEngine = create<EngineState>((set, get) => ({
         event: { kind: 'graduating', projectId, name: p.name, ticker: p.ticker, ts: Date.now() },
         activity: [{ id: uid(), ts: Date.now(), kind: 'graduation' as const, projectId, actor: 'protocol', note: `${p.ticker} crossed ${updated.curve.seed * 4} XEL · YOUR BUY graduated the project` }, ...get().activity].slice(0, ACTIVITY_CAP),
       })
-      setTimeout(() => migrateProject(projectId), 3000)
-      setTimeout(() => useEngine.getState().clearEvent(), 9000)
+      scheduleMigration(projectId)
     }
 
     return { ok: true, message: `Bought ${q.out.toFixed(2)} ${p.ticker} @ ${q.avgPrice.toFixed(5)} XEL` }
@@ -363,13 +376,12 @@ export const useEngine = create<EngineState>((set, get) => ({
 
     const projects = s.projects.map((x) => x.id !== projectId ? x : {
       ...x,
-      curve: x.curve && {
+      curve: x.curve && pushPoint({
         ...x.curve,
         reserves: x.curve.reserves - q.gross,
         circulating: x.curve.circulating + tokenAmount,
         volume24h: x.curve.volume24h + q.out,
-        history: [...x.curve.history, q.priceAfter].slice(-HISTORY_CAP),
-      },
+      }, q.priceAfter),
     })
 
     const positions = s.positions
@@ -431,13 +443,13 @@ export const useEngine = create<EngineState>((set, get) => ({
       tokens: { ...s.tokens, [p.ticker]: (s.tokens[p.ticker] ?? 0) + q.out },
       projects: s.projects.map((x) => x.id !== poolId ? x : {
         ...x,
-        pool: x.pool && {
+        pool: x.pool && pushPoint({
           ...x.pool,
           xel: x.pool.xel + q.net,
           token: x.pool.token - q.out,
           volume24h: x.pool.volume24h + xelAmount,
           fees24h: x.pool.fees24h + q.fee,
-        },
+        }, q.priceAfter),
       }),
       activity: [
         { id: uid(), ts: Date.now(), kind: 'swap' as const, projectId: poolId, actor: 'you', amountXel: xelAmount, tokens: q.out, price: q.priceAfter },
@@ -456,21 +468,22 @@ export const useEngine = create<EngineState>((set, get) => ({
     if (tokenAmount > owned) return { ok: false, message: `Insufficient ${p.ticker} balance` }
     const q = quoteDexSwapToXel(tokenAmount, p.pool, p.pool.feeBps)
     if (q.out <= 0) return { ok: false, message: 'Amount too small' }
+    const priceBefore = p.pool.xel / p.pool.token
     set({
       xel: s.xel + q.out,
       tokens: { ...s.tokens, [p.ticker]: owned - tokenAmount },
       projects: s.projects.map((x) => x.id !== poolId ? x : {
         ...x,
-        pool: x.pool && {
+        pool: x.pool && pushPoint({
           ...x.pool,
           xel: x.pool.xel - q.gross,
           token: x.pool.token + tokenAmount,
           volume24h: x.pool.volume24h + q.out,
           fees24h: x.pool.fees24h + q.fee,
-        },
+        }, priceBefore),
       }),
       activity: [
-        { id: uid(), ts: Date.now(), kind: 'swap' as const, projectId: poolId, actor: 'you', amountXel: q.out, tokens: tokenAmount, price: p.pool.xel / p.pool.token },
+        { id: uid(), ts: Date.now(), kind: 'swap' as const, projectId: poolId, actor: 'you', amountXel: q.out, tokens: tokenAmount, price: priceBefore },
         ...s.activity,
       ].slice(0, ACTIVITY_CAP),
     })
@@ -554,6 +567,32 @@ export const useEngine = create<EngineState>((set, get) => ({
   },
 }))
 
+/* ── Migration choreography ────────────────────────────────────────
+ * pump.fun-style: the migration is a visible PROCESS, not a blink.
+ *   t=0s    graduating overlay opens — 4 steps walk through (~7.5s)
+ *   t=7.5s  migrateProject() runs: the pool goes live atomically
+ *   t=7.7s  'migrated' overlay confirms (seed locked forever…)
+ *   t=10.5s AUTO-NAV: the app lands on the asset's DEX view.
+ * No click needed anywhere — but the CTA stays as an escape hatch
+ * (clicking it cancels the timers and navigates immediately).
+ */
+const MIGRATION_STEPS_MS = 7_500
+const MIGRATION_CONFIRM_MS = 2_800
+
+function scheduleMigration(projectId: string) {
+  internal.navTimers.forEach(clearTimeout)
+  internal.navTimers = []
+  internal.navTimers.push(
+    setTimeout(() => migrateProject(projectId), MIGRATION_STEPS_MS),
+  )
+}
+
+/** Cancel any pending auto-navigation (user clicked a CTA manually). */
+export function cancelAutoNav() {
+  internal.navTimers.forEach(clearTimeout)
+  internal.navTimers = []
+}
+
 /** Atomic migration: bonding curve → LaunchDEX pool (protocol-locked seed). */
 function migrateProject(projectId: string) {
   const s = useEngine.getState()
@@ -562,6 +601,7 @@ function migrateProject(projectId: string) {
   const migrationFee = p.curve.reserves * (PROTOCOL.migrationFeeBps / 10_000)
   const seedXel = p.curve.reserves - migrationFee
   const seedToken = p.curve.circulating // the curve's remaining inventory
+  const startPrice = seedXel / seedToken
 
   useEngine.setState((st) => ({
     event: { kind: 'migrated', projectId, name: p.name, ticker: p.ticker, ts: Date.now() },
@@ -578,7 +618,9 @@ function migrateProject(projectId: string) {
         seedLocked: seedXel,           // THE FLOOR: permanent, protocol-owned
         totalParts: seedXel,           // X11: seed mints parts = seed XEL
         withdrawableParts: 0,          // the seed can never be withdrawn
-        history: [seedXel / seedToken],
+        history: [startPrice],
+        histStart: 0,
+        points: 1,
         volume24h: 0,
         fees24h: 0,
       },
@@ -593,6 +635,16 @@ function migrateProject(projectId: string) {
     ].slice(0, ACTIVITY_CAP),
   }))
   internal.migrating.delete(projectId)
+
+  // AUTO-NAV (pump.fun style): land on the asset's DEX view, no click.
+  internal.navTimers.push(
+    setTimeout(() => {
+      const ev = useEngine.getState().event
+      if (ev?.kind === 'migrated' && ev.projectId === projectId) {
+        useEngine.setState({ event: null, pendingNav: { view: 'dex', id: projectId } })
+      }
+    }, MIGRATION_CONFIRM_MS)
+  )
 }
 
 /** Helper for components: live graduation progress of a project. */

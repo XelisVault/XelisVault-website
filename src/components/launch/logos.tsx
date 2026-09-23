@@ -138,6 +138,12 @@ const TILE_SIZES = {
   xl: 'h-16 w-16',
 } as const
 
+/** Assets that use their OFFICIAL logo image instead of a hand-drawn
+ *  emblem. VLT is the platform itself — its real brand mark. */
+const OFFICIAL_LOGOS: Record<string, string> = {
+  VLT: '/images/xelisvault-logo.png',
+}
+
 export function ProjectLogo({
   ticker,
   size = 'md',
@@ -153,7 +159,15 @@ export function ProjectLogo({
   title?: string
 }) {
   const hue = LOGO_HUES[ticker] ?? 44
-  const emblem = (
+  const official = OFFICIAL_LOGOS[ticker]
+  const emblem = official ? (
+    <img
+      src={official}
+      alt={title ? `${ticker} official logo` : ''}
+      className="h-full w-full object-cover"
+      draggable={false}
+    />
+  ) : (
     <svg
       viewBox="0 0 32 32"
       className={cn('h-full w-full', !frame && 'shrink-0')}
@@ -175,14 +189,20 @@ export function ProjectLogo({
   return (
     <span
       className={cn('relative inline-flex shrink-0 items-center justify-center border', TILE_SIZES[size], className)}
-      style={{
-        borderColor: `hsl(${hue} 62% 62% / 0.55)`,
-        backgroundColor: `hsl(${hue} 62% 50% / 0.13)`,
-        color: `hsl(${hue} 72% 76%)`,
-        boxShadow: `inset 0 0 0 1px hsl(${hue} 62% 60% / 0.08)`,
-      }}
+      style={official
+        ? {
+            borderColor: 'var(--border)',
+            backgroundColor: 'oklch(0.16 0.01 80)',
+            boxShadow: 'inset 0 0 0 1px oklch(0.955 0.004 85 / 8%)',
+          }
+        : {
+            borderColor: `hsl(${hue} 62% 62% / 0.55)`,
+            backgroundColor: `hsl(${hue} 62% 50% / 0.13)`,
+            color: `hsl(${hue} 72% 76%)`,
+            boxShadow: `inset 0 0 0 1px hsl(${hue} 62% 60% / 0.08)`,
+          }}
     >
-      <span className="flex h-[76%] w-[76%] items-center justify-center">{emblem}</span>
+      <span className={cn('flex items-center justify-center overflow-hidden', official ? 'h-full w-full' : 'h-[76%] w-[76%]')}>{emblem}</span>
     </span>
   )
 }

@@ -1,14 +1,21 @@
-// DEX view — LaunchDEX: pools with the permanent seed floor, the swap widget,
-// and the liquidity provider panel (add / remove pro-rata, fee earnings).
+// DEX view — LaunchDEX.
+//
+// Two modes, like the curve terminal:
+//   • GRID (no focus): global stats + every pool as a rich card.
+//     Click → the pool's own page.
+//   • POOL (focus): ONE pool — chart with intervals, swap widget, the
+//     liquidity provider panel (add / remove pro-rata, fee earnings),
+//     the permanent seed floor. No other pools on screen.
 
 'use client'
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { ArrowLeft } from 'lucide-react'
 import { useEngine } from '@/lib/launch/engine'
 import { useToast } from '@/hooks/use-toast'
 import { useLaunchWallet } from '@/lib/launch/wallet'
-import { Sparkline, AnimatedNumber, BracketButton, PanelHead, CHART_TEAL } from './shared'
+import { Sparkline, AnimatedNumber, BracketButton, PanelHead, StatusTag, CHART_TEAL } from './shared'
 import { ProjectLogo, PairLogo } from './logos'
 import { PriceChart } from './chart'
 import { quoteDexSwap, quoteDexSwapToXel, fmtXel, fmtPrice, fmtPct } from '@/lib/launch/math'
@@ -16,44 +23,78 @@ import type { Project } from '@/lib/launch/types'
 import { cn } from '@/lib/utils'
 import type { AppView } from './app-shell'
 
-function PoolCard({ p, selected, onSelect }: { p: Project; selected: boolean; onSelect: () => void }) {
+// ─────────────────────────────────────────────────────────────────
+// GRID MODE — all the pools
+// ─────────────────────────────────────────────────────────────────
+
+function PoolCard({ p, rank, onOpen }: { p: Project; rank: number; onOpen: () => void }) {
   if (!p.pool) return null
   const price = p.pool.xel / p.pool.token
   const first = p.pool.history[0] ?? price
   const chg = first > 0 ? ((price - first) / first) * 100 : 0
   return (
-    <button
-      onClick={onSelect}
-      className={cn(
-        'w-full border p-4 text-left transition-colors',
-        selected ? 'border-xusd/50 bg-xusd/10' : 'border-border/70 bg-card/50 hover:border-xusd/30'
-      )}
+    <motion.button
+      layout
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: rank * 0.04 }}
+      onClick={onOpen}
+      className="group relative flex flex-col border border-border/80 bg-card/50 p-5 text-left transition-colors hover:border-xusd/40 hover:bg-card/80"
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <PairLogo ticker={p.ticker} size="sm" />
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <PairLogo ticker={p.ticker} size="md" />
           <div>
-            <div className="text-sm font-semibold">XEL / {p.ticker}</div>
-            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              {p.status === 'trusted' ? 'trusted' : 'graduated'} · 0.30% fee
+            <div className="flex items-center gap-2">
+              <span className="font-semibold tracking-tight">XEL / {p.ticker}</span>
+            </div>
+            <div className="mt-1.5 flex items-center gap-2">
+              <StatusTag status={p.status} />
+              <span className="font-mono text-[10px] text-muted-foreground">fee 0.30%</span>
             </div>
           </div>
         </div>
-        <Sparkline data={p.pool.history.slice(-45)} width={80} height={26} color={CHART_TEAL} />
+        <Sparkline data={p.pool.history.slice(-48)} width={78} height={26} color={CHART_TEAL} />
       </div>
-      <div className="mt-3 flex items-end justify-between">
+
+      <div className="mt-4 flex items-end justify-between">
         <div>
-          <div className="font-mono text-lg font-semibold tabular-nums">{fmtPrice(price)}</div>
-          <div className={cn('font-mono text-[11px] tabular-nums', chg >= 0 ? 'text-emerald-400' : 'text-destructive')}>{fmtPct(chg, 1)}</div>
+          <div className="font-display text-2xl font-semibold tabular-nums">{fmtPrice(price)}</div>
+          <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">XEL per {p.ticker}</div>
         </div>
-        <div className="text-right font-mono text-[10px] text-muted-foreground">
-          <div>TVL <span className="text-foreground">{fmtXel(p.pool.xel)} XEL</span></div>
-          <div>VOL <span className="text-foreground">{fmtXel(p.pool.volume24h)}</span></div>
+        <div className={cn('font-mono text-sm font-semibold tabular-nums', chg >= 0 ? 'text-emerald-400' : 'text-destructive')}>
+          {fmtPct(chg, 1)}
         </div>
       </div>
-    </button>
+
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        {[
+          ['TVL', `${fmtXel(p.pool.xel)} XEL`],
+          ['VOL 24H', fmtXel(p.pool.volume24h)],
+          ['FEES 24H', `${p.pool.fees24h.toFixed(1)}`],
+        ].map(([k, v]) => (
+          <div key={k} className="border border-border/70 bg-background/50 p-2.5 text-center">
+            <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{k}</div>
+            <div className="mt-1 font-mono text-xs font-semibold tabular-nums text-foreground">{v}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-3 text-center font-mono text-[10px] text-xusd">
+        ▣ {fmtXel(p.pool.seedLocked)} XEL seed locked forever
+      </div>
+
+      <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-3 font-mono text-[10px] uppercase tracking-[0.16em]">
+        <span className="text-muted-foreground">split 50/50 · exit any time</span>
+        <span className="text-xusd opacity-0 transition-opacity group-hover:opacity-100">open pool →</span>
+      </div>
+    </motion.button>
   )
 }
+
+// ─────────────────────────────────────────────────────────────────
+// POOL MODE components
+// ─────────────────────────────────────────────────────────────────
 
 function SwapWidget({ project }: { project: Project }) {
   const engine = useEngine()
@@ -156,7 +197,7 @@ function SwapWidget({ project }: { project: Project }) {
           <div className="mt-3 grid grid-cols-2 gap-2 font-mono text-[10px]">
             <div className="border border-border/60 bg-background/50 p-2.5">
               <div className="text-muted-foreground">PRICE</div>
-              <div className="mt-0.5 tabular-nums">{fmtPrice(direction === 'toToken' ? amt / q.out : q.out / amt)}</div>
+              <div className="mt-0.5 tabular-nums text-foreground">{fmtPrice(direction === 'toToken' ? amt / q.out : q.out / amt)}</div>
             </div>
             <div className="border border-border/60 bg-background/50 p-2.5">
               <div className="text-muted-foreground">IMPACT</div>
@@ -224,7 +265,7 @@ function LpPanel({ project }: { project: Project }) {
           >
             {t === 'add' ? 'Provide' : 'Position'}
             {tab === t && (
-              <motion.span layoutId="lp-tab-marker" className="absolute inset-x-0 bottom-0 h-[2px] bg-xusd" transition={{ type: 'spring', stiffness: 380, damping: 32 }} />
+              <motion.span layoutId={`lp-tab-marker-${project.id}`} className="absolute inset-x-0 bottom-0 h-[2px] bg-xusd" transition={{ type: 'spring', stiffness: 380, damping: 32 }} />
             )}
           </button>
         ))}
@@ -312,6 +353,10 @@ function LpPanel({ project }: { project: Project }) {
   )
 }
 
+// ─────────────────────────────────────────────────────────────────
+// The view
+// ─────────────────────────────────────────────────────────────────
+
 export function DexView({ setView, focusId }: {
   setView: (v: AppView, id?: string) => void
   focusId?: string | null
@@ -319,124 +364,153 @@ export function DexView({ setView, focusId }: {
   const projects = useEngine((s) => s.projects)
   const pools = projects.filter((p) => !!p.pool)
 
-  // Derived selection: focused pool if it exists, else the first pool.
-  const project = pools.find((p) => p.id === focusId && p.pool) ?? pools[0]
+  // Derived selection: focused pool if it exists, else grid mode.
+  const project = pools.find((p) => p.id === focusId && p.pool)
 
-  if (!project || !project.pool) {
+  // ── GRID MODE: global stats + every pool ──
+  if (!focusId || !project || !project.pool) {
+    const totalVol = pools.reduce((a, p) => a + (p.pool?.volume24h ?? 0), 0)
+    const totalTvl = pools.reduce((a, p) => a + (p.pool?.xel ?? 0), 0)
+    const totalFees = pools.reduce((a, p) => a + (p.pool?.fees24h ?? 0), 0)
     return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-5 text-center">
-        <div className="font-mono text-sm text-muted-foreground">
-          No pools on the DEX yet · projects graduate from the bonding curve.
+      <div>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          {[
+            { k: 'POOLS', v: pools.length.toString(), sub: 'seed floors locked' },
+            { k: 'TOTAL TVL', v: fmtXel(totalTvl), sub: 'XEL' },
+            { k: 'VOLUME 24H', v: fmtXel(totalVol), sub: 'XEL' },
+            { k: 'FEES 24H', v: totalFees.toFixed(1), sub: 'XEL · 50% to LPs' },
+          ].map((s, i) => (
+            <motion.div
+              key={s.k}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05, duration: 0.4 }}
+              className="border border-border/70 bg-card/50 p-4"
+            >
+              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{s.k}</div>
+              <div className="mt-2 font-display text-2xl font-semibold tabular-nums">{s.v}</div>
+              <div className="mt-1 font-mono text-[10px] text-muted-foreground">{s.sub}</div>
+            </motion.div>
+          ))}
         </div>
-        <BracketButton variant="quiet" onClick={() => setView('trading')}>
-          Watch the curves
-        </BracketButton>
+
+        <div className="mt-5 flex items-center justify-between">
+          <h2 className="font-display text-base font-semibold tracking-tight">Permanent-liquidity pools</h2>
+          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            click a pool to open its terminal
+          </span>
+        </div>
+
+        {pools.length > 0 ? (
+          <motion.div layout className="mt-4 grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
+            {pools.map((p, i) => (
+              <PoolCard key={p.id} p={p} rank={i} onOpen={() => setView('dex', p.id)} />
+            ))}
+          </motion.div>
+        ) : (
+          <div className="mt-8 border border-dashed border-border p-10 text-center font-mono text-sm text-muted-foreground">
+            No pools on the DEX yet · projects graduate from the bonding curve.
+          </div>
+        )}
       </div>
     )
   }
 
+  // ── POOL MODE: one pool, the full terminal ──
   const pool = project.pool
   const price = pool.xel / pool.token
+  const first = pool.history[0] ?? price
+  const change = first > 0 ? ((price - first) / first) * 100 : 0
   const seedShare = (pool.seedLocked / pool.xel) * 100
-  const totalVol = pools.reduce((a, p) => a + (p.pool?.volume24h ?? 0), 0)
-  const totalTvl = pools.reduce((a, p) => a + (p.pool?.xel ?? 0), 0)
-  const totalFees = pools.reduce((a, p) => a + (p.pool?.fees24h ?? 0), 0)
 
   return (
-    <div className="space-y-4">
-      {/* Global stats */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-        {[
-          { k: 'POOLS', v: pools.length.toString(), sub: 'seed floors locked' },
-          { k: 'TOTAL TVL', v: fmtXel(totalTvl), sub: 'XEL' },
-          { k: 'VOLUME 24H', v: fmtXel(totalVol), sub: 'XEL' },
-          { k: 'FEES 24H', v: totalFees.toFixed(1), sub: 'XEL · 50% to LPs' },
-        ].map((s, i) => (
-          <motion.div
-            key={s.k}
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05, duration: 0.4 }}
-            className="border border-border/70 bg-card/50 p-4"
-          >
-            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{s.k}</div>
-            <div className="mt-2 font-display text-2xl font-semibold tabular-nums">{s.v}</div>
-            <div className="mt-1 font-mono text-[10px] text-muted-foreground">{s.sub}</div>
-          </motion.div>
-        ))}
-      </div>
+    <div>
+      {/* back to all pools */}
+      <button
+        onClick={() => setView('dex', '')}
+        className="group mb-4 inline-flex items-center gap-2 border border-border bg-card/50 px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:border-xusd/40 hover:text-xusd"
+      >
+        <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+        all pools
+      </button>
 
-      <div className="grid gap-4 lg:grid-cols-[280px_1fr_320px]">
-        {/* Pool list */}
-        <div className="min-w-0 space-y-3">
-          {pools.map((p) => (
-            <PoolCard key={p.id} p={p} selected={p.id === project.id} onSelect={() => setView('dex', p.id)} />
-          ))}
-        </div>
-
-        {/* Pool detail */}
-        <div className="min-w-0 border border-border/70 bg-card/50 p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex items-center gap-3.5">
-              <PairLogo ticker={project.ticker} size="md" />
-              <div>
-                <h2 className="text-lg font-semibold tracking-tight">XEL / {project.ticker}</h2>
-                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                  {project.name} · migrated · fee 0.30% · split 50/50
+      <div className="grid gap-4 xl:grid-cols-[1fr_330px]">
+        {/* Chart + pool data */}
+        <div className="min-w-0 space-y-4">
+          <div className="border border-border/70 bg-card/50 p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-center gap-3.5">
+                <PairLogo ticker={project.ticker} size="md" />
+                <div>
+                  <h2 className="text-lg font-semibold tracking-tight">XEL / {project.ticker}</h2>
+                  <div className="mt-1 flex items-center gap-2">
+                    <StatusTag status={project.status} />
+                    <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                      {project.name} · migrated · fee 0.30% · split 50/50
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-display text-2xl font-semibold tabular-nums">{fmtPrice(price)}</div>
+                <div className={cn('font-mono text-xs font-semibold tabular-nums', change >= 0 ? 'text-emerald-400' : 'text-destructive')}>
+                  {fmtPct(change, 1)} · XEL
                 </div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="font-display text-2xl font-semibold tabular-nums">{fmtPrice(price)}</div>
-              <div className="font-mono text-[11px] text-muted-foreground">XEL per {project.ticker}</div>
-            </div>
-          </div>
 
-          <div className="mt-4">
-            <PriceChart data={pool.history} height={260} color={CHART_TEAL} />
-          </div>
-
-          {/* The seed floor */}
-          <div className="mt-4 border border-vault/25 bg-vault/5 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-vault">
-                ▣ the permanent floor
-              </div>
-              <span className="font-mono text-[10px] text-muted-foreground">
-                {fmtXel(pool.seedLocked)} / {fmtXel(pool.xel)} XEL = {seedShare.toFixed(1)}% of depth
-              </span>
-            </div>
-            <div className="mt-2.5 flex h-3.5 overflow-hidden border border-border/60">
-              <motion.div
-                className="h-full bg-vault"
-                animate={{ width: `${seedShare}%` }}
-                transition={{ type: 'spring', stiffness: 50, damping: 16 }}
+            <div className="mt-4">
+              <PriceChart
+                data={pool.history}
+                histStart={pool.histStart}
+                height={340}
+                color={CHART_TEAL}
+                defaultMode="candles"
+                accent="teal"
               />
-              <motion.div className="h-full bg-foreground/15" animate={{ width: `${100 - seedShare}%` }} />
             </div>
-            <div className="mt-2 flex justify-between font-mono text-[10px] text-muted-foreground">
-              <span className="text-vault">▣ protocol-locked · can never be withdrawn</span>
-              <span>provider liquidity · exitable pro-rata any time</span>
-            </div>
-          </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            {[
-              ['TVL', `${fmtXel(pool.xel)} XEL`],
-              ['VOL 24H', `${fmtXel(pool.volume24h)}`],
-              ['FEES 24H', `${pool.fees24h.toFixed(1)} XEL`],
-              ['TOTAL PARTS', fmtXel(pool.totalParts)],
-            ].map(([k, v]) => (
-              <div key={k} className="border border-border/70 bg-background/50 p-3">
-                <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">{k}</div>
-                <div className="mt-1.5 font-mono text-sm font-semibold tabular-nums">{v}</div>
+            {/* The seed floor */}
+            <div className="mt-4 border border-vault/25 bg-vault/5 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-vault">
+                  ▣ the permanent floor
+                </div>
+                <span className="font-mono text-[10px] text-muted-foreground">
+                  <span className="text-foreground">{fmtXel(pool.seedLocked)}</span> / <span className="text-foreground">{fmtXel(pool.xel)} XEL</span> = <span className="text-vault">{seedShare.toFixed(1)}%</span> of depth
+                </span>
               </div>
-            ))}
+              <div className="mt-2.5 flex h-3.5 overflow-hidden border border-border/60">
+                <motion.div
+                  className="h-full bg-vault"
+                  animate={{ width: `${seedShare}%` }}
+                  transition={{ type: 'spring', stiffness: 50, damping: 16 }}
+                />
+                <motion.div className="h-full bg-foreground/15" animate={{ width: `${100 - seedShare}%` }} />
+              </div>
+              <div className="mt-2 flex justify-between font-mono text-[10px]">
+                <span className="text-vault">▣ protocol-locked · can never be withdrawn</span>
+                <span className="text-muted-foreground">provider liquidity · exitable pro-rata any time</span>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+              {[
+                ['TVL', `${fmtXel(pool.xel)} XEL`],
+                ['VOL 24H', `${fmtXel(pool.volume24h)}`],
+                ['FEES 24H', `${pool.fees24h.toFixed(1)} XEL`],
+                ['TOTAL PARTS', fmtXel(pool.totalParts)],
+              ].map(([k, v]) => (
+                <div key={k} className="border border-border/70 bg-background/50 p-3">
+                  <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">{k}</div>
+                  <div className="mt-1.5 font-mono text-sm font-semibold tabular-nums text-foreground">{v}</div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="mt-4">
-            <LpPanel project={project} />
-          </div>
+          <LpPanel project={project} />
         </div>
 
         {/* Swap + why */}

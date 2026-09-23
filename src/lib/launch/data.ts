@@ -2,9 +2,10 @@
 // render identically. The engine then evolves this state live after mount.
 //
 // Projects showcase EVERY lifecycle stage:
-//   XelisVault (VLT) — trusted, migrated to LaunchDEX (the flagship story)
-//   XPay (XPAY)      — graduated, migrated (second DEX pool)
-//   NovaPrivacy(NOVA)— bonding, 68% to graduation (the live trading demo)
+//   XelisVault (VLT) — ON THE CURVE at ~93%, about to graduate and migrate
+//                      (the live flagship story: watch it cross 4× live)
+//   XPay (XPAY)      — graduated, migrated (the LaunchDEX pool)
+//   NovaPrivacy(NOVA)— bonding, 68% to graduation
 //   CypherDAO (CYPH) — bonding, early days (second curve)
 //   Kleos (KLEOS)    — validating, 19/20 voters, 89% — about to be ACCEPTED
 //   Obsidian (OBS)   — validating, early
@@ -38,10 +39,16 @@ export function walkHistory(endPrice: number, points: number, vol: number, seed:
   return out.reverse()
 }
 
-/** Initial price histories for bonding curves (per-project seeds). */
-function curveHistory(reserves: number, circulating: number, seed: number): number[] {
-  const end = reserves / circulating
-  return walkHistory(end, 110, 0.035, seed, 0.0008)
+/** Initial price histories for bonding curves (per-project seeds).
+ *  histStart is NEGATIVE: the pre-seeded walk represents points emitted
+ *  before t0, so live points start at absolute index 0 and closed candles
+ *  stay anchored forever. */
+function curveHistory(reserves: number, circulating: number, seed: number, points = 110): { history: number[]; histStart: number; points: number } {
+  return {
+    history: walkHistory(reserves / circulating, points, 0.035, seed, 0.0008),
+    histStart: -points,
+    points: 0,
+  }
 }
 
 const MIN = 60_000
@@ -49,40 +56,38 @@ const HOUR = 60 * MIN
 
 export function buildInitialProjects(startTopo: number, nowMs: number): Project[] {
   return [
-    // ── Flagship: XelisVault — full lifecycle complete, trusted, on the DEX ──
+    // ── Flagship: XelisVault — ON THE CURVE, ~93% to graduation. The live
+    //    story: watch VLT cross 4× (2,000 XEL) and migrate to LaunchDEX. ──
     {
       id: 'vlt',
       name: 'XelisVault',
       ticker: 'VLT',
-      description: 'The confidential finance platform itself: vaults, xUSD, VaultSwap. Launched through VaultLaunch, now the deepest pool on LaunchDEX.',
+      description: 'The confidential finance platform itself: vaults, xUSD, VaultSwap. On its bonding curve at 93% — graduation to LaunchDEX is imminent, watch it live.',
       longDescription:
-        'XelisVault is the privacy-native financial platform of the XELIS ecosystem: confidential vaults, the xUSD stablecoin through the PSM, private swaps on VaultSwap and on-chain governance. It was the very first project to migrate from the bonding curve to LaunchDEX, and its seed liquidity of 2,000 XEL is protocol-locked forever. Providers earn 50% of all swap fees pro-rata; the other half funds the protocol. Today it is the deepest, most traded pool on the DEX and carries the community TRUSTED badge with 312 lifetime supporting votes against 4 reports.',
+        'XelisVault is the privacy-native financial platform of the XELIS ecosystem: confidential vaults, the xUSD stablecoin through the PSM, private swaps on VaultSwap and on-chain governance. Its community validation passed with 31 voters at 90% approval, and the bonding curve has been climbing ever since: 1,855 XEL of reserves against a 500 XEL seed, 93% of the way to graduation. When reserves cross 2,000 XEL (4× the seed), anyone can trigger the atomic migration to LaunchDEX — the seed becomes permanent protocol liquidity and every swap pays 0.30%, half to liquidity providers, pro-rata, exitable at any time. You can be the trade that graduates it.',
       creator: 'xelisvault',
       creatorAddress: 'xel1qvaultlaunch0seed00000000000000000000000000000000000000',
       website: 'https://xelisvault.xyz',
       hue: 38,
       avatar: '◆',
-      status: 'trusted',
+      status: 'bonding',
       directListing: false,
-      proposedAt: nowMs - 62 * 24 * HOUR,
-      pool: {
-        id: 'vlt',
-        xel: 96_400,
-        token: 219_000,
-        feeBps: PROTOCOL.dexFeeBps,
-        adminSplitBps: PROTOCOL.dexAdminSplitBps,
-        seedLocked: 2_000,
-        totalParts: 150_000,
-        withdrawableParts: 148_000,
-        history: walkHistory(96_400 / 219_000, 110, 0.03, 42, 0.0012),
-        volume24h: 41_800,
-        fees24h: 125.4,
+      proposedAt: nowMs - 12 * 24 * HOUR,
+      curve: {
+        reserves: 1_855,
+        circulating: 26_000,
+        seed: 500,
+        feeBps: PROTOCOL.tradingFeeBps,
+        teamBps: 1_200,
+        ...curveHistory(1_855, 26_000, 42, 130),
+        volume24h: 89_400,
+        holders: 385,
       },
-      trust: { up: 312, down: 4 },
+      trust: { up: 31, down: 3 },
       tags: ['DeFi', 'Privacy', 'Flagship'],
     },
 
-    // ── Graduated + migrated: XPay ──
+    // ── Graduated + migrated: XPay — the LaunchDEX pool ──
     {
       id: 'xpay',
       name: 'XPay',
@@ -108,6 +113,8 @@ export function buildInitialProjects(startTopo: number, nowMs: number): Project[
         totalParts: 21_300,
         withdrawableParts: 19_460,
         history: walkHistory(21_300 / 96_500, 110, 0.04, 77, 0.0009),
+        histStart: -110,
+        points: 0,
         volume24h: 12_400,
         fees24h: 37.2,
       },
@@ -137,7 +144,7 @@ export function buildInitialProjects(startTopo: number, nowMs: number): Project[
         seed: 500,
         feeBps: PROTOCOL.tradingFeeBps,
         teamBps: 1_500,
-        history: curveHistory(1_362, 18_400, 7),
+        ...curveHistory(1_362, 18_400, 7),
         volume24h: 6_240,
         holders: 214,
       },
@@ -166,7 +173,7 @@ export function buildInitialProjects(startTopo: number, nowMs: number): Project[
         seed: 500,
         feeBps: PROTOCOL.tradingFeeBps,
         teamBps: 1_000,
-        history: curveHistory(812, 27_900, 13),
+        ...curveHistory(812, 27_900, 13),
         volume24h: 1_840,
         holders: 96,
       },
@@ -259,14 +266,14 @@ export function buildInitialActivity(nowMs: number): ActivityItem[] {
     ...item,
   })
   return [
-    mk('a1', 8, { kind: 'buy', projectId: 'nova', actor: 'xel1q…7f2a', amountXel: 42, price: 0.0738 }),
-    mk('a2', 34, { kind: 'swap', projectId: 'vlt', actor: 'xel1q…9c11', amountXel: 850, price: 0.4402 }),
+    mk('a1', 8, { kind: 'buy', projectId: 'vlt', actor: 'xel1q…7f2a', amountXel: 42, price: 0.0712 }),
+    mk('a2', 34, { kind: 'swap', projectId: 'xpay', actor: 'xel1q…9c11', amountXel: 850, price: 0.2207 }),
     mk('a3', 61, { kind: 'buy', projectId: 'cyph', actor: 'xel1q…22b0', amountXel: 18, price: 0.0291 }),
     mk('a4', 97, { kind: 'vote', projectId: 'kleos', actor: 'xel1q…84de', note: 'voted SUPPORT · 17/2 (89%)' }),
-    mk('a5', 142, { kind: 'sell', projectId: 'nova', actor: 'xel1q…5fa3', amountXel: 21.5, price: 0.0741 }),
-    mk('a6', 188, { kind: 'swap', projectId: 'xpay', actor: 'xel1q…01bb', amountXel: 120, price: 0.2207 }),
-    mk('a7', 240, { kind: 'buy', projectId: 'nova', actor: 'xel1q…cc77', amountXel: 96, price: 0.0736 }),
-    mk('a8', 310, { kind: 'lp', projectId: 'vlt', actor: 'xel1q…d4e9', amountXel: 1_200, note: 'added liquidity · 1,200 XEL' }),
+    mk('a5', 142, { kind: 'sell', projectId: 'vlt', actor: 'xel1q…5fa3', amountXel: 21.5, price: 0.0715 }),
+    mk('a6', 188, { kind: 'swap', projectId: 'xpay', actor: 'xel1q…01bb', amountXel: 120, price: 0.2201 }),
+    mk('a7', 240, { kind: 'buy', projectId: 'vlt', actor: 'xel1q…cc77', amountXel: 96, price: 0.0709 }),
+    mk('a8', 310, { kind: 'buy', projectId: 'vlt', actor: 'xel1q…d4e9', amountXel: 130, note: undefined, price: 0.0705 }),
     mk('a9', 420, { kind: 'sell', projectId: 'cyph', actor: 'xel1q…aa18', amountXel: 9.2, price: 0.0293 }),
     mk('a10', 505, { kind: 'buy', projectId: 'nova', actor: 'xel1q…3e60', amountXel: 130, price: 0.0733 }),
   ]

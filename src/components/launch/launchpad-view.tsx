@@ -35,13 +35,15 @@ function VoteBar({ p }: { p: Project }) {
     <div className="space-y-2">
       <div className="flex items-center justify-between font-mono text-[11px]">
         <span className="text-muted-foreground">
-          <AnimatedNumber value={voters} format={(v) => Math.round(v).toString()} />
+          <span className="font-semibold text-foreground">
+            <AnimatedNumber value={voters} format={(v) => Math.round(v).toString()} />
+          </span>
           <span className="text-foreground">/{p.vote.quorum}</span> voters ·{' '}
-          <span className={passes ? 'text-emerald-400' : 'text-destructive'}>
+          <span className={cn('font-semibold', passes ? 'text-emerald-400' : 'text-destructive')}>
             <AnimatedNumber value={approval * 100} format={(v) => `${v.toFixed(0)}%`} /> approval
           </span>
         </span>
-        <Countdown deadlineTopo={p.vote.deadlineTopo} className={cn(p.id === 'kleos' ? 'text-vault-soft' : 'text-muted-foreground')} />
+        <Countdown deadlineTopo={p.vote.deadlineTopo} className={cn(p.id === 'kleos' ? 'text-vault-soft' : 'text-foreground')} />
       </div>
       <div className="flex gap-1.5">
         <div className="h-[3px] flex-1 bg-foreground/10">
@@ -122,14 +124,14 @@ function ProjectCard({ p, rank, onOpen, onTrade }: { p: Project; rank: number; o
           <div className="border border-vault/25 bg-vault/5 p-3">
             <div className="flex justify-between font-mono text-[11px]">
               <span className="text-muted-foreground">
-                curve · <span className="text-foreground">{fmtXel(p.curve.reserves)} / {fmtXel(p.curve.seed * 4)} XEL</span>
+                curve · <span className="font-semibold text-foreground">{fmtXel(p.curve.reserves)} / {fmtXel(p.curve.seed * 4)} XEL</span>
               </span>
               <span className="font-semibold text-vault">{(graduationOf(p) * 100).toFixed(1)}%</span>
             </div>
             <Bar value={graduationOf(p)} className="mt-2" />
             <div className="mt-2 flex items-center justify-between">
-              <span className="font-mono text-[10px] text-muted-foreground">
-                price {(p.curve.reserves / p.curve.circulating).toFixed(5)} XEL
+              <span className="font-mono text-[10px] text-foreground">
+                price <span className="font-semibold">{(p.curve.reserves / p.curve.circulating).toFixed(5)}</span> XEL
               </span>
               <Sparkline data={p.curve.history.slice(-40)} width={72} height={20} />
             </div>
@@ -140,15 +142,15 @@ function ProjectCard({ p, rank, onOpen, onTrade }: { p: Project; rank: number; o
             <div className="grid grid-cols-3 gap-2 text-center font-mono text-[10px]">
               <div>
                 <div className="text-muted-foreground">PRICE</div>
-                <div className="mt-0.5 text-xs font-semibold">{(p.pool.xel / p.pool.token).toFixed(4)}</div>
+                <div className="mt-0.5 text-xs font-semibold text-foreground">{(p.pool.xel / p.pool.token).toFixed(4)}</div>
               </div>
               <div>
                 <div className="text-muted-foreground">TVL</div>
-                <div className="mt-0.5 text-xs font-semibold">{fmtXel(p.pool.xel)} XEL</div>
+                <div className="mt-0.5 text-xs font-semibold text-foreground">{fmtXel(p.pool.xel)} XEL</div>
               </div>
               <div>
                 <div className="text-muted-foreground">VOL 24H</div>
-                <div className="mt-0.5 text-xs font-semibold">{fmtXel(p.pool.volume24h)}</div>
+                <div className="mt-0.5 text-xs font-semibold text-foreground">{fmtXel(p.pool.volume24h)}</div>
               </div>
             </div>
             <div className="mt-2 text-center font-mono text-[10px] text-xusd">

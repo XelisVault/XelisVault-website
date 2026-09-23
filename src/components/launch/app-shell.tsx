@@ -1,16 +1,23 @@
-// VaultLaunch app shell — status line, ledger sidebar, topbar, wallet modal,
-// celebration overlay, and the demo engine provider.
+// VaultLaunch app shell — status line, smart sidebar, topbar, wallet modal,
+// migration overlay, and the demo engine provider.
 //
 // Layout mirrors the XELIS Vault testnet app (numbered ledger index, hairline
 // borders, warm ink) so the two applications feel like siblings: same house,
 // different floor.
+//
+// The sidebar is a SMART RAIL:
+//   • desktop (hover + fine pointer): collapsed to a slim numbered rail by
+//     default; it expands the moment the mouse approaches the left edge and
+//     folds back when it moves away — no click needed, ever.
+//   • touch (iPhone / tablet): a hamburger in the rail toggles it open/closed
+//     (it stays pinned while open so taps don't collapse it under your finger).
 
 'use client'
 
 import { useEffect, useState, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X } from 'lucide-react'
-import { useEngine, type DemoEvent } from '@/lib/launch/engine'
+import { X, Menu } from 'lucide-react'
+import { useEngine, cancelAutoNav, type DemoEvent } from '@/lib/launch/engine'
 import { useLaunchWallet, initLaunchWalletSync } from '@/lib/launch/wallet'
 import { mainnetConnectError } from '@/lib/launch/xswd'
 import { fmtXel } from '@/lib/launch/math'
@@ -34,7 +41,7 @@ const VIEW_TITLES: Record<AppView, { title: string; desc: string }> = {
   launchpad: { title: 'Launchpad', desc: 'Every proposal, every stage of the lifecycle' },
   trading: { title: 'Curve Trading', desc: 'Bonding curves: live prices, buy and sell' },
   dex: { title: 'LaunchDEX', desc: 'Permanent-liquidity pools: swap, provide, earn' },
-  portfolio: { title: 'Portfolio', desc: 'The demo treasury, positions and LP earnings' },
+  portfolio: { title: 'Portfolio', desc: 'Your positions across every stage' },
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -172,7 +179,7 @@ function ConnectModal({ open, onClose }: { open: boolean; onClose: () => void })
                 </div>
               )}
 
-              <p className="pt-1 text-center font-mono text-[9px] leading-relaxed text-muted-foreground/85">
+              <p className="pt-1 text-center font-mono text-[9px] leading-relaxed text-muted-foreground">
                 XSWD follows your wallet&apos;s network · contracts deploy at the mainnet launch,
                 trading runs on demo data until then.
               </p>
@@ -185,15 +192,37 @@ function ConnectModal({ open, onClose }: { open: boolean; onClose: () => void })
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Celebration overlay — acceptance, graduation and migration events
+// Migration overlay — a visible PROCESS, then auto-navigation.
+//   graduating: 4 real steps check off over ~7.5s (not a blink)
+//   migrated:   confirms the lock, then the app AUTO-LANDS on the
+//               asset's DEX page — pump.fun style, no click needed.
 // ─────────────────────────────────────────────────────────────────
+const GRADUATION_STEPS = [
+  'collecting curve reserves',
+  'seeding the LaunchDEX pool',
+  'minting the protocol seed parts',
+  'locking the seed forever',
+]
+
 function CelebrationOverlay() {
   const event = useEngine((s) => s.event)
   const clearEvent = useEngine((s) => s.clearEvent)
 
+  // step ticker for the graduating sequence (0.9s per step + intro)
+  const [step, setStep] = useState(-1)
+  useEffect(() => {
+    if (event?.kind !== 'graduating') { setStep(-1); return }
+    setStep(0)
+    const timers = GRADUATION_STEPS.map((_, i) =>
+      setTimeout(() => setStep(i + 1), 800 + i * 1_150)
+    )
+    return () => timers.forEach(clearTimeout)
+  }, [event?.kind, event?.ts])
+
   if (!event) return null
 
   const goTo = (view: 'trading' | 'dex', id: string) => {
+    cancelAutoNav()
     useEngine.setState({ pendingNav: { view, id }, event: null })
   }
 
@@ -265,28 +294,55 @@ function CelebrationOverlay() {
 
           {event.kind === 'graduating' && (
             <>
-              <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-vault-soft">4× crossed</div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-vault-soft">4× crossed · migrating</div>
               <h3 className="mt-4 font-display text-4xl font-medium tracking-tight">
                 {event.name} is <span className="italic text-vault">graduating</span>
               </h3>
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
                 Curve reserves reached 4× the seed. The atomic migration is
-                running: curve reserves and token inventory are seeding a
-                brand-new LaunchDEX pool.
+                running — this takes a moment on-chain, watch it land:
               </p>
-              <div className="mt-6 space-y-2 font-mono text-[11px]">
-                {['collecting curve reserves', 'seeding the LaunchDEX pool', 'locking the seed forever'].map((s, i) => (
-                  <motion.div
-                    key={s}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4 + i * 0.7 }}
-                    className="flex items-center justify-center gap-2.5 text-muted-foreground"
-                  >
-                    <span className="h-1.5 w-1.5 bg-vault" /> {s}
-                  </motion.div>
-                ))}
+              <div className="mt-6 space-y-2.5 text-left font-mono text-[11px]">
+                {GRADUATION_STEPS.map((s, i) => {
+                  const done = step > i
+                  const active = step === i
+                  return (
+                    <motion.div
+                      key={s}
+                      initial={{ opacity: 0.35, x: -6 }}
+                      animate={{ opacity: done || active ? 1 : 0.35, x: 0 }}
+                      className={cn(
+                        'flex items-center gap-2.5',
+                        done ? 'text-foreground' : active ? 'text-vault' : 'text-muted-foreground'
+                      )}
+                    >
+                      <span className={cn(
+                        'flex h-4 w-4 shrink-0 items-center justify-center border text-[9px]',
+                        done
+                          ? 'border-vault bg-vault text-[oklch(0.155_0.01_80)]'
+                          : active
+                            ? 'border-vault text-vault'
+                            : 'border-border'
+                      )}>
+                        {done ? '✓' : active ? <SquareDot /> : ''}
+                      </span>
+                      {s}
+                    </motion.div>
+                  )
+                })}
               </div>
+              {/* overall progress hairline */}
+              <div className="mt-5 h-[3px] w-full bg-foreground/10">
+                <motion.div
+                  className="h-full bg-vault"
+                  initial={{ width: '4%' }}
+                  animate={{ width: '100%' }}
+                  transition={{ duration: 7.2, ease: 'linear' }}
+                />
+              </div>
+              <p className="mt-3 font-mono text-[10px] leading-relaxed text-muted-foreground">
+                you will be taken to the new pool automatically — nothing to click
+              </p>
             </>
           )}
 
@@ -309,8 +365,23 @@ function CelebrationOverlay() {
                   </div>
                 ))}
               </div>
-              <BracketButton variant="teal" size="lg" className="mt-7 w-full" onClick={() => goTo('dex', event.projectId)}>
-                Trade {event.ticker} on the DEX
+              {/* auto-navigation progress */}
+              <div className="mt-6">
+                <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.18em]">
+                  <span className="text-muted-foreground">opening XEL / {event.ticker}</span>
+                  <span className="text-xusd">automatic</span>
+                </div>
+                <div className="mt-2 h-[3px] w-full bg-foreground/10">
+                  <motion.div
+                    className="h-full bg-xusd"
+                    initial={{ width: '0%' }}
+                    animate={{ width: '100%' }}
+                    transition={{ duration: 2.6, ease: 'linear' }}
+                  />
+                </div>
+              </div>
+              <BracketButton variant="teal" size="lg" className="mt-5 w-full" onClick={() => goTo('dex', event.projectId)}>
+                Go now · XEL / {event.ticker}
               </BracketButton>
             </>
           )}
@@ -328,13 +399,182 @@ function CelebrationOverlay() {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// Smart sidebar — proximity rail (desktop) / pinned toggle (touch)
+// ─────────────────────────────────────────────────────────────────
+function useSmartSidebar() {
+  const [canHover, setCanHover] = useState(true)
+  const [expanded, setExpanded] = useState(false)
+
+  // hover capability probe
+  useEffect(() => {
+    const mq = window.matchMedia('(hover: hover) and (pointer: fine)')
+    const apply = () => {
+      setCanHover(mq.matches)
+      if (!mq.matches) setExpanded(false)
+    }
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [])
+
+  // desktop: expand when the mouse approaches the left edge,
+  // collapse (after a short grace) once it moves away.
+  useEffect(() => {
+    if (!canHover) return
+    let collapseTimer: ReturnType<typeof setTimeout> | null = null
+    const onMove = (e: MouseEvent) => {
+      const x = e.clientX
+      if (x <= 96) {
+        if (collapseTimer) { clearTimeout(collapseTimer); collapseTimer = null }
+        setExpanded(true)
+      } else if (x >= 340) {
+        if (!collapseTimer) {
+          collapseTimer = setTimeout(() => {
+            setExpanded(false)
+            collapseTimer = null
+          }, 260)
+        }
+      }
+    }
+    window.addEventListener('mousemove', onMove, { passive: true })
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      if (collapseTimer) clearTimeout(collapseTimer)
+    }
+  }, [canHover])
+
+  const toggle = () => setExpanded((v) => !v)
+
+  return { canHover, expanded, toggle, collapse: () => setExpanded(false) }
+}
+
+function SmartSidebar({ view, onSelect }: { view: AppView; onSelect: (v: AppView) => void }) {
+  const { canHover, expanded, toggle, collapse } = useSmartSidebar()
+  const groups = Array.from(new Set(NAV.map((n) => n.group)))
+
+  const handleSelect = (v: AppView) => {
+    onSelect(v)
+    // touch (no hover): fold the rail after navigating
+    if (!canHover) collapse()
+  }
+
+  return (
+    <aside
+      className={cn(
+        'hidden md:flex shrink-0 flex-col border-r border-border bg-background transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
+        expanded ? 'w-60' : 'w-[58px]'
+      )}
+    >
+      {/* Brand: the protocol logo, never forgotten */}
+      <div className={cn('border-b border-border', expanded ? 'p-5' : 'px-[13px] py-5')}>
+        <a href="/" className={cn('flex items-center', expanded ? 'gap-2.5' : 'justify-center')} title="Back to xelisvault.xyz">
+          <div className="relative h-9 w-9 shrink-0 overflow-hidden ring-1 ring-vault/40">
+            <img src="/images/xelisvault-logo.png" alt="Xelis Vault" className="h-full w-full object-cover" />
+          </div>
+          <div className={cn('leading-none whitespace-nowrap transition-opacity duration-200', expanded ? 'opacity-100' : 'opacity-0 w-0 overflow-hidden')}>
+            <div className="font-display font-semibold text-sm tracking-tight">
+              XELIS<span className="text-vault">Vault</span>
+            </div>
+            <div className="mt-1 text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground">VaultLaunch</div>
+          </div>
+        </a>
+      </div>
+
+      {/* touch: the expand/collapse handle (desktop relies on proximity) */}
+      {!canHover && (
+        <button
+          onClick={toggle}
+          aria-label={expanded ? 'Collapse menu' : 'Expand menu'}
+          aria-expanded={expanded}
+          className={cn(
+            'flex items-center border-b border-border py-2.5 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-vault',
+            expanded ? 'px-5 justify-start gap-2' : 'justify-center'
+          )}
+        >
+          <Menu className="h-4 w-4 shrink-0" />
+          {expanded && <span>menu</span>}
+        </button>
+      )}
+
+      <nav className="flex-1 overflow-y-auto py-4 space-y-5" aria-label="VaultLaunch views">
+        {groups.map((g) => (
+          <div key={g}>
+            <div className={cn(
+              'mb-2 text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground whitespace-nowrap transition-opacity duration-200',
+              expanded ? 'px-5 opacity-100' : 'px-[13px] opacity-0 h-0 mb-0 overflow-hidden'
+            )}>
+              {g}
+            </div>
+            <div>
+              {NAV.filter((n) => n.group === g).map((n) => {
+                const globalIdx = NAV.indexOf(n)
+                const isActive = view === n.id
+                return (
+                  <button
+                    key={n.id}
+                    onClick={() => handleSelect(n.id)}
+                    title={expanded ? undefined : n.label}
+                    className={cn(
+                      'flex w-full items-center border-l-2 text-sm transition-colors',
+                      expanded ? 'gap-3 px-5 py-2 items-baseline' : 'justify-center py-2.5',
+                      isActive
+                        ? 'border-vault text-foreground bg-vault/5'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-card/70'
+                    )}
+                  >
+                    <span className={cn('font-mono text-[10px] tracking-wider', isActive ? 'text-vault' : 'text-muted-foreground')}>
+                      {pad2(globalIdx)}
+                    </span>
+                    <span className={cn(
+                      'font-medium whitespace-nowrap transition-opacity duration-200',
+                      expanded ? 'opacity-100' : 'opacity-0 w-0 overflow-hidden'
+                    )}>
+                      {n.label}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      {/* Footer */}
+      <div className={cn('border-t border-border space-y-2.5', expanded ? 'p-5' : 'px-[13px] py-5')}>
+        <a
+          href="https://github.com/XelisVault/xelis-vault"
+          target="_blank"
+          rel="noreferrer"
+          title={expanded ? undefined : 'Source on GitHub'}
+          className={cn(
+            'block font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground hover:text-vault transition-colors whitespace-nowrap',
+            expanded ? '' : 'text-center'
+          )}
+        >
+          {expanded ? 'Source on GitHub ↗' : '</>'}
+        </a>
+        <a
+          href="/#vaultlaunch"
+          title={expanded ? undefined : 'xelisvault.xyz'}
+          className={cn(
+            'block font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground hover:text-vault transition-colors whitespace-nowrap',
+            expanded ? '' : 'text-center'
+          )}
+        >
+          {expanded ? '← xelisvault.xyz' : '←'}
+        </a>
+      </div>
+    </aside>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────
 // The shell
 // ─────────────────────────────────────────────────────────────────
 export function LaunchAppShell() {
   const [view, setViewRaw] = useState<AppView>('launchpad')
   const [focus, setFocus] = useState<string | null>(null)
   const [connectOpen, setConnectOpen] = useState(false)
-
   const wallet = useLaunchWallet()
   const engineXel = useEngine((s) => s.xel)
   const speed = useEngine((s) => s.speed)
@@ -342,14 +582,15 @@ export function LaunchAppShell() {
 
   const setView = (v: AppView, id?: string) => {
     setViewRaw(v)
-    if (id !== undefined) setFocus(id)
+    // `id` given → focus that asset; EMPTY string → back to the grid.
+    if (id !== undefined) setFocus(id || null)
     if (typeof window !== 'undefined') {
       // keep the focus target in the URL so the view can react on back-nav
       try { window.history.replaceState({}, '', `/launch`) } catch { /* ignore */ }
     }
   }
 
-  // Consume engine navigation requests (from celebration CTAs)
+  // Consume engine navigation requests (auto-nav after migration + CTAs)
   useEffect(() => {
     const unsub = useEngine.subscribe((s) => {
       if (s.pendingNav) {
@@ -361,7 +602,6 @@ export function LaunchAppShell() {
     return unsub
   }, [])
 
-  const groups = Array.from(new Set(NAV.map((n) => n.group)))
   const activeIndex = NAV.findIndex((n) => n.id === view)
   const title = VIEW_TITLES[view]
   const isDemo = wallet.mode === 'demo'
@@ -374,9 +614,9 @@ export function LaunchAppShell() {
         <div className="shrink-0 border-b border-border bg-[oklch(0.105_0.008_80)]">
           <div className="px-4 md:px-6 py-2 flex items-center justify-center gap-2.5 text-center">
             <SquareDot className={isDemo ? 'text-vault' : 'text-emerald-400'} />
-            <span className="text-[11px] font-mono uppercase tracking-[0.14em] text-foreground/70">
+            <span className="text-[11px] font-mono uppercase tracking-[0.14em] text-foreground/85">
               <span className="text-vault font-semibold">Mainnet · private preview</span>
-              <span className="opacity-40 mx-2">·</span>
+              <span className="opacity-50 mx-2">·</span>
               {isDemo
                 ? 'demo data · every project, trade and price on this screen is fictional'
                 : wallet.xswdState === 'connected'
@@ -387,71 +627,8 @@ export function LaunchAppShell() {
         </div>
 
         <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
-          {/* SIDEBAR — numbered ledger index */}
-          <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-border">
-            {/* Brand: the protocol logo, never forgotten */}
-            <div className="border-b border-border p-5">
-              <a href="/" className="flex items-center gap-2.5" title="Back to xelisvault.xyz">
-                <div className="relative w-9 h-9 overflow-hidden ring-1 ring-vault/40">
-                  <img src="/images/xelisvault-logo.png" alt="Xelis Vault" className="w-full h-full object-cover" />
-                </div>
-                <div className="leading-none">
-                  <div className="font-display font-semibold text-sm tracking-tight">
-                    XELIS<span className="text-vault">Vault</span>
-                  </div>
-                  <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground mt-1">VaultLaunch</div>
-                </div>
-              </a>
-            </div>
-
-            <nav className="flex-1 overflow-y-auto py-5 space-y-6" aria-label="VaultLaunch views">
-              {groups.map((g) => (
-                <div key={g}>
-                  <div className="px-5 mb-2 text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/85">{g}</div>
-                  <div>
-                    {NAV.filter((n) => n.group === g).map((n) => {
-                      const globalIdx = NAV.indexOf(n)
-                      const isActive = view === n.id
-                      return (
-                        <button
-                          key={n.id}
-                          onClick={() => setView(n.id)}
-                          className={`w-full flex items-baseline gap-3 px-5 py-2 text-sm transition-colors border-l-2 ${
-                            isActive
-                              ? 'border-vault text-foreground bg-vault/5'
-                              : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-card/70'
-                          }`}
-                        >
-                          <span className={`font-mono text-[10px] tracking-wider ${isActive ? 'text-vault' : 'text-muted-foreground/85'}`}>
-                            {pad2(globalIdx)}
-                          </span>
-                          <span className="font-medium">{n.label}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-            </nav>
-
-            {/* Footer */}
-            <div className="p-5 border-t border-border space-y-2.5">
-              <a
-                href="https://github.com/XelisVault/xelis-vault"
-                target="_blank"
-                rel="noreferrer"
-                className="block text-[11px] font-mono uppercase tracking-[0.14em] text-muted-foreground hover:text-vault transition-colors"
-              >
-                Source on GitHub ↗
-              </a>
-              <a
-                href="/#vaultlaunch"
-                className="block text-[11px] font-mono uppercase tracking-[0.14em] text-muted-foreground hover:text-vault transition-colors"
-              >
-                ← xelisvault.xyz
-              </a>
-            </div>
-          </aside>
+          {/* SMART SIDEBAR — proximity rail on desktop, toggle on touch */}
+          <SmartSidebar view={view} onSelect={(v) => setView(v)} />
 
           {/* MAIN AREA */}
           <div className="flex min-w-0 flex-1 flex-col">
@@ -531,7 +708,7 @@ export function LaunchAppShell() {
                           isActive ? 'border-vault text-foreground' : 'border-transparent text-muted-foreground'
                         }`}
                       >
-                        <span className={`font-mono text-[9px] tracking-wider ${isActive ? 'text-vault' : 'text-muted-foreground/85'}`}>
+                        <span className={`font-mono text-[9px] tracking-wider ${isActive ? 'text-vault' : 'text-muted-foreground'}`}>
                           {pad2(globalIdx)}
                         </span>
                         {n.label}
@@ -546,7 +723,7 @@ export function LaunchAppShell() {
             <main className="flex-1 overflow-y-auto">
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={view}
+                  key={view + (focus ?? '')}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}

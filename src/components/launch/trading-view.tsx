@@ -1,14 +1,21 @@
-// Trading view — the bonding-curve terminal: live chart, buy/sell with exact
-// curve quotes, graduation progress, and the live activity feed.
+// Trading view — the bonding-curve terminal.
+//
+// Two modes, pump.fun-style:
+//   • GRID (no focus): every live curve as a rich card — price, change,
+//     graduation progress, sparkline. Click → the asset's own page.
+//   • ASSET (focus): ONE curve only — big chart with intervals, buy/sell
+//     with exact curve quotes, graduation strip, stats, live feed.
+//     No other assets on screen: the asset IS the page.
 
 'use client'
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { ArrowLeft } from 'lucide-react'
 import { useEngine } from '@/lib/launch/engine'
 import { useToast } from '@/hooks/use-toast'
 import { useLaunchWallet } from '@/lib/launch/wallet'
-import { AnimatedNumber, Bar, BracketButton, PanelHead, SquareDot } from './shared'
+import { AnimatedNumber, Bar, BracketButton, SquareDot, Sparkline, StatusTag } from './shared'
 import { ProjectLogo } from './logos'
 import { PriceChart } from './chart'
 import { quoteBuy, quoteSell, fmtXel, fmtPrice, fmtPct } from '@/lib/launch/math'
@@ -16,50 +23,100 @@ import type { Project } from '@/lib/launch/types'
 import { cn } from '@/lib/utils'
 import type { AppView } from './app-shell'
 
-function ProjectList({ projects, selectedId, onSelect }: {
-  projects: Project[]
-  selectedId: string
-  onSelect: (id: string) => void
-}) {
+// ─────────────────────────────────────────────────────────────────
+// GRID MODE — all the curves at a glance
+// ─────────────────────────────────────────────────────────────────
+
+function curveChange(p: Project): number {
+  if (!p.curve) return 0
+  const price = p.curve.reserves / p.curve.circulating
+  const first = p.curve.history[0] ?? price
+  return first > 0 ? ((price - first) / first) * 100 : 0
+}
+
+function CurveCard({ p, rank, onOpen }: { p: Project; rank: number; onOpen: () => void }) {
+  if (!p.curve) return null
+  const price = p.curve.reserves / p.curve.circulating
+  const chg = curveChange(p)
+  const progress = p.curve.reserves / (p.curve.seed * 4)
+  const etaXel = p.curve.seed * 4 - p.curve.reserves
   return (
-    <div className="flex h-full flex-col border border-border/70 bg-card/50">
-      <PanelHead right={`${projects.length} live`}>on the curve</PanelHead>
-      <div className="max-h-[560px] flex-1 overflow-y-auto p-2">
-        {projects.map((p) => {
-          const price = p.curve ? p.curve.reserves / p.curve.circulating : 0
-          const first = p.curve?.history[0] ?? price
-          const chg = first > 0 ? ((price - first) / first) * 100 : 0
-          const prog = p.curve ? p.curve.reserves / (p.curve.seed * 4) : 0
-          return (
-            <button
-              key={p.id}
-              onClick={() => onSelect(p.id)}
-              className={cn(
-                'mb-1.5 w-full border p-3 text-left transition-colors',
-                selectedId === p.id ? 'border-vault/50 bg-vault/10' : 'border-transparent hover:border-border hover:bg-card/70'
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ProjectLogo ticker={p.ticker} size="xs" />
-                  <span className="text-sm font-semibold">{p.ticker}</span>
-                </div>
-                <span className={cn('font-mono text-xs font-semibold tabular-nums', chg >= 0 ? 'text-emerald-400' : 'text-destructive')}>
-                  {fmtPct(chg, 1)}
-                </span>
-              </div>
-              <div className="mt-2 flex items-center justify-between font-mono text-[11px]">
-                <span className="tabular-nums text-foreground">{fmtPrice(price)} XEL</span>
-                <span className="text-muted-foreground">{fmtXel(p.curve?.reserves ?? 0)}/{fmtXel((p.curve?.seed ?? 500) * 4)}</span>
-              </div>
-              <Bar value={prog} className="mt-1.5" />
-            </button>
-          )
-        })}
+    <motion.button
+      layout
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      transition={{ duration: 0.3, delay: rank * 0.04 }}
+      onClick={onOpen}
+      className="group relative flex flex-col border border-border/80 bg-card/50 p-5 text-left transition-colors hover:border-vault/40 hover:bg-card/80"
+    >
+      <span className="absolute right-4 top-4 font-mono text-[9px] text-muted-foreground" aria-hidden>
+        {String(rank + 1).padStart(2, '0')}
+      </span>
+
+      <div className="flex items-start justify-between gap-3 pr-6">
+        <div className="flex items-center gap-3">
+          <ProjectLogo ticker={p.ticker} size="md" />
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold tracking-tight">{p.name}</span>
+              <span className="font-mono text-[11px] text-muted-foreground">${p.ticker}</span>
+            </div>
+            <div className="mt-1.5"><StatusTag status={p.status} /></div>
+          </div>
+        </div>
+        <Sparkline data={p.curve.history.slice(-48)} width={78} height={26} />
       </div>
-    </div>
+
+      <div className="mt-4 flex items-end justify-between">
+        <div>
+          <div className="font-display text-2xl font-semibold tabular-nums">{fmtPrice(price)}</div>
+          <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">XEL per {p.ticker}</div>
+        </div>
+        <div className={cn('font-mono text-sm font-semibold tabular-nums', chg >= 0 ? 'text-emerald-400' : 'text-destructive')}>
+          {fmtPct(chg, 1)}
+        </div>
+      </div>
+
+      {/* graduation strip */}
+      <div className="mt-4 border border-xusd/25 bg-xusd/5 p-3">
+        <div className="flex items-center justify-between font-mono text-[11px]">
+          <span className="text-muted-foreground">
+            graduation <span className="text-foreground">{fmtXel(p.curve.reserves)} / {fmtXel(p.curve.seed * 4)} XEL</span>
+          </span>
+          <span className="font-bold tabular-nums text-xusd">{(progress * 100).toFixed(1)}%</span>
+        </div>
+        <Bar value={progress} className="mt-2" barClassName="bg-xusd" />
+        <div className="mt-2 flex items-center justify-between font-mono text-[10px]">
+          <span className="text-foreground">{fmtXel(etaXel)} XEL of buys to go</span>
+          <span className="text-foreground">{p.curve.holders} holders</span>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        {[
+          ['VOL 24H', `${fmtXel(p.curve.volume24h)}`],
+          ['HOLDERS', p.curve.holders.toString()],
+          ['TEAM', `≤ ${(p.curve.teamBps / 100).toFixed(0)}%`],
+        ].map(([k, v]) => (
+          <div key={k} className="border border-border/70 bg-background/50 p-2.5 text-center">
+            <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{k}</div>
+            <div className="mt-1 font-mono text-xs font-semibold tabular-nums text-foreground">{v}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 flex items-center justify-between border-t border-border/60 pt-3 font-mono text-[10px] uppercase tracking-[0.16em]">
+        <span className="text-muted-foreground">fee {(p.curve.feeBps / 100).toFixed(2)}% · seed {fmtXel(p.curve.seed)} XEL</span>
+        <span className="text-vault opacity-0 transition-opacity group-hover:opacity-100">open chart →</span>
+      </div>
+    </motion.button>
   )
 }
+
+// ─────────────────────────────────────────────────────────────────
+// ASSET MODE — one curve, the full terminal
+// ─────────────────────────────────────────────────────────────────
 
 /** Square side-switch for the trade panel: BUY | SELL. */
 function SideSwitch({ side, onChange }: { side: 'buy' | 'sell'; onChange: (s: 'buy' | 'sell') => void }) {
@@ -199,11 +256,11 @@ function TradePanel({ project }: { project: Project }) {
             <div className="grid grid-cols-3 gap-2 border-t border-vault/15 pt-2.5 font-mono text-[10px]">
               <div>
                 <div className="text-muted-foreground">AVG PRICE</div>
-                <div className="mt-0.5 tabular-nums">{fmtPrice(buyQ.avgPrice)}</div>
+                <div className="mt-0.5 tabular-nums text-foreground">{fmtPrice(buyQ.avgPrice)}</div>
               </div>
               <div>
                 <div className="text-muted-foreground">FEE {curve ? (curve.feeBps / 100).toFixed(2) : 0.5}%</div>
-                <div className="mt-0.5 tabular-nums">{buyQ.fee.toFixed(3)}</div>
+                <div className="mt-0.5 tabular-nums text-foreground">{buyQ.fee.toFixed(3)}</div>
               </div>
               <div>
                 <div className="text-muted-foreground">IMPACT</div>
@@ -225,11 +282,11 @@ function TradePanel({ project }: { project: Project }) {
             <div className="grid grid-cols-3 gap-2 border-t border-destructive/15 pt-2.5 font-mono text-[10px]">
               <div>
                 <div className="text-muted-foreground">AVG PRICE</div>
-                <div className="mt-0.5 tabular-nums">{fmtPrice(sellQ.avgPrice)}</div>
+                <div className="mt-0.5 tabular-nums text-foreground">{fmtPrice(sellQ.avgPrice)}</div>
               </div>
               <div>
                 <div className="text-muted-foreground">FEE</div>
-                <div className="mt-0.5 tabular-nums">{sellQ.fee.toFixed(3)}</div>
+                <div className="mt-0.5 tabular-nums text-foreground">{sellQ.fee.toFixed(3)}</div>
               </div>
               <div>
                 <div className="text-muted-foreground">IMPACT</div>
@@ -265,8 +322,8 @@ function TradePanel({ project }: { project: Project }) {
         <div className="border-t border-border/60 p-4">
           <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">your position</div>
           <div className="mt-2 flex items-center justify-between font-mono text-xs">
-            <span className="tabular-nums">{fmtXel(position.tokens)} {project.ticker}</span>
-            <span className="tabular-nums text-muted-foreground">avg {fmtPrice(position.avgPrice)}</span>
+            <span className="tabular-nums text-foreground">{fmtXel(position.tokens)} {project.ticker}</span>
+            <span className="tabular-nums text-muted-foreground">avg <span className="text-foreground">{fmtPrice(position.avgPrice)}</span></span>
           </div>
           {(() => {
             const cur = curve.reserves / curve.circulating
@@ -324,7 +381,7 @@ function ActivityFeed({ projectId, all }: { projectId?: string; all?: boolean })
                 className="flex items-center gap-2.5 px-2.5 py-2 font-mono text-[11px] hover:bg-card/70"
               >
                 <span className={cn('shrink-0 text-[10px]', mark.cls)}>{mark.glyph}</span>
-                <span className={cn('shrink-0 font-semibold', a.actor === 'you' ? 'text-vault' : 'text-foreground/85')}>
+                <span className={cn('shrink-0 font-semibold', a.actor === 'you' ? 'text-vault' : 'text-foreground')}>
                   {a.actor === 'you' ? 'YOU' : a.actor}
                 </span>
                 <span className="truncate text-muted-foreground">
@@ -333,7 +390,7 @@ function ActivityFeed({ projectId, all }: { projectId?: string; all?: boolean })
                   {a.kind === 'swap' && a.amountXel != null && `swapped ${fmtXel(a.amountXel)} XEL${a.price ? ` @ ${fmtPrice(a.price)}` : ''}`}
                   {a.kind !== 'buy' && a.kind !== 'sell' && a.kind !== 'swap' && a.note}
                 </span>
-                <span className="ml-auto shrink-0 text-[9px] text-muted-foreground/80">
+                <span className="ml-auto shrink-0 text-[9px] text-muted-foreground">
                   {p?.ticker ?? ''}
                 </span>
               </motion.div>
@@ -345,6 +402,10 @@ function ActivityFeed({ projectId, all }: { projectId?: string; all?: boolean })
   )
 }
 
+// ─────────────────────────────────────────────────────────────────
+// The view
+// ─────────────────────────────────────────────────────────────────
+
 export function TradingView({ setView, focusId }: {
   setView: (v: AppView, id?: string) => void
   focusId?: string | null
@@ -352,24 +413,61 @@ export function TradingView({ setView, focusId }: {
   const projects = useEngine((s) => s.projects)
   const bonding = projects.filter((p) => p.status === 'bonding' && p.curve)
 
-  // Selection is fully DERIVED (no sync effects): the focused project if it
-  // is still on a curve, else the first live curve. A graduated project
-  // falls back gracefully; the celebration overlay navigates to the DEX.
-  const project = bonding.find((p) => p.id === focusId) ?? bonding[0]
+  // The focused project if it is STILL on a curve (a graduated project
+  // falls back to the grid — the migration overlay handles navigation).
+  const project = bonding.find((p) => p.id === focusId)
 
-  if (!project || !project.curve) {
+  // ── GRID MODE: every live curve ──
+  if (!focusId || !project || !project.curve) {
+    const totalVol = bonding.reduce((a, p) => a + (p.curve?.volume24h ?? 0), 0)
     return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-5 text-center">
-        <div className="font-mono text-sm text-muted-foreground">
-          No projects on the bonding curve right now.
+      <div>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          {[
+            { k: 'ON THE CURVE', v: bonding.length.toString(), sub: bonding.map((p) => p.ticker).join(' · ') || 'none' },
+            { k: 'CURVE VOLUME 24H', v: fmtXel(totalVol), sub: 'XEL' },
+            { k: 'GRADUATION', v: '4× seed', sub: 'migrate() is permissionless' },
+            { k: 'CURVE FEE', v: '0.50%', sub: 'both sides, always' },
+          ].map((s, i) => (
+            <motion.div
+              key={s.k}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05, duration: 0.4 }}
+              className="border border-border/70 bg-card/50 p-4"
+            >
+              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{s.k}</div>
+              <div className="mt-2 font-display text-2xl font-semibold tabular-nums">{s.v}</div>
+              <div className="mt-1 truncate font-mono text-[10px] text-muted-foreground">{s.sub}</div>
+            </motion.div>
+          ))}
         </div>
-        <BracketButton variant="quiet" onClick={() => setView('launchpad')}>
-          Back to the launchpad
-        </BracketButton>
+
+        <div className="mt-5 flex items-center justify-between">
+          <h2 className="font-display text-base font-semibold tracking-tight">Bonding curves · live</h2>
+          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            click an asset to open its terminal
+          </span>
+        </div>
+
+        {bonding.length > 0 ? (
+          <motion.div layout className="mt-4 grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
+            <AnimatePresence mode="popLayout">
+              {bonding.map((p, i) => (
+                <CurveCard key={p.id} p={p} rank={i} onOpen={() => setView('trading', p.id)} />
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        ) : (
+          <div className="mt-8 border border-dashed border-border p-10 text-center font-mono text-sm text-muted-foreground">
+            No projects on the bonding curve right now.
+          </div>
+        )}
       </div>
     )
   }
 
+  // ── ASSET MODE: one curve, the full terminal ──
   const curve = project.curve
   const price = curve.reserves / curve.circulating
   const first = curve.history[0] ?? price
@@ -377,80 +475,91 @@ export function TradingView({ setView, focusId }: {
   const progress = curve.reserves / (curve.seed * 4)
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[260px_1fr_320px]">
-      {/* Project list */}
-      <div className="order-2 min-w-0 xl:order-1">
-        <ProjectList projects={bonding} selectedId={project.id} onSelect={(id) => setView('trading', id)} />
-      </div>
+    <div>
+      {/* back to all curves */}
+      <button
+        onClick={() => setView('trading', '')}
+        className="group mb-4 inline-flex items-center gap-2 border border-border bg-card/50 px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:border-vault/40 hover:text-vault"
+      >
+        <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+        all curves
+      </button>
 
-      {/* Chart + stats */}
-      <div className="order-1 min-w-0 space-y-4 xl:order-2">
-        <div className="border border-border/70 bg-card/50 p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-3">
-                <ProjectLogo ticker={project.ticker} size="lg" />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-semibold tracking-tight">{project.name}</h2>
-                    <span className="font-mono text-xs text-muted-foreground">${project.ticker}</span>
-                  </div>
-                  <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                    bonding curve · fee {(curve.feeBps / 100).toFixed(2)}% · team ≤ {(curve.teamBps / 100).toFixed(0)}%
+      <div className="grid gap-4 xl:grid-cols-[1fr_330px]">
+        {/* Chart + data */}
+        <div className="min-w-0 space-y-4">
+          <div className="border border-border/70 bg-card/50 p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-3">
+                  <ProjectLogo ticker={project.ticker} size="lg" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-semibold tracking-tight">{project.name}</h2>
+                      <span className="font-mono text-xs text-muted-foreground">${project.ticker}</span>
+                    </div>
+                    <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                      bonding curve · fee {(curve.feeBps / 100).toFixed(2)}% · team ≤ {(curve.teamBps / 100).toFixed(0)}%
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="text-right">
-              <div className="font-display text-2xl font-semibold tabular-nums">{fmtPrice(price)}</div>
-              <div className={cn('font-mono text-xs tabular-nums', change >= 0 ? 'text-emerald-400' : 'text-destructive')}>
-                {fmtPct(change, 1)} · XEL
+              <div className="text-right">
+                <div className="font-display text-2xl font-semibold tabular-nums">{fmtPrice(price)}</div>
+                <div className={cn('font-mono text-xs font-semibold tabular-nums', change >= 0 ? 'text-emerald-400' : 'text-destructive')}>
+                  {fmtPct(change, 1)} · XEL
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="mt-4">
-            <PriceChart data={curve.history} height={340} />
-          </div>
-
-          {/* graduation strip */}
-          <div className="mt-4 border border-xusd/25 bg-xusd/5 p-3.5">
-            <div className="flex items-center justify-between font-mono text-[11px]">
-              <span className="text-muted-foreground">
-                graduation at {fmtXel(curve.seed * 4)} XEL reserves
-                <span className="text-foreground"> · {fmtXel(curve.reserves)} now</span>
-              </span>
-              <span className="font-bold tabular-nums text-xusd">{(progress * 100).toFixed(1)}%</span>
+            <div className="mt-4">
+              <PriceChart
+                data={curve.history}
+                histStart={curve.histStart}
+                height={360}
+                defaultMode="candles"
+              />
             </div>
-            <Bar value={progress} className="mt-2" barClassName="bg-xusd" />
-            <div className="mt-2 flex justify-between font-mono text-[10px] text-muted-foreground">
-              <span>migrate() is permissionless and atomic · anyone can trigger it at 4×</span>
-              <span>{fmtXel(curve.seed * 4 - curve.reserves)} XEL of buys to go</span>
-            </div>
-          </div>
 
-          {/* stats row */}
-          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            {[
-              ['VOLUME 24H', `${fmtXel(curve.volume24h)} XEL`],
-              ['HOLDERS', curve.holders.toString()],
-              ['MARKET CAP', `${fmtXel(curve.reserves)} XEL`],
-              ['CURVE INVENTORY', fmtXel(curve.circulating)],
-            ].map(([k, v]) => (
-              <div key={k} className="border border-border/70 bg-background/50 p-3">
-                <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">{k}</div>
-                <div className="mt-1.5 font-mono text-sm font-semibold tabular-nums">{v}</div>
+            {/* graduation strip */}
+            <div className="mt-4 border border-xusd/25 bg-xusd/5 p-3.5">
+              <div className="flex items-center justify-between font-mono text-[11px]">
+                <span className="text-muted-foreground">
+                  graduation at <span className="text-foreground">{fmtXel(curve.seed * 4)} XEL</span> reserves
+                  <span className="text-foreground"> · {fmtXel(curve.reserves)} now</span>
+                </span>
+                <span className="font-bold tabular-nums text-xusd">{(progress * 100).toFixed(1)}%</span>
               </div>
-            ))}
+              <Bar value={progress} className="mt-2" barClassName="bg-xusd" />
+              <div className="mt-2 flex justify-between font-mono text-[10px] text-muted-foreground">
+                <span>migrate() is permissionless and atomic · anyone can trigger it at 4×</span>
+                <span className="text-foreground">{fmtXel(curve.seed * 4 - curve.reserves)} XEL of buys to go</span>
+              </div>
+            </div>
+
+            {/* stats row */}
+            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+              {[
+                ['VOLUME 24H', `${fmtXel(curve.volume24h)} XEL`],
+                ['HOLDERS', curve.holders.toString()],
+                ['MARKET CAP', `${fmtXel(curve.reserves)} XEL`],
+                ['CURVE INVENTORY', fmtXel(curve.circulating)],
+              ].map(([k, v]) => (
+                <div key={k} className="border border-border/70 bg-background/50 p-3">
+                  <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">{k}</div>
+                  <div className="mt-1.5 font-mono text-sm font-semibold tabular-nums text-foreground">{v}</div>
+                </div>
+              ))}
+            </div>
           </div>
+
+          <ActivityFeed projectId={project.id} />
         </div>
 
-        <ActivityFeed projectId={project.id} />
-      </div>
-
-      {/* Trade panel */}
-      <div className="order-3 min-w-0">
-        <TradePanel project={project} />
+        {/* Trade panel */}
+        <div className="min-w-0">
+          <TradePanel project={project} />
+        </div>
       </div>
     </div>
   )
