@@ -6,9 +6,20 @@
 //   • CANDLES classic OHLC candlesticks with true exchange semantics:
 //             buckets are anchored to ABSOLUTE point indices, so a CLOSED
 //             candle is FROZEN FOREVER — only the live candle moves.
-// Both modes share the same plumbing: right-hand price scale, dashed
-// hairline grid, last-price line with a live tag, and a snapping
-// crosshair. No chart library — hand-drawn SVG, house style.
+//
+// ── Exchange-grade viewport ────────────────────────────────────────
+// The chart is a real trading terminal viewport, not a static picture:
+//   • candles/points sit at a FIXED pixel spacing, right-anchored — a
+//     pair with a short history hugs the right edge (exactly like a
+//     freshly listed pair on an exchange) instead of stretching a few
+//     candles across the whole plot with giant gaps between them
+//   • DRAG (mouse or touch) pans back through history
+//   • WHEEL / TRACKPAD / PINCH zooms, anchored under the cursor
+//   • a LIVE button snaps back to the present; double-click does too
+//   • a bottom time axis (1 point = 1 topo = 2s of simulated time)
+//     labels the visible window relative to "now"
+// Closed candles keep their frozen guarantee: navigation only changes
+// WHICH immutable candles are on screen, never their values.
 //
 // ── Why absolute anchoring matters ─────────────────────────────────
 // The engine appends one price point per topo (and one per user trade)
@@ -23,7 +34,7 @@
 'use client'
 
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 export const CHART_UP = 'var(--vault)'
@@ -50,8 +61,20 @@ export const INTERVALS = [
 ] as const
 export type IntervalId = (typeof INTERVALS)[number]['id']
 
-/** Max candles drawn at once (the chart shows the most recent window). */
-const MAX_CANDLES = 88
+/** Safety cap only — 900 points ÷ chunk 6 = 150 candles max. */
+const MAX_CANDLES = 400
+
+// viewport zoom ranges, in px per unit
+const SP_C_MIN = 2.5, SP_C_MAX = 40 // candles
+const SP_L_MIN = 0.7, SP_L_MAX = 14 // line points
+const L_SPACING_DEFAULT = 2.4
+
+/** Height of the bottom time-axis strip. */
+const AXIS_H = 18
+
+function clampN(v: number, lo: number, hi: number): number {
+  return v < lo ? lo : v > hi ? hi : v
+}
 
 /**
  * Derive candles from a price series with ABSOLUTE bucket anchoring.
@@ -89,9 +112,9 @@ export function toCandles(data: number[], histStart: number, chunk: number): Can
       id: bucket,
       closed: bucket < liveBucket,
     })
-    if (out.length >= MAX_CANDLES + 2) break // safety: never explode
+    if (out.length >= MAX_CANDLES) break // safety: never explode
   }
-  return out.slice(-MAX_CANDLES)
+  return out
 }
 
 function fmtAxis(v: number): string {
@@ -99,6 +122,21 @@ function fmtAxis(v: number): string {
   if (v >= 100) return v.toFixed(1)
   if (v >= 1) return v.toFixed(3)
   return v.toFixed(4)
+}
+
+/** Relative-time label for the bottom axis — `dt` in simulated seconds. */
+function fmtRel(dt: number): string {
+  const t = Math.abs(dt)
+  if (t < 1) return 'now'
+  if (t < 60) return `-${Math.round(t)}s`
+  if (t < 3600) {
+    const m = Math.floor(t / 60)
+    const s = Math.round(t % 60)
+    return `-${m}:${String(s).padStart(2, '0')}`
+  }
+  const h = Math.floor(t / 3600)
+  const m = Math.round((t % 3600) / 60)
+  return `-${h}h${String(m).padStart(2, '0')}`
 }
 
 function smoothPath(pts: { x: number; y: number }[]): string {
@@ -146,12 +184,26 @@ export function PriceChart({
   accent?: 'gold' | 'teal'
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
   const scaleRef = useRef<{ key: string; lo: number; hi: number } | null>(null)
   const [width, setWidth] = useState(640)
   const [mode, setMode] = useState<Mode>(defaultMode)
   const [iv, setIv] = useState<IntervalId>(defaultInterval)
   const [hover, setHover] = useState<number | null>(null) // candle idx / point idx
+  // ── viewport state: zoom = px per unit, offset = units shifted back
+  // from the live edge (0 = following live) ──
+  const [cSp, setCSp] = useState(9)
+  const [lSp, setLSp] = useState(L_SPACING_DEFAULT)
+  const [cOff, setCOff] = useState(0)
+  const [lOff, setLOff] = useState(0)
+  const [dragging, setDragging] = useState(false)
   const mounted = useSyncExternalStore(() => () => {}, () => true, () => false)
+
+  // pointer bookkeeping (drag pan + pinch zoom)
+  const ptrs = useRef(new Map<number, { x: number; y: number }>())
+  const dragRef = useRef<{ id: number; startX: number; startOff: number; sp: number } | null>(null)
+  const pinchRef = useRef<{ d0: number; s0: number } | null>(null)
 
   useEffect(() => {
     const el = wrapRef.current
@@ -170,48 +222,76 @@ export function PriceChart({
   const n = data.length
   const chunk = INTERVALS.find((i) => i.id === iv)?.chunk ?? 30
   const candles = toCandles(data, histStart, chunk)
-  const liveIdx = candles.length - 1 // live candle is always last
+  const count = candles.length
+
+  const spacing = mode === 'candles' ? cSp : lSp
+  const spMin = mode === 'candles' ? SP_C_MIN : SP_L_MIN
+  const spMax = mode === 'candles' ? SP_C_MAX : SP_L_MAX
+  const setSpacing = (v: number) =>
+    (mode === 'candles' ? setCSp : setLSp)(clampN(v, spMin, spMax))
+  const setOff = mode === 'candles' ? setCOff : setLOff
 
   // ── shared geometry ──
   const padR = 56
   const padT = 10
-  const hasVol = mode === 'candles' && candles.length > 2
+  const hasVol = mode === 'candles' && count > 2
   const volH = hasVol ? Math.round(chartH * 0.15) : 0
   const gapVol = hasVol ? 10 : 0
-  const priceH = chartH - padT - volH - gapVol
+  const gapAxis = 4
+  const priceH = Math.max(40, chartH - padT - volH - gapVol - AXIS_H - gapAxis)
   const plotW = Math.max(10, width - padR)
+  const axisY = chartH - AXIS_H
+
+  // ── viewport derivation ─────────────────────────────────────
+  // `spacing` px per unit, right-anchored. `off` = how many units the
+  // viewport is shifted back from the live edge (clamped so we can
+  // neither overshoot into the future nor pan past the first candle.
+  const total = mode === 'candles' ? count : n
+  const visCount = Math.max(6, Math.ceil(plotW / spacing))
+  const maxOff = Math.max(0, total - visCount)
+  const off = clampN(mode === 'candles' ? cOff : lOff, 0, maxOff)
+  const rightIndex = total - 1 - off
+  const xEdge = plotW - spacing * 0.55 // x of the unit at the right edge
+  const xOf = (i: number) => xEdge - (rightIndex - i) * spacing
+  const i1 = Math.min(total - 1, Math.floor(rightIndex))
+  const i0 = Math.max(0, i1 - visCount - 1)
 
   const last = n > 0 ? data[n - 1] : 0
   const first = n > 0 ? data[0] : 0
   const upTrend = last >= first
+  const lastAbs = histStart + n - 1
 
   const lineStroke =
     color === 'auto' ? (upTrend ? CHART_UP : CHART_DOWN) : color
 
-  const lo = mode === 'candles' && candles.length
-    ? Math.min(...candles.map((k) => k.l))
-    : n ? Math.min(...data) : 0
-  const hi = mode === 'candles' && candles.length
-    ? Math.max(...candles.map((k) => k.h))
-    : n ? Math.max(...data) : 1
+  // ── visible window (drives scale + rendering) ──
+  const visData = mode === 'line' ? data.slice(i0, i1 + 1) : null
+  const visCandles = mode === 'candles' ? candles.slice(i0, i1 + 1) : null
+
+  const lo = visCandles
+    ? (visCandles.length ? Math.min(...visCandles.map((k) => k.l)) : 0)
+    : (visData && visData.length ? Math.min(...visData) : 0)
+  const hi = visCandles
+    ? (visCandles.length ? Math.max(...visCandles.map((k) => k.h)) : 1)
+    : (visData && visData.length ? Math.max(...visData) : 1)
 
   // ── STABLE Y SCALE (candles) ────────────────────────────────
   // A closed candle must never move. The scale is therefore refit ONLY
-  // when a new bucket opens (or the interval changes); within a bucket it
-  // can merely EXTEND when the live price escapes the frame — exactly how
-  // an exchange terminal behaves. Line mode keeps the continuous fit.
+  // when the visible window or the interval changes; while the window
+  // is steady (following the live edge inside a bucket) it can merely
+  // EXTEND when the live price escapes the frame — exactly how an
+  // exchange terminal behaves. Line mode keeps the continuous fit.
   let yLo: number
   let yHi: number
-  const liveBucketId = candles.length ? candles[liveIdx].id : -1
-  const scaleKey = `${iv}:${liveBucketId}`
-  if (mode === 'candles') {
+  if (mode === 'candles' && visCandles && visCandles.length) {
     const rawRange = hi - lo || hi || 1
     const pad = rawRange * 0.1
+    const scaleKey = `${iv}:${i0}:${i1}`
     let s = scaleRef.current
     if (!s || s.key !== scaleKey) {
       s = { key: scaleKey, lo: lo - pad, hi: hi + pad }
     } else {
-      // same bucket: extend only if the data escapes the current frame
+      // same window: extend only if the data escapes the current frame
       const margin = (s.hi - s.lo) * 0.05
       const nextLo = lo - margin < s.lo ? lo - margin : s.lo
       const nextHi = hi + margin > s.hi ? hi + margin : s.hi
@@ -225,52 +305,169 @@ export function PriceChart({
     yLo = lo - pad
     yHi = hi + pad
   }
-  const range = yHi - yLo || yHi || 1
   const yOf = (v: number) => padT + priceH - ((v - yLo) / (yHi - yLo)) * priceH
 
   // grid ticks
   const ticks = 5
   const tickVals = Array.from({ length: ticks }, (_, i) => yLo + ((yHi - yLo) * i) / (ticks - 1))
+
   // ── hover plumbing ──
-  const hoverIdx = hover
+  const hoverIdx = hover != null && hover >= i0 && hover <= i1 ? hover : null
   const hoverPrice = mode === 'candles'
     ? (hoverIdx != null && candles[hoverIdx] ? candles[hoverIdx].c : last)
     : (hoverIdx != null && data[hoverIdx] != null ? data[hoverIdx] : last)
 
-  function onMove(e: React.MouseEvent<SVGSVGElement>) {
-    if (mode === 'candles') {
-      if (candles.length === 0) return
-      const rect = e.currentTarget.getBoundingClientRect()
-      const px = e.clientX - rect.left
-      const step = plotW / candles.length
-      const i = Math.floor(px / step)
-      setHover(i >= 0 && i < candles.length ? i : null)
+  /** unit index (candle/point) under pixel x, or null when outside */
+  function idxAt(px: number): number | null {
+    if (total < 2) return null
+    const i = Math.round(rightIndex - (xEdge - px) / spacing)
+    return px >= -2 && px <= plotW + 2 && i >= i0 && i <= i1 ? i : null
+  }
+
+  // ── pointer navigation: drag pan + pinch zoom (mouse & touch) ──
+  function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* ignore */ }
+    ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (ptrs.current.size >= 2) {
+      const ps = [...ptrs.current.values()]
+      const dx = ps[0].x - ps[1].x
+      const dy = ps[0].y - ps[1].y
+      pinchRef.current = { d0: Math.max(1, Math.hypot(dx, dy)), s0: spacing }
+      dragRef.current = null
     } else {
-      if (n < 2) return
-      const rect = e.currentTarget.getBoundingClientRect()
-      const px = e.clientX - rect.left
-      const i = Math.round((px / plotW) * (n - 1))
-      setHover(i >= 0 && i < n ? i : null)
+      dragRef.current = { id: e.pointerId, startX: e.clientX, startOff: off, sp: spacing }
+    }
+    setDragging(true)
+  }
+
+  function onPointerMove(e: React.PointerEvent<SVGSVGElement>) {
+    if (ptrs.current.has(e.pointerId)) {
+      ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    }
+    const rect = e.currentTarget.getBoundingClientRect()
+    const px = e.clientX - rect.left
+    if (pinchRef.current && ptrs.current.size >= 2) {
+      const ps = [...ptrs.current.values()]
+      const d = Math.max(1, Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y))
+      setSpacing(pinchRef.current.s0 * (d / pinchRef.current.d0))
+    } else if (dragRef.current && e.pointerId === dragRef.current.id) {
+      const d = dragRef.current
+      setOff(d.startOff + (e.clientX - d.startX) / d.sp)
+    }
+    setHover(idxAt(px))
+  }
+
+  function endPointer(e: React.PointerEvent<SVGSVGElement>) {
+    ptrs.current.delete(e.pointerId)
+    if (ptrs.current.size < 2) pinchRef.current = null
+    if (ptrs.current.size === 0) {
+      dragRef.current = null
+      setDragging(false)
+    } else {
+      // one finger lifted from a pinch → re-anchor a drag on the rest
+      const [rid, rp] = [...ptrs.current.entries()][0]
+      dragRef.current = { id: rid, startX: rp.x, startOff: off, sp: spacing }
     }
   }
 
-  // ── line geometry ──
-  const pts = data.map((v, i) => ({
-    x: (i / Math.max(1, n - 1)) * plotW,
-    y: yOf(v),
-  }))
-  const linePath = smoothPath(pts)
-  const areaPath = n > 1 ? `${linePath} L ${pts[n - 1].x},${padT + priceH} L ${pts[0].x},${padT + priceH} Z` : ''
-  const headPt = pts[n - 1]
+  function onPointerLeave() {
+    if (!dragging && ptrs.current.size === 0) setHover(null)
+  }
 
-  // ── candle geometry ──
-  const cStep = candles.length ? plotW / candles.length : 0
-  const cW = Math.max(3, Math.min(15, cStep * 0.62))
-  const maxVol = candles.length ? Math.max(...candles.map((k) => k.vol)) : 1
+  // ── wheel / trackpad zoom (native listener → non-passive) ──
+  const zoomRef = useRef<(px: number, dy: number, dx: number) => void>(() => {})
+  useEffect(() => {
+    zoomRef.current = (px, dy, dx) => {
+      if (Math.abs(dx) > Math.abs(dy)) {
+        // trackpad horizontal swipe = pan
+        setOff(off + dx / spacing)
+        return
+      }
+      const s1 = clampN(spacing * Math.exp(-dy * 0.0014), spMin, spMax)
+      if (s1 === spacing) return
+      // keep the unit under the cursor pinned to the cursor
+      const k = (xEdge - px) / spacing
+      setSpacing(s1)
+      setOff(off + k - (xEdge - px) / s1)
+    }
+  })
+  useEffect(() => {
+    const el = bodyRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const rect = el.getBoundingClientRect()
+      zoomRef.current(e.clientX - rect.left, e.deltaY, e.deltaX)
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
+
+  // ── sensible default zoom when the interval changes: fit ~all candles
+  // (a fresh 15m view has 2 candles — they should hug the right edge at
+  // a normal size, not stretch across the plot with giant gaps) ──
+  const fitRef = useRef({ data, histStart, width })
+  useEffect(() => { fitRef.current = { data, histStart, width } })
+  useEffect(() => {
+    const { data: d, histStart: h, width: w } = fitRef.current
+    const c = toCandles(d, h, INTERVALS.find((x) => x.id === iv)?.chunk ?? 30).length
+    const plot = Math.max(10, w - 56)
+    setCSp(clampN(plot / clampN(c + 4, 18, 90), 3.2, 24))
+    setCOff(0)
+  }, [iv])
+
+  const zoomIn = () => zoomRef.current(plotW / 2, -220, 0)
+  const zoomOut = () => zoomRef.current(plotW / 2, 220, 0)
+  function resetView() {
+    if (mode === 'candles') {
+      setCSp(clampN(plotW / clampN(count + 4, 18, 90), 3.2, 24))
+      setCOff(0)
+    } else {
+      setLSp(clampN(plotW / 240, SP_L_MIN, 5))
+      setLOff(0)
+    }
+  }
+
+  // ── bottom time axis ──
+  const idToIdx = mode === 'candles' && count
+    ? new Map(candles.map((c, i) => [c.id, i] as const))
+    : null
+  const firstId = mode === 'candles' ? (candles[i0]?.id ?? 0) : histStart + i0
+  const lastId = mode === 'candles' ? (candles[i1]?.id ?? 0) : histStart + i1
+  const stepsU = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1200]
+  const stepU = stepsU.find((s) => s * spacing >= 64) ?? 1800
+  const timeTicks: { x: number; label: string }[] = []
+  if (total > 1) {
+    for (let u = Math.ceil(firstId / stepU) * stepU; u <= lastId; u += stepU) {
+      if (mode === 'candles') {
+        const idx = idToIdx?.get(u)
+        if (idx == null) continue
+        timeTicks.push({ x: xOf(idx), label: fmtRel((u * chunk - lastAbs) * 2) })
+      } else {
+        timeTicks.push({ x: xOf(u - histStart), label: fmtRel((u - lastAbs) * 2) })
+      }
+    }
+  }
+
+  // ── line geometry (visible slice only) ──
+  const pts = visData
+    ? visData.map((v, k) => ({ x: xOf(i0 + k), y: yOf(v) }))
+    : []
+  const linePath = smoothPath(pts)
+  const areaPath = pts.length > 1
+    ? `${linePath} L ${pts[pts.length - 1].x},${padT + priceH} L ${pts[0].x},${padT + priceH} Z`
+    : ''
+  const headPt = mode === 'line' && i1 >= n - 1 && pts.length ? pts[pts.length - 1] : null
+
+  // ── candle geometry (visible slice only) ──
+  const cW = clampN(spacing * 0.68, 1.5, 30)
+  const maxVol = visCandles && visCandles.length ? Math.max(...visCandles.map((k) => k.vol)) : 1
   const volTop = padT + priceH + gapVol
 
-  const lastCandle = candles.length ? candles[liveIdx] : null
-  const legendCandle = (hoverIdx != null && mode === 'candles' && candles[hoverIdx]) || lastCandle
+  const lastCandle = count ? candles[count - 1] : null
+  const legendCandle = (hoverIdx != null && candles[hoverIdx])
+    || (off > 0.5 && candles[i1])
+    || lastCandle
   const legendUp = legendCandle ? legendCandle.c >= legendCandle.o : upTrend
 
   const lastPriceUp = mode === 'candles'
@@ -332,17 +529,64 @@ export function PriceChart({
         </div>
       </div>
 
-      <div className="relative" style={{ height: chartH }}>
+      <div ref={bodyRef} className="relative" style={{ height: chartH }}>
+      {/* ── navigation overlay: LIVE snap-back + zoom controls ── */}
+      <div className="absolute right-[60px] top-1.5 z-10 flex items-center gap-1">
+        <AnimatePresence>
+          {off > 0.5 && total > 1 && (
+            <motion.button
+              key="live"
+              type="button"
+              initial={{ opacity: 0, x: 6 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 6 }}
+              transition={{ duration: 0.18 }}
+              onClick={() => setOff(0)}
+              title="Snap back to live (or double-click the chart)"
+              className={cn(
+                'mr-0.5 flex items-center gap-1 border px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.14em] backdrop-blur-sm transition-colors',
+                accent === 'teal'
+                  ? 'border-xusd/60 bg-xusd/15 text-xusd hover:bg-xusd/25'
+                  : 'border-vault/60 bg-vault/15 text-vault hover:bg-vault/25'
+              )}
+            >
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
+              live
+            </motion.button>
+          )}
+        </AnimatePresence>
+        <div className="flex">
+          <button type="button" onClick={zoomOut} title="Zoom out" aria-label="Zoom out"
+            className="h-[22px] w-[22px] border border-border bg-background/80 font-mono text-[11px] leading-none text-muted-foreground backdrop-blur-sm transition-colors hover:text-foreground">
+            −
+          </button>
+          <button type="button" onClick={zoomIn} title="Zoom in" aria-label="Zoom in"
+            className="h-[22px] w-[22px] border border-l-0 border-border bg-background/80 font-mono text-[11px] leading-none text-muted-foreground backdrop-blur-sm transition-colors hover:text-foreground">
+            +
+          </button>
+          <button type="button" onClick={resetView} title="Reset zoom & follow live" aria-label="Reset view"
+            className="h-[22px] border border-l-0 border-border bg-background/80 px-1 font-mono text-[9px] font-semibold uppercase leading-none tracking-[0.08em] text-muted-foreground backdrop-blur-sm transition-colors hover:text-foreground">
+            fit
+          </button>
+        </div>
+      </div>
+
       <svg
+        ref={svgRef}
         width="100%"
         height={chartH}
         viewBox={`0 0 ${width} ${chartH}`}
         preserveAspectRatio="none"
-        className="block w-full overflow-visible"
-        onMouseMove={onMove}
-        onMouseLeave={() => setHover(null)}
+        className={cn('block w-full overflow-visible', dragging ? 'cursor-grabbing' : 'cursor-crosshair')}
+        style={{ touchAction: 'pan-y' }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endPointer}
+        onPointerCancel={endPointer}
+        onPointerLeave={onPointerLeave}
+        onDoubleClick={() => setOff(0)}
         role="img"
-        aria-label={`Price chart, ${unit} per token`}
+        aria-label={`Price chart, ${unit} per token — drag to pan, wheel to zoom, double-click to return to live`}
       >
         <defs>
           <linearGradient id={`${gid}-fill`} x1="0" y1="0" x2="0" y2="1">
@@ -370,7 +614,7 @@ export function PriceChart({
         <line x1={plotW} x2={plotW} y1={padT} y2={chartH} stroke="var(--border)" strokeWidth={1} />
 
         {/* ── LINE MODE ── */}
-        {mode === 'line' && n > 1 && (
+        {mode === 'line' && pts.length > 1 && (
           <>
             <motion.path
               d={areaPath}
@@ -391,7 +635,7 @@ export function PriceChart({
               transition={{ duration: 1.4, ease: [0.65, 0, 0.35, 1] }}
               key={`line-${mounted}`}
             />
-            {/* pulsing square head */}
+            {/* pulsing square head — only when the live point is on screen */}
             {headPt && (
               <>
                 <rect x={headPt.x - 5} y={headPt.y - 5} width={10} height={10} fill={lineStroke} opacity={0.16}>
@@ -405,29 +649,29 @@ export function PriceChart({
               </>
             )}
             {/* hover marker */}
-            {hoverIdx != null && pts[hoverIdx] && (
-              <rect x={pts[hoverIdx].x - 3} y={pts[hoverIdx].y - 3} width={6} height={6} fill={lineStroke} stroke="var(--background)" strokeWidth={1} />
+            {hoverIdx != null && pts[hoverIdx - i0] && (
+              <rect x={pts[hoverIdx - i0].x - 3} y={pts[hoverIdx - i0].y - 3} width={6} height={6} fill={lineStroke} stroke="var(--background)" strokeWidth={1} />
             )}
           </>
         )}
 
         {/* ── CANDLE MODE — closed candles are FROZEN (keyed by absolute
              bucket id), only the live candle re-renders each tick ── */}
-        {mode === 'candles' && candles.length > 0 && (
+        {mode === 'candles' && visCandles && visCandles.length > 0 && (
           <>
             {/* volume strip */}
-            {hasVol && candles.map((k, i) => {
+            {hasVol && visCandles.map((k, kk) => {
               const vh = maxVol > 0 ? (k.vol / maxVol) * (volH - 2) : 0
               const up = k.c >= k.o
               return (
                 <rect
                   key={`v${k.id}`}
-                  x={i * cStep + (cStep - cW) / 2}
+                  x={xOf(i0 + kk) - cW / 2}
                   y={volTop + (volH - 2) - Math.max(1, vh)}
                   width={cW}
                   height={Math.max(1, vh)}
                   fill={up ? CHART_UP : CHART_DOWN}
-                  opacity={hoverIdx === i ? 0.55 : 0.26}
+                  opacity={hoverIdx === i0 + kk ? 0.55 : 0.26}
                 />
               )
             })}
@@ -438,9 +682,10 @@ export function PriceChart({
               animate={{ clipPath: 'inset(0 0% 0 0)' }}
               transition={{ duration: 0.7, ease: [0.65, 0, 0.35, 1] }}
             >
-              {candles.map((k, i) => {
+              {visCandles.map((k, kk) => {
+                const i = i0 + kk
                 const up = k.c >= k.o
-                const cx = i * cStep + cStep / 2
+                const cx = xOf(i)
                 const yH = yOf(k.h)
                 const yL = yOf(k.l)
                 const yO = yOf(k.o)
@@ -449,7 +694,7 @@ export function PriceChart({
                 const bodyH = Math.max(1.6, Math.abs(yO - yC))
                 const col = up ? CHART_UP : CHART_DOWN
                 const hovered = hoverIdx === i
-                const isLive = i === liveIdx && !k.closed
+                const isLive = i === count - 1 && !k.closed
                 return (
                   <g key={k.id} opacity={hoverIdx != null && !hovered ? 0.5 : 1}>
                     {/* wick */}
@@ -508,10 +753,10 @@ export function PriceChart({
         {hoverIdx != null && (
           <>
             <line
-              x1={mode === 'candles' ? hoverIdx * cStep + cStep / 2 : pts[hoverIdx]?.x ?? 0}
-              x2={mode === 'candles' ? hoverIdx * cStep + cStep / 2 : pts[hoverIdx]?.x ?? 0}
+              x1={xOf(hoverIdx)}
+              x2={xOf(hoverIdx)}
               y1={padT}
-              y2={hasVol ? chartH : padT + priceH}
+              y2={hasVol ? axisY - gapAxis : padT + priceH}
               stroke="var(--muted-foreground)"
               strokeOpacity={0.5}
               strokeDasharray="2 4"
@@ -538,6 +783,42 @@ export function PriceChart({
               </text>
             </g>
           </>
+        )}
+
+        {/* ── bottom time axis (sim time; 1 point = 1 topo = 2s) ── */}
+        {total > 1 && (
+          <g>
+            <line x1={0} x2={plotW} y1={axisY} y2={axisY} stroke="var(--border)" strokeWidth={1} />
+            {timeTicks.map((t, k) => (
+              <g key={`tt${k}`}>
+                <line x1={t.x} x2={t.x} y1={axisY} y2={axisY + 3} stroke="var(--border)" strokeWidth={1} />
+                <text
+                  x={t.x}
+                  y={chartH - 5}
+                  textAnchor="middle"
+                  fontSize={8.5}
+                  className="fill-[var(--muted-foreground)] font-mono tabular-nums"
+                >
+                  {t.label}
+                </text>
+              </g>
+            ))}
+            {/* "now" marker at the live edge while following */}
+            {off < 0.5 && (
+              <g>
+                <line x1={xEdge} x2={xEdge} y1={axisY} y2={axisY + 3} stroke="var(--muted-foreground)" strokeWidth={1} />
+                <text
+                  x={xEdge}
+                  y={chartH - 5}
+                  textAnchor="end"
+                  fontSize={8.5}
+                  className="fill-[var(--foreground)] font-mono"
+                >
+                  now
+                </text>
+              </g>
+            )}
+          </g>
         )}
       </svg>
 
