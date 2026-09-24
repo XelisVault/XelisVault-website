@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion, useInView } from 'framer-motion'
-import { Reveal, SectionLabel } from '@/components/site/reveal'
+import { Reveal } from '@/components/site/reveal'
 
 // ─────────────────────────────────────────────────────────────────
 // Curve math (mirror of the on-chain formulas, see DEX.md / LAUNCHPAD.md)
@@ -368,15 +368,15 @@ export function VaultLaunchSection() {
         {/* Header */}
         <div className="max-w-3xl">
           <Reveal>
-            <SectionLabel className="text-vault">
-              <span className="inline-flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                </span>
-                <span className="text-vault">VaultLaunch · LIVE on Mainnet</span>
+            <div className="inline-flex items-center gap-2.5 rounded-none border border-emerald-600/40 bg-emerald-500/10 px-3.5 py-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-70" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
               </span>
-            </SectionLabel>
+              <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.22em] text-emerald-700">
+                Live on mainnet · since 23.09.2026
+              </span>
+            </div>
           </Reveal>
           <Reveal delay={0.1}>
             <h2 className="mt-6 font-display text-4xl md:text-6xl lg:text-7xl font-semibold tracking-[-0.03em] leading-[1]">

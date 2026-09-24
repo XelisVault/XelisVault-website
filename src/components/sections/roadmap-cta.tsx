@@ -227,7 +227,7 @@ export function CTA() {
                 onClick={() => openApp()}
                 className="group inline-flex h-13 items-center rounded-none border border-ink-foreground/20 hover:border-vault/40 px-8 py-3.5 text-base font-semibold text-ink-foreground transition-all"
               >
-                <span className="border-b border-ink-foreground/20 group-hover:border-vault-soft pb-0.5">Launch App</span>
+                <span className="border-b border-ink-foreground/20 group-hover:border-vault-soft pb-0.5">Testnet App</span>
               </button>
             )}
             <a

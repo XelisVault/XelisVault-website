@@ -109,7 +109,7 @@ function emblemFor(ticker: string): React.ReactNode {
           <path d="M13 19.4 Q16 21.4 19 19.4" opacity="0.6" />
         </>
       )
-    // Native XEL — the orbital mark: core, tilted orbit, satellite
+    // Native XEL — official logo: /images/xel-token-logo.png (OFFICIAL_LOGOS)
     case 'XEL':
       return (
         <>
@@ -139,9 +139,11 @@ const TILE_SIZES = {
 } as const
 
 /** Assets that use their OFFICIAL logo image instead of a hand-drawn
- *  emblem. VLT is the platform itself — its real brand mark. */
+ *  emblem. VLT is the platform itself and XEL is the native coin of the
+ *  XELIS network — both carry their real brand marks. */
 const OFFICIAL_LOGOS: Record<string, string> = {
   VLT: '/images/xelisvault-logo.png',
+  XEL: '/images/xel-token-logo.png',
 }
 
 export function ProjectLogo({

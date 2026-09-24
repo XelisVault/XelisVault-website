@@ -118,9 +118,9 @@ function SmartSidebar({ view, onSelect }: { view: AppView; onSelect: (v: AppView
       )}
       onMouseLeave={() => canHover && setExpanded(false)}
     >
-      {/* brand */}
+      {/* brand — the official XelisVault mark */}
       <Link href="/" className="flex h-14 items-center gap-2.5 border-b border-border px-3">
-        <ProjectLogo ticker="XEL" size="sm" className="h-7 w-7 shrink-0" />
+        <ProjectLogo ticker="VLT" size="sm" className="h-7 w-7 shrink-0" />
         {expanded && (
           <div className="overflow-hidden">
             <div className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-foreground">
@@ -363,9 +363,9 @@ export function LaunchAppShell({ initialView }: { initialView?: AppView }) {
             {/* ── topbar ── */}
             <div className="flex h-14 items-center justify-between gap-3 border-b border-border px-3 sm:px-4">
               <div className="flex min-w-0 items-center gap-3">
-                {/* mobile brand */}
+                {/* mobile brand — official XelisVault mark */}
                 <div className="md:hidden">
-                  <ProjectLogo ticker="XEL" size="sm" className="h-6 w-6" />
+                  <ProjectLogo ticker="VLT" size="sm" className="h-6 w-6" />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">

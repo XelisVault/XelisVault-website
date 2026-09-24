@@ -6,7 +6,6 @@ import { useDemo } from '@/lib/demo-store'
 import { useCountdownState } from '@/lib/countdown'
 import { CinematicCountdown } from '@/components/site/cinematic-countdown'
 import { LiveNetworkStrip } from '@/components/site/live-network-strip'
-import { ProgressiveLaunchButton, useLaunchProgress } from '@/components/site/progressive-launch-button'
 
 // NOTE: the launch celebration & the T-10s final sequence are rendered
 // globally by <LaunchExperience /> (root layout) so every page ignites.
@@ -48,7 +47,6 @@ function Figure({ value, suffix = '', label, sub, delay = 0 }: {
 
 export function Hero() {
   const openApp = useDemo((s) => s.openApp)
-  const { progress } = useLaunchProgress()
   const { isLaunched } = useCountdownState()
 
   return (
@@ -129,26 +127,42 @@ export function Hero() {
               </motion.div>
             )}
 
-            {/* CTA row: one primary action, one quiet editorial link */}
+            {/* CTA row: the MAINNET launchpad is THE action — gold, pulsing,
+                unmistakably above the quiet testnet preview link */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: isLaunched ? 0.75 : 1 }}
               className="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-x-7 gap-y-4"
             >
-              <ProgressiveLaunchButton
-                progress={progress}
-                isLaunched={isLaunched}
-                onLaunch={() => openApp()}
-              />
-              <a
+              <motion.a
                 href="/launch"
-                className="group inline-flex items-center gap-2 text-sm font-medium text-foreground hover:text-vault transition-colors"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                className="group relative inline-flex h-12 items-center gap-3 rounded-none bg-vault px-7 text-sm font-semibold text-primary-foreground transition-shadow duration-300 hover:shadow-[0_16px_48px_-12px_var(--vault)] overflow-hidden"
               >
-                <span className="border-b border-foreground/35 group-hover:border-vault group-hover:text-vault transition-colors pb-0.5">
-                  Launchpad · Live on Mainnet
+                {/* sheen sweep */}
+                <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-primary-foreground/15 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-primary-foreground/90 opacity-80 animate-ping" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary-foreground" />
                 </span>
-              </a>
+                <span>Open the Launchpad</span>
+                <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] bg-primary-foreground/20 px-1.5 py-[3px] rounded-[2px]">
+                  Mainnet · Live
+                </span>
+                <span className="font-mono transition-transform group-hover:translate-x-1">→</span>
+              </motion.a>
+              <button
+                type="button"
+                onClick={() => openApp()}
+                className="group inline-flex items-center gap-2 text-sm font-medium text-foreground/55 hover:text-foreground transition-colors"
+                title="Protocol preview modules — the rest ships to mainnet June–July 2027"
+              >
+                <span className="border-b border-foreground/25 group-hover:border-foreground transition-colors pb-0.5">
+                  Testnet app · protocol preview
+                </span>
+              </button>
               <a
                 href="#protocol"
                 className="group inline-flex items-center gap-2 text-sm font-medium text-foreground hover:text-vault transition-colors"

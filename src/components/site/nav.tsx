@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react'
 import { Menu, X, Github, ChevronDown, ArrowUpRight } from 'lucide-react'
 import { useDemo } from '@/lib/demo-store'
 import { useCountdownState } from '@/lib/countdown'
-import { useLaunchStatus } from '@/components/app/launch-gate'
 import { SoundToggle } from '@/components/site/launch-audio'
 import { useSide } from '@/lib/side-store'
 
@@ -96,8 +95,7 @@ export function Nav() {
   const [openGroup, setOpenGroup] = useState<string | null>(null)
   const { scrollY } = useScroll()
   const openApp = useDemo((s) => s.openApp)
-  const { isLaunched } = useLaunchStatus()
-  const { days, hours, minutes, seconds, isFinalCountdown } = useCountdownState()
+  const { isLaunched } = useCountdownState()
 
   useMotionValueEvent(scrollY, 'change', (v) => {
     setScrolled(v > 30)
@@ -123,7 +121,7 @@ export function Nav() {
                 <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 animate-ping" />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
               </span>
-              {isLaunched ? 'VaultLaunch live on mainnet' : 'Testnet launches Aug 30 · 14:00 UTC'}
+              {isLaunched ? 'VaultLaunch is LIVE on mainnet · since 23.09.2026' : 'Testnet launches Aug 30 · 14:00 UTC'}
               <span className="hidden sm:inline text-ink-foreground/30">·</span>
               <span className="hidden sm:inline">XELIS BlockDAG · 5s finality</span>
               <span className="hidden md:inline text-ink-foreground/30">·</span>
@@ -296,35 +294,39 @@ export function Nav() {
 
             <div className="flex items-center gap-2 shrink-0">
               <SoundToggle />
+              {/* Testnet preview app — secondary, quiet: the protocol modules
+                  are not on mainnet yet (roadmap: June–July 2027). */}
+              <button
+                onClick={() => openApp()}
+                disabled={!isLaunched}
+                className="hidden lg:inline-flex h-9 items-center px-3.5 text-[12.5px] font-medium text-foreground/55 border border-border/70 hover:text-foreground hover:border-foreground/30 transition-all disabled:cursor-not-allowed"
+                title="Protocol preview app — testnet modules"
+              >
+                Testnet App
+              </button>
               <a
                 href="https://github.com/XelisVault/xelis-vault"
                 target="_blank"
                 rel="noreferrer"
-                className="hidden md:inline-flex h-9 items-center gap-2 rounded-none border border-border bg-card/60 hover:bg-card hover:border-vault/40 px-4 text-[13px] font-medium transition-all"
+                className="hidden md:inline-flex h-9 w-9 items-center justify-center rounded-none border border-border bg-card/60 hover:bg-card hover:border-vault/40 transition-all"
+                title="GitHub — protocol source, docs, runbooks"
               >
                 <Github className="w-4 h-4" />
-                GitHub
               </a>
-              <button
-                onClick={() => openApp()}
-                disabled={!isLaunched}
-                className={`hidden md:inline-flex h-9 items-center px-5 text-[13px] font-semibold transition-colors hover:bg-vault hover:text-primary-foreground disabled:cursor-not-allowed${
-                  isLaunched
-                    ? 'bg-ink text-ink-foreground hover:bg-vault hover:text-primary-foreground'
-                    : isFinalCountdown
-                      ? 'bg-amber-600/90 text-white animate-pulse'
-                      : 'bg-ink/80 text-ink-foreground'
-                }`}
+              {/* THE mainnet call-to-action — gold, pulsing, unmistakable */}
+              <a
+                href="/launch"
+                className="inline-flex h-9 items-center gap-2 rounded-none bg-vault px-3.5 sm:px-4 text-[13px] font-semibold text-primary-foreground transition-all hover:bg-vault/90 hover:shadow-[0_10px_32px_-8px_var(--vault)]"
               >
-                {isLaunched ? (
-                  'Launch App'
-                ) : (
-                  <span className="font-mono tabular-nums tracking-tight" suppressHydrationWarning>
-                    T–{days}d {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:
-                    {String(seconds).padStart(2, '0')}
-                  </span>
-                )}
-              </button>
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-primary-foreground/90 opacity-80 animate-ping" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary-foreground" />
+                </span>
+                Launchpad
+                <span className="hidden sm:inline font-mono text-[8.5px] font-bold uppercase tracking-[0.16em] bg-primary-foreground/20 px-1.5 py-[3px] rounded-[2px]">
+                  Mainnet · Live
+                </span>
+              </a>
               <button
                 onClick={() => setOpen(true)}
                 className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-[3px] hover:bg-foreground/5"
@@ -389,33 +391,36 @@ export function Nav() {
                 </motion.a>
               ))}
 
-              <div className="flex gap-3 mt-8 mb-12">
+              <div className="flex flex-col gap-3 mt-8 mb-12">
+                {/* Mainnet first — the gold action */}
                 <a
-                  href="https://github.com/XelisVault/xelis-vault"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-none border border-border bg-card"
+                  href="/launch"
+                  onClick={() => setOpen(false)}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-none bg-vault text-[15px] font-semibold text-primary-foreground"
                 >
-                  <Github className="w-4 h-4" /> GitHub
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-primary-foreground/90 opacity-80 animate-ping" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary-foreground" />
+                  </span>
+                  Launchpad — Mainnet LIVE
                 </a>
-                <button
-                  onClick={() => { if (isLaunched) { openApp(); setOpen(false) } }}
-                  disabled={!isLaunched}
-                  className={`flex-1 inline-flex h-12 items-center justify-center rounded-none font-semibold disabled:cursor-not-allowed${
-                    isLaunched
-                      ? 'bg-ink text-ink-foreground'
-                      : 'bg-ink/70 text-ink-foreground/80'
-                  }`}
-                >
-                  {isLaunched ? (
-                    'Launch App'
-                  ) : (
-                    <span className="font-mono tabular-nums" suppressHydrationWarning>
-                      T–{days}d {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:
-                      {String(seconds).padStart(2, '0')}
-                    </span>
-                  )}
-                </button>
+                <div className="flex gap-3">
+                  <a
+                    href="https://github.com/XelisVault/xelis-vault"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-none border border-border bg-card"
+                  >
+                    <Github className="w-4 h-4" /> GitHub
+                  </a>
+                  <button
+                    onClick={() => { if (isLaunched) { openApp(); setOpen(false) } }}
+                    disabled={!isLaunched}
+                    className="flex-1 inline-flex h-12 items-center justify-center rounded-none border border-border/70 font-medium text-foreground/70 disabled:cursor-not-allowed"
+                  >
+                    Testnet App
+                  </button>
+                </div>
               </div>
             </nav>
           </motion.div>
