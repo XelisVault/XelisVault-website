@@ -1,23 +1,20 @@
-// /launch — the VaultLaunch private preview application.
+// /launch — the VaultLaunch application: LIVE on the XELIS mainnet
+// since 23/09/2026.
 //
-// PRIVACY MODEL (static site, no server):
-//   • noindex meta on this page (below)
-//   • disallowed in robots.txt
-//   • excluded from the sitemap
-//   • not linked from any public page
-//   • client-side access gate (sessionStorage + ?key= link)
-// For real access control, add password protection at the hosting layer.
+// PUBLIC page (the private-preview gate is gone): indexable, in the
+// sitemap, linked from the home section and the nav. Deep links:
+//   /launch?view=create | trading | dex | portfolio | guide
 
 import type { Metadata } from 'next'
 import { LaunchPageClient } from '@/components/launch/page-client'
 
 export const metadata: Metadata = {
-  title: 'VaultLaunch · Private Preview',
-  description: 'Private preview.',
+  title: 'VaultLaunch · Community Launchpad — LIVE on XELIS Mainnet',
+  description:
+    'Launch a coin on XELIS: community validation, bonding curves, permanent-liquidity DEX. Real confidential assets, locked seeds, 50% of fees to liquidity providers. Live on mainnet since 23.09.2026.',
   robots: {
-    index: false,
-    follow: false,
-    nocache: true,
+    index: true,
+    follow: true,
   },
 }
 

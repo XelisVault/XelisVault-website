@@ -1,22 +1,27 @@
-// Launchpad view — every proposal, every lifecycle stage, voting with live
-// countdowns. The KLEOS card is the drama: 19/20 voters, 89%, minutes left.
+// Launchpad view — every project on the XELIS mainnet, every lifecycle
+// stage, voting with live countdowns, permissionless finalize/migrate
+// buttons. All data is on-chain; every action is a real transaction.
 
 'use client'
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
-import { useEngine, graduationOf } from '@/lib/launch/engine'
-import { useToast } from '@/hooks/use-toast'
+import { useMainnet, graduationOf } from '@/lib/launch/mainnet-store'
 import { useLaunchWallet } from '@/lib/launch/wallet'
+import { supportTx, reportTx, finalizeValidationTx, migrateTx, claimRefundTx } from '@/lib/launch/tx'
+import { shortenAddress } from '@/lib/xelis/types'
+import { explorerContractUrl } from '@/lib/launch/protocol'
+import { useToast } from '@/hooks/use-toast'
 import {
   AnimatedNumber, Bar, BracketButton, Countdown, StatusTag, Sparkline, SquareDot, pad2,
 } from './shared'
 import { ProjectLogo } from './logos'
-import { fmtXel } from '@/lib/launch/math'
+import { fmtXel, fmtPrice } from '@/lib/launch/math'
 import type { Project } from '@/lib/launch/types'
 import { cn } from '@/lib/utils'
-import type { AppView } from './app-shell'
+
+export type AppView = 'launchpad' | 'trading' | 'dex' | 'create' | 'portfolio' | 'guide'
 
 const FILTERS = [
   { id: 'all', label: 'All' },
@@ -38,18 +43,18 @@ function VoteBar({ p }: { p: Project }) {
           <span className="font-semibold text-foreground">
             <AnimatedNumber value={voters} format={(v) => Math.round(v).toString()} />
           </span>
-          <span className="text-foreground">/{p.vote.quorum}</span> voters ·{' '}
+          <span className="text-foreground">/{p.vote.quorum || '—'} voters ·{' '}</span>
           <span className={cn('font-semibold', passes ? 'text-emerald-400' : 'text-destructive')}>
             <AnimatedNumber value={approval * 100} format={(v) => `${v.toFixed(0)}%`} /> approval
           </span>
         </span>
-        <Countdown deadlineTopo={p.vote.deadlineTopo} className={cn(p.id === 'kleos' ? 'text-vault-soft' : 'text-foreground')} />
+        <Countdown deadlineTopo={p.vote.deadlineTopo} className="text-foreground" />
       </div>
       <div className="flex gap-1.5">
         <div className="h-[3px] flex-1 bg-foreground/10">
           <motion.div
             className="h-full bg-vault"
-            animate={{ width: `${Math.min(100, (voters / p.vote.quorum) * 100)}%` }}
+            animate={{ width: `${Math.min(100, p.vote.quorum > 0 ? (voters / p.vote.quorum) * 100 : 100)}%` }}
             transition={{ type: 'spring', stiffness: 60, damping: 18 }}
           />
         </div>
@@ -66,7 +71,12 @@ function VoteBar({ p }: { p: Project }) {
 }
 
 function ProjectCard({ p, rank, onOpen, onTrade }: { p: Project; rank: number; onOpen: () => void; onTrade: () => void }) {
+  const params = useMainnet((s) => s.params)
+  const topoheight = useMainnet((s) => s.topoheight)
   const isDex = !!p.pool
+  const windowClosed = p.vote != null && topoheight > 0 && p.vote.deadlineTopo > 0 && topoheight >= p.vote.deadlineTopo
+  const awaitingMigration = p.graduated && !p.migrated
+
   return (
     <motion.article
       layout
@@ -76,9 +86,9 @@ function ProjectCard({ p, rank, onOpen, onTrade }: { p: Project; rank: number; o
       transition={{ duration: 0.35 }}
       className={cn(
         'group relative flex flex-col border bg-card/50 p-5 transition-colors',
-        p.status === 'validating' && p.id === 'kleos'
-          ? 'border-vault-soft/50 shadow-[0_0_36px_-14px_var(--vault)]'
-          : 'border-border/80 hover:border-vault/30'
+        p.status === 'validating'
+          ? 'border-vault-soft/50 hover:border-vault-soft'
+          : 'border-border/80 hover:border-vault/30',
       )}
     >
       {/* ledger index */}
@@ -106,32 +116,32 @@ function ProjectCard({ p, rank, onOpen, onTrade }: { p: Project; rank: number; o
         <StatusTag status={p.status} />
       </div>
 
-      <p className="mt-3.5 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">{p.description}</p>
+      <p className="mt-3.5 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">{p.description || 'No description provided.'}</p>
 
       {/* Stage-specific strip */}
       <div className="mt-4 flex-1">
         {p.status === 'validating' && p.vote && (
           <div className="border border-vault-soft/30 bg-vault-soft/5 p-3">
             <VoteBar p={p} />
-            {p.id === 'kleos' && (
+            {windowClosed && (
               <div className="mt-2.5 flex items-center justify-center gap-2 border border-vault-soft/30 bg-vault-soft/10 px-2 py-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-vault-soft">
-                <SquareDot /> decision imminent · about to pass
+                <SquareDot /> window closed · anyone can finalize
               </div>
             )}
           </div>
         )}
-        {p.status === 'bonding' && p.curve && (
+        {(p.status === 'bonding' || (p.graduated && !p.migrated)) && p.curve && (
           <div className="border border-vault/25 bg-vault/5 p-3">
             <div className="flex justify-between font-mono text-[11px]">
               <span className="text-muted-foreground">
-                curve · <span className="font-semibold text-foreground">{fmtXel(p.curve.reserves)} / {fmtXel(p.curve.seed * 4)} XEL</span>
+                curve · <span className="font-semibold text-foreground">{fmtXel(p.curve.reserves)} / {fmtXel(p.curve.seed * params.graduationMultiplier)} XEL</span>
               </span>
-              <span className="font-semibold text-vault">{(graduationOf(p) * 100).toFixed(1)}%</span>
+              <span className="font-semibold text-vault">{(graduationOf(p, params) * 100).toFixed(1)}%</span>
             </div>
-            <Bar value={graduationOf(p)} className="mt-2" />
+            <Bar value={graduationOf(p, params)} className="mt-2" />
             <div className="mt-2 flex items-center justify-between">
               <span className="font-mono text-[10px] text-foreground">
-                price <span className="font-semibold">{(p.curve.reserves / p.curve.circulating).toFixed(5)}</span> XEL
+                price <span className="font-semibold">{fmtPrice(p.curve.reserves / p.curve.circulating)}</span> XEL
               </span>
               <Sparkline data={p.curve.history.slice(-40)} width={72} height={20} />
             </div>
@@ -142,15 +152,15 @@ function ProjectCard({ p, rank, onOpen, onTrade }: { p: Project; rank: number; o
             <div className="grid grid-cols-3 gap-2 text-center font-mono text-[10px]">
               <div>
                 <div className="text-muted-foreground">PRICE</div>
-                <div className="mt-0.5 text-xs font-semibold text-foreground">{(p.pool.xel / p.pool.token).toFixed(4)}</div>
+                <div className="mt-0.5 text-xs font-semibold text-foreground">{fmtPrice(p.pool.xel / p.pool.token)}</div>
               </div>
               <div>
                 <div className="text-muted-foreground">TVL</div>
                 <div className="mt-0.5 text-xs font-semibold text-foreground">{fmtXel(p.pool.xel)} XEL</div>
               </div>
               <div>
-                <div className="text-muted-foreground">VOL 24H</div>
-                <div className="mt-0.5 text-xs font-semibold text-foreground">{fmtXel(p.pool.volume24h)}</div>
+                <div className="text-muted-foreground">VOLUME</div>
+                <div className="mt-0.5 text-xs font-semibold text-foreground">{fmtXel(p.pool.volume)}</div>
               </div>
             </div>
             <div className="mt-2 text-center font-mono text-[10px] text-xusd">
@@ -160,7 +170,12 @@ function ProjectCard({ p, rank, onOpen, onTrade }: { p: Project; rank: number; o
         )}
         {p.status === 'rejected' && (
           <div className="border border-destructive/25 bg-destructive/5 p-3 text-center font-mono text-[11px] text-destructive/90">
-            rejected by {p.trust.up + p.trust.down} voters · liquidity 100% refunded
+            rejected · {p.trust.up + p.trust.down} voters · liquidity 100% refundable
+          </div>
+        )}
+        {awaitingMigration && (
+          <div className="mt-2 text-center font-mono text-[9px] uppercase tracking-[0.18em] text-vault">
+            graduated · migrate() is permissionless
           </div>
         )}
       </div>
@@ -169,9 +184,9 @@ function ProjectCard({ p, rank, onOpen, onTrade }: { p: Project; rank: number; o
         <BracketButton variant="quiet" size="sm" className="flex-1" onClick={onOpen}>
           Details
         </BracketButton>
-        {(p.status === 'bonding' || isDex) && (
-          <BracketButton variant={p.status === 'bonding' ? 'primary' : 'teal'} size="sm" className="flex-1" onClick={onTrade}>
-            {p.status === 'bonding' ? 'Trade' : 'DEX'}
+        {(p.status === 'bonding' || isDex || (p.graduated && !p.migrated)) && (
+          <BracketButton variant={isDex ? 'teal' : 'primary'} size="sm" className="flex-1" onClick={onTrade}>
+            {isDex ? 'DEX' : 'Trade'}
           </BracketButton>
         )}
       </div>
@@ -185,20 +200,30 @@ function ProjectDialog({ p, open, onClose, onTrade }: {
   onClose: () => void
   onTrade: (p: Project) => void
 }) {
-  const vote = useEngine((s) => s.vote)
-  const userVote = useEngine((s) => (p ? s.votes[p.id] : undefined))
   const { toast } = useToast()
+  const wallet = useLaunchWallet()
+  const params = useMainnet((s) => s.params)
+  const topoheight = useMainnet((s) => s.topoheight)
+  const [busy, setBusy] = useState<string | null>(null)
 
   if (!p) return null
 
-  function doVote(side: 'support' | 'report') {
-    if (!p) return
-    const res = vote(p.id, side)
-    toast({
-      title: res.ok ? 'Vote recorded' : 'Cannot vote',
-      description: res.message,
-      variant: res.ok ? 'default' : 'destructive',
-    })
+  const connected = wallet.state === 'connected' && !!wallet.address
+  const windowClosed = p.vote != null && topoheight > 0 && p.vote.deadlineTopo > 0 && topoheight >= p.vote.deadlineTopo
+  const userVoted = p.vote?.userVoted ?? false
+
+  async function run(kind: string, fn: () => Promise<{ ok: boolean; message: string }>) {
+    setBusy(kind)
+    try {
+      const res = await fn()
+      toast({
+        title: res.ok ? 'Transaction sent' : 'Transaction failed',
+        description: res.message,
+        variant: res.ok ? 'default' : 'destructive',
+      })
+    } finally {
+      setBusy(null)
+    }
   }
 
   return (
@@ -236,17 +261,37 @@ function ProjectDialog({ p, open, onClose, onTrade }: {
             <div className="border-b border-border px-6 py-5">
               <div className="flex items-center gap-4 pr-8">
                 <ProjectLogo ticker={p.ticker} size="xl" />
-                <div>
+                <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2.5">
                     <h3 className="font-display text-2xl font-semibold tracking-tight">{p.name}</h3>
                     <span className="font-mono text-sm text-muted-foreground">${p.ticker}</span>
                     <StatusTag status={p.status} />
                   </div>
-                  <div className="mt-1.5 flex items-center gap-3 font-mono text-[11px] text-muted-foreground">
-                    <span>by {p.creator}</span>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-3 font-mono text-[11px] text-muted-foreground">
+                    <span title={p.creatorAddress}>by {p.creatorAddress ? shortenAddress(p.creatorAddress) : 'unknown'}</span>
                     {p.website && (
                       <a href={p.website} target="_blank" rel="noreferrer" className="text-vault hover:underline">
                         website ↗
+                      </a>
+                    )}
+                    {p.twitter && (
+                      <a href={p.twitter} target="_blank" rel="noreferrer" className="text-vault hover:underline">X ↗</a>
+                    )}
+                    {p.telegram && (
+                      <a href={p.telegram} target="_blank" rel="noreferrer" className="text-vault hover:underline">telegram ↗</a>
+                    )}
+                    {p.discord && (
+                      <a href={p.discord} target="_blank" rel="noreferrer" className="text-vault hover:underline">discord ↗</a>
+                    )}
+                    {p.asset && (
+                      <a
+                        href={explorerContractUrl(p.asset)}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={`Asset ${p.asset}`}
+                        className="text-muted-foreground hover:text-vault"
+                      >
+                        asset ↗
                       </a>
                     )}
                   </div>
@@ -258,7 +303,7 @@ function ProjectDialog({ p, open, onClose, onTrade }: {
               <p className="text-sm leading-relaxed text-muted-foreground">{p.longDescription}</p>
 
               {/* vote panel */}
-              {p.status === 'validating' && p.vote && (
+              {(p.status === 'validating' || p.status === 'recovery') && p.vote && (
                 <div className="mt-5 border border-vault-soft/30 bg-vault-soft/5 p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm font-semibold">
@@ -270,18 +315,79 @@ function ProjectDialog({ p, open, onClose, onTrade }: {
                   </div>
                   <div className="mt-3"><VoteBar p={p} /></div>
                   <div className="mt-4 flex items-stretch gap-2">
-                    <BracketButton variant="primary" className="flex-1" disabled={!!userVote} onClick={() => doVote('support')}>
-                      Support
+                    <BracketButton
+                      variant="primary"
+                      className="flex-1"
+                      disabled={!connected || !!userVoted || busy != null}
+                      onClick={() => run('support', () => supportTx(p.pid))}
+                    >
+                      {busy === 'support' ? 'signing…' : userVoted ? 'voted' : 'Support'}
                     </BracketButton>
-                    <BracketButton variant="danger" className="flex-1" disabled={!!userVote} onClick={() => doVote('report')}>
-                      Report
+                    <BracketButton
+                      variant="danger"
+                      className="flex-1"
+                      disabled={!connected || !!userVoted || busy != null}
+                      onClick={() => run('report', () => reportTx(p.pid))}
+                    >
+                      {busy === 'report' ? 'signing…' : 'Report'}
                     </BracketButton>
                   </div>
                   <p className="mt-3 text-center font-mono text-[10px] leading-relaxed text-muted-foreground">
-                    {userVote
-                      ? `you voted ${userVote.toUpperCase()} · 1 address = 1 vote · 0.5 XEL refundable deposit`
-                      : '1 address = 1 vote · 0.5 XEL refundable deposit · 20 voters and 80% approval to pass'}
+                    {userVoted
+                      ? 'you already voted this round · 1 address = 1 vote'
+                      : params.voteDeposit > 0
+                        ? `1 address = 1 vote · ${params.voteDeposit} XEL refundable deposit · ${p.vote.quorum} voter(s) and ${(p.vote.approvalThreshold * 100).toFixed(0)}% approval to pass`
+                        : `voting is FREE (deposit dial = 0) · 1 address = 1 vote · ${p.vote.quorum} voter(s) and ${(p.vote.approvalThreshold * 100).toFixed(0)}% approval to pass`}
+                    {!connected && ' · connect your wallet to vote'}
                   </p>
+                  {windowClosed && (
+                    <BracketButton
+                      variant="strong"
+                      className="mt-3 w-full"
+                      disabled={!connected || busy != null}
+                      onClick={() => run('finalize', () => finalizeValidationTx(p.pid))}
+                    >
+                      {busy === 'finalize' ? 'signing…' : 'Finalize validation — open the bonding curve'}
+                    </BracketButton>
+                  )}
+                </div>
+              )}
+
+              {/* graduated, awaiting migration — permissionless */}
+              {p.graduated && !p.migrated && (
+                <div className="mt-5 border border-vault/30 bg-vault/5 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-semibold">Graduated — awaiting DEX migration</div>
+                    <BracketButton
+                      variant="strong"
+                      size="sm"
+                      disabled={!connected || busy != null}
+                      onClick={() => run('migrate', () => migrateTx(p.pid))}
+                    >
+                      {busy === 'migrate' ? 'signing…' : 'migrate()'}
+                    </BracketButton>
+                  </div>
+                  <p className="mt-2 font-mono text-[10px] leading-relaxed text-muted-foreground">
+                    Anyone can call migrate() — the curve&apos;s reserves and inventory move atomically into a permanent
+                    LaunchDEX pool. The curve keeps trading at the graduated fee ({(params.graduatedFeeBps / 100).toFixed(2)}%) until then.
+                  </p>
+                </div>
+              )}
+
+              {/* rejected — refund */}
+              {p.status === 'rejected' && (
+                <div className="mt-5 border border-border bg-foreground/[0.02] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-semibold text-muted-foreground">Rejected — creator funds are refundable</div>
+                    <BracketButton
+                      variant="quiet"
+                      size="sm"
+                      disabled={!connected || busy != null}
+                      onClick={() => run('refund', () => claimRefundTx(p.pid))}
+                    >
+                      {busy === 'refund' ? 'signing…' : 'claim refund'}
+                    </BracketButton>
+                  </div>
                 </div>
               )}
 
@@ -289,12 +395,17 @@ function ProjectDialog({ p, open, onClose, onTrade }: {
               <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                 {([
                   p.curve && ['RESERVES', `${fmtXel(p.curve.reserves)} XEL`],
-                  p.curve && ['HOLDERS', p.curve.holders.toString()],
+                  p.curve && ['TRADES', p.curve.trades.toString()],
+                  p.curve && ['MARKET CAP', `${fmtXel(p.curve.marketCap)} XEL`],
+                  p.curve && ['ATH CAP', `${fmtXel(p.curve.marketCapHigh)} XEL`],
                   p.pool && ['TVL', `${fmtXel(p.pool.xel)} XEL`],
-                  p.pool && ['VOL 24H', `${fmtXel(p.pool.volume24h)} XEL`],
+                  p.pool && ['VOLUME', `${fmtXel(p.pool.volume)} XEL`],
+                  p.pool && ['LIFETIME FEES', `${fmtXel(p.pool.fees)} XEL`],
+                  p.pool && ['SWAPS', p.pool.trades.toString()],
                   p.trust.up > 0 && ['TRUST FOR', p.trust.up.toString()],
                   p.trust.down > 0 && ['TRUST AGAINST', p.trust.down.toString()],
-                  ['TEAM', p.curve ? `≤ ${(p.curve.teamBps / 100).toFixed(0)}%` : 'n/a'],
+                  ['TEAM', `${(p.teamBps / 100).toFixed(0)}%${p.vestingPlanTopos > 0 ? ' · vesting' : ''}`],
+                  ['SUPPLY', p.totalSupply.toLocaleString('en-US')],
                   ['SEED', p.curve ? `${fmtXel(p.curve.seed)} XEL` : p.pool ? `${fmtXel(p.pool.seedLocked)} XEL ▣` : 'n/a'],
                 ].filter(Boolean) as [string, string][]).map(([k, v]) => (
                   <div key={k} className="border border-border/70 bg-background/50 p-2.5 text-center">
@@ -304,14 +415,16 @@ function ProjectDialog({ p, open, onClose, onTrade }: {
                 ))}
               </div>
 
-              {(p.status === 'bonding' || !!p.pool) && (
+              {(p.status === 'bonding' || !!p.pool || (p.graduated && !p.migrated)) && (
                 <BracketButton
-                  variant={p.status === 'bonding' ? 'primary' : 'teal'}
+                  variant={p.pool ? 'teal' : 'primary'}
                   size="lg"
                   className="mt-5 w-full"
                   onClick={() => { onClose(); onTrade(p) }}
                 >
-                  {p.status === 'bonding' ? `Trade ${p.ticker} on the bonding curve` : `Trade ${p.ticker} on LaunchDEX`}
+                  {p.pool
+                    ? `Trade ${p.ticker} on LaunchDEX`
+                    : `Trade ${p.ticker} on the bonding curve`}
                 </BracketButton>
               )}
             </div>
@@ -323,12 +436,13 @@ function ProjectDialog({ p, open, onClose, onTrade }: {
 }
 
 export function LaunchpadView({ setView }: { setView: (v: AppView, id?: string) => void }) {
-  const projects = useEngine((s) => s.projects)
-  const isDemo = useLaunchWallet((s) => s.mode === 'demo')
+  const projects = useMainnet((s) => s.projects)
+  const stats = useMainnet((s) => s.stats)
+  const status = useMainnet((s) => s.status)
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('all')
   const [selected, setSelected] = useState<Project | null>(null)
 
-  // Keep the dialog project in sync with engine updates
+  // Keep the dialog project in sync with on-chain updates
   const liveSelected = selected ? projects.find((p) => p.id === selected.id) ?? selected : null
 
   const visible = projects.filter((p) => {
@@ -338,9 +452,11 @@ export function LaunchpadView({ setView }: { setView: (v: AppView, id?: string) 
   })
 
   const validating = projects.filter((p) => p.status === 'validating')
-  const bonding = projects.filter((p) => p.status === 'bonding')
+  const bonding = projects.filter((p) => p.status === 'bonding' || (p.graduated && !p.migrated))
   const dexCount = projects.filter((p) => !!p.pool).length
-  const totalVol = projects.reduce((acc, p) => acc + (p.curve?.volume24h ?? p.pool?.volume24h ?? 0), 0)
+  const totalVol = stats?.totalVolume != null
+    ? Number(stats.totalVolume) / 1e8
+    : projects.reduce((acc, p) => acc + (p.curve?.volume ?? p.pool?.volume ?? 0), 0)
 
   return (
     <div>
@@ -350,7 +466,7 @@ export function LaunchpadView({ setView }: { setView: (v: AppView, id?: string) 
           { k: 'IN VALIDATION', v: validating.length.toString(), sub: validating.map((p) => p.ticker).join(' · ') || 'none' },
           { k: 'ON CURVE', v: bonding.length.toString(), sub: bonding.map((p) => p.ticker).join(' · ') || 'none' },
           { k: 'ON THE DEX', v: dexCount.toString(), sub: 'seed floors locked' },
-          { k: '24H VOLUME', v: fmtXel(totalVol), sub: 'XEL across stages' },
+          { k: 'TOTAL VOLUME', v: fmtXel(totalVol), sub: 'XEL · on-chain scoreboard' },
         ].map((s, i) => (
           <motion.div
             key={s.k}
@@ -376,7 +492,7 @@ export function LaunchpadView({ setView }: { setView: (v: AppView, id?: string) 
               'shrink-0 border px-3.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors',
               filter === f.id
                 ? 'border-vault/50 bg-vault/10 text-vault'
-                : 'border-border text-muted-foreground hover:border-vault/30 hover:text-foreground'
+                : 'border-border text-muted-foreground hover:border-vault/30 hover:text-foreground',
             )}
           >
             {f.label}
@@ -402,16 +518,32 @@ export function LaunchpadView({ setView }: { setView: (v: AppView, id?: string) 
         </AnimatePresence>
       </motion.div>
 
-      {visible.length === 0 && (
+      {visible.length === 0 && projects.length === 0 && status === 'live' && (
+        <div className="mt-14 border border-dashed border-border p-10 text-center">
+          <div className="font-display text-2xl font-semibold text-foreground">
+            The community creates the coins.
+          </div>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
+            Nothing has been proposed yet — the launchpad is live on the XELIS mainnet and waiting
+            for its first project. 526 XEL minimum, ~1 hour of community validation, and your coin
+            is a real confidential XELIS asset.
+          </p>
+          <BracketButton variant="strong" className="mt-6" onClick={() => setView('create')}>
+            Launch the first coin
+          </BracketButton>
+        </div>
+      )}
+
+      {visible.length === 0 && projects.length > 0 && (
         <div className="mt-16 border border-dashed border-border p-10 text-center font-mono text-sm text-muted-foreground">
           nothing at this stage right now
         </div>
       )}
 
-      {!isDemo && (
-        <p className="mt-6 text-center font-mono text-[10px] leading-relaxed text-muted-foreground">
-          XSWD wallet connected · contracts deploy at the mainnet launch, trading runs on demo data
-        </p>
+      {status !== 'live' && (
+        <div className="mt-14 border border-dashed border-border p-10 text-center font-mono text-sm text-muted-foreground">
+          connecting to the XELIS mainnet…
+        </div>
       )}
 
       <ProjectDialog

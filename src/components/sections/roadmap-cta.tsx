@@ -5,7 +5,7 @@ import { Github, Twitter, MessageCircle, ArrowUpRight, ArrowUp } from 'lucide-re
 import { Reveal, RevealStagger, RevealItem, SectionLabel } from '@/components/site/reveal'
 import { useDemo } from '@/lib/demo-store'
 import { QuestLogoTrigger } from '@/components/quest/quest-logo-trigger'
-import { CountdownTimer, useLaunchStatus } from '@/components/app/launch-gate'
+import { useLaunchStatus } from '@/components/app/launch-gate'
 
 const MILESTONES = [
   {
@@ -47,39 +47,54 @@ const MILESTONES = [
     date: 'Aug 30, 2026 · 14:00 UTC',
   },
   {
-    phase: 'Active',
-    status: 'active',
-    title: 'Protocol v13 — Consolidation',
+    phase: 'Complete',
+    status: 'done',
+    title: 'Protocol v13 → v18 — Consolidation',
     items: [
-      'PrivacyMixer V4: recipient-bound notes, Merkle depth 20, 10/100/1000 XEL — the one audited, mainnet-ready contract',
-      '51 legacy contracts moved to legacy/, non-deployable as-is',
-      'Core protocol rebuilt to the V4 standard before any mainnet deployment',
+      'PrivacyMixer V5: recipient-bound notes, Merkle depth 20, hardened through three founder risk reviews',
+      '51 legacy contracts moved to legacy/, preserved but non-deployable',
+      'VaultLaunch v4 + LaunchDEX rebuilt to the deployment standard (v18.3)',
+      'CI-asserted SDK (xvault) + full docs: LAUNCHPAD.md, DEX.md, runbooks',
     ],
-    date: 'Now',
+    date: 'Q3 2026',
+  },
+  {
+    phase: 'Live',
+    status: 'active',
+    title: 'VaultLaunch + LaunchDEX — Mainnet',
+    items: [
+      'Deployed, configured and verified on-chain on the official XELIS mainnet (block version V7) — 16/16 storage reads confirmed',
+      'Community launchpad LIVE: propose (526 XEL minimum), free validation votes (~1 h window, 80% approval), bonding curve',
+      'Two-path graduation: 2× the seed on the curve, or direct listing at 2,000 XEL — migration is permissionless and atomic',
+      'LaunchDEX: permanent seed floor (protocol-locked forever), providers earn 50% of the swap fees, pro-rata exit anytime',
+      'The two contracts are pinned to each other on-chain — beware of clones; verify every hash on explorer.xelis.io',
+    ],
+    date: 'Sep 23, 2026 · Live',
   },
   {
     phase: 'Planned',
     status: 'pending',
     title: 'External Security Audit',
     items: [
-      'Trail of Bits / OpenZeppelin / Hacken',
+      'Trail of Bits / OpenZeppelin / Hacken review of the live launchpad + DEX',
       'Immunefi bug bounty program',
       'Community review period',
-      'Final parameter calibration',
+      'Final parameter calibration from live mainnet data',
     ],
-    date: 'Q3 2026',
+    date: 'H1 2027',
   },
   {
     phase: 'Planned',
     status: 'pending',
-    title: 'Mainnet Launch',
+    title: 'Full Protocol on Mainnet',
     items: [
-      'Mainnet contract deployment',
+      'PrivacyMixer V5 mainnet deployment',
+      'xUSD, the vault engine and the oracle stack',
       'Public mining & provider onboarding',
-      'Liquidity bootstrap on VaultSwap',
+      'VaultChat, governance and the VLT economy',
       'Governance handover to VLT holders',
     ],
-    date: 'Q4 2026',
+    date: 'Jun–Jul 2027',
   },
 ]
 
@@ -105,9 +120,9 @@ export function Roadmap() {
           </Reveal>
           <Reveal delay={0.1}>
             <h2 className="mt-6 font-display text-4xl md:text-6xl lg:text-7xl font-medium tracking-[-0.02em] leading-[1.02]">
-              From testnet
+              Launchpad live on mainnet.
               <br />
-              <span className="italic font-light text-gradient-vault">to confidential mainnet.</span>
+              <span className="italic font-light text-gradient-vault">The rest follows in 2027.</span>
             </h2>
           </Reveal>
         </div>
@@ -178,7 +193,7 @@ export function CTA() {
         <Reveal>
           <div className="inline-flex items-center gap-2 rounded-none border border-ink-foreground/15 bg-ink-foreground/5 px-4 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] text-vault-soft mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            {isLaunched ? 'Testnet is live' : 'Testnet launching August 30, 2026 · 14:00 UTC'}
+            VaultLaunch is LIVE on the XELIS mainnet
           </div>
         </Reveal>
 
@@ -192,23 +207,28 @@ export function CTA() {
 
         <Reveal delay={0.2}>
           <p className="mt-8 max-w-2xl mx-auto text-lg md:text-xl text-ink-foreground/70 leading-relaxed">
-            Join the first confidential financial platform on XELIS BlockDAG.
-            Become a price provider, build on the SDK, or just hold xUSD privately.
-            The encrypted future is open-source, and it is waiting for you.
+            The community launchpad is live on mainnet — real confidential assets,
+            locked seeds, no rug geometry. The full confidential platform follows
+            in 2027. Become a price provider, build on the SDK, or launch the
+            next community coin today.
           </p>
         </Reveal>
 
         <Reveal delay={0.3}>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-            {isLaunched ? (
+            <a
+              href="/launch"
+              className="group inline-flex h-13 items-center rounded-none bg-vault px-8 py-3.5 text-base font-semibold text-primary-foreground hover:bg-vault/90 transition-all hover:shadow-[0_12px_40px_-10px_var(--vault)]"
+            >
+              Open the Launchpad
+            </a>
+            {isLaunched && (
               <button
                 onClick={() => openApp()}
-                className="group inline-flex h-13 items-center rounded-none bg-vault px-8 py-3.5 text-base font-semibold text-primary-foreground hover:bg-vault/90 transition-all hover:shadow-[0_12px_40px_-10px_var(--vault)]"
+                className="group inline-flex h-13 items-center rounded-none border border-ink-foreground/20 hover:border-vault/40 px-8 py-3.5 text-base font-semibold text-ink-foreground transition-all"
               >
-                Launch App
+                <span className="border-b border-ink-foreground/20 group-hover:border-vault-soft pb-0.5">Launch App</span>
               </button>
-            ) : (
-              <CountdownTimer compact />
             )}
             <a
               href="https://github.com/XelisVault/xelis-vault"
@@ -232,19 +252,17 @@ export function CTA() {
         {/* Trust line */}
         <Reveal delay={0.4}>
           <div className="mt-8 text-xs font-mono text-ink-foreground/70">
-            {isLaunched
-              ? 'Testnet live · Connect your Xelis wallet to interact with real contracts'
-              : 'Final integration testing in progress · Testnet launches August 30, 2026 · 14:00 UTC'}
+            VaultLaunch + LaunchDEX live on the XELIS mainnet since 23.09.2026 · full protocol on mainnet June–July 2027
           </div>
         </Reveal>
 
         {/* Quick stats: hairline band on ink */}
         <RevealStagger className="mt-16 grid grid-cols-2 md:grid-cols-4 border-t border-b border-ink-foreground/15 max-w-4xl mx-auto">
           {[
-            { value: '1', label: 'Audited Mixer Live' },
-            { value: '51', label: 'Legacy Contracts' },
-            { value: '10M', label: 'VLT Supply' },
-            { value: '5s', label: 'Block Time' },
+            { value: '2', label: 'Mainnet Contracts Live' },
+            { value: '526', label: 'XEL Minimum Launch' },
+            { value: '50%', label: 'DEX Fees To Providers' },
+            { value: '0', label: 'Rug Paths' },
           ].map((s, i) => (
             <RevealItem key={`cta-stat-${i}`}>
               <div className="py-6 px-5 md:border-l md:first:border-l-0 border-ink-foreground/12">
@@ -397,7 +415,7 @@ export function Footer() {
             © 2026 XELIS Vault · MIT License · Confidential Finance for the Privacy Era
           </div>
           <div className="text-[11px] text-ink-foreground/45 font-mono">
-            Testnet live since August 30, 2026 · 14:00 UTC
+            VaultLaunch live on the XELIS mainnet since 23.09.2026 · full protocol June–July 2027
           </div>
         </div>
       </div>

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   ArrowUpRight, BookOpen, Boxes, ChevronDown, FileText, Gauge, GitBranch,
-  Hammer, MessageSquareLock, Pickaxe, ShieldCheck, Terminal, Users, Zap,
+  Hammer, MessageSquareLock, Pickaxe, Rocket, ShieldCheck, Terminal, Users, Zap,
 } from 'lucide-react'
 import { Nav } from '@/components/site/nav'
 import { Footer } from '@/components/sections/roadmap-cta'
@@ -21,6 +21,20 @@ const GITHUB_DOCS = `${GITHUB_URL}/blob/main/legacy/docs`
 // ---------------------------------------------------------------------------
 
 const GUIDES = [
+  {
+    id: 'vaultlaunch',
+    icon: Rocket,
+    title: 'Launch a Coin · VaultLaunch (LIVE on mainnet)',
+    desc: 'The community launchpad, live on the XELIS mainnet since 23.09.2026: propose, validate, trade the bonding curve, graduate to the DEX.',
+    time: 'live',
+    cta: { label: 'Open the Launchpad', href: '/launch' },
+    steps: [
+      { t: 'Connect a MAINNET wallet', d: 'Open Genesix (or xelis_wallet) against a mainnet daemon, enable XSWD, then connect on the Launchpad page. The site never sees your keys — every action is signed by your wallet.' },
+      { t: 'Propose (526 XEL minimum)', d: '25 XEL submission fee + 1 XEL asset budget + 500 XEL minimum seed. Declare the tokenomics and the team vesting plan — the community votes on the exact schedule, and the contract binds it.' },
+      { t: 'Community validation (~1 h)', d: 'One address one vote, voting is free, 80% approval to pass. Rejected proposals refund 100% of the founder deposit. Accepted projects mint a REAL confidential XELIS asset with a fixed max supply.' },
+      { t: 'Curve → DEX graduation', d: 'Trades run on the bonding curve (0.50%). At 2× the seed in reserves anyone can call migrate(): reserves move atomically into a LaunchDEX pool with a protocol-locked seed floor — 0.30% swaps, 50% of fees to providers.' },
+    ],
+  },
   {
     id: 'get-started',
     icon: Zap,
@@ -77,6 +91,20 @@ const GUIDES = [
 
 const SPECS = [
   {
+    icon: Rocket,
+    title: 'VaultLaunch — Launchpad Spec',
+    desc: 'The launchpad contract spec: propose/validation flow, bonding curve math, two-path graduation, trust system, every parameter.',
+    href: `${GITHUB_URL}/blob/main/docs/LAUNCHPAD.md`,
+    facts: ['LIVE on mainnet since 23.09.2026', 'Two-path graduation (curve ×2 / direct)', 'Vesting plan bound by the contract', 'Real confidential assets, fixed supply'],
+  },
+  {
+    icon: Boxes,
+    title: 'LaunchDEX — DEX Spec',
+    desc: 'The AMM for graduated tokens: permanent seed floor, provider shares, pro-rata exits, fee split — the anti-rug core.',
+    href: `${GITHUB_URL}/blob/main/docs/DEX.md`,
+    facts: ['Seed protocol-locked FOREVER', 'Providers earn 50% of fees', 'Pro-rata exit anytime (X12)', '0.30% swap fee'],
+  },
+  {
     icon: FileText,
     title: 'Whitepaper',
     desc: 'The complete protocol design: confidentiality model, ten-layer oracle security, governance, economics.',
@@ -121,9 +149,9 @@ const SPECS = [
 ]
 
 const REFERENCE = [
-  { label: 'Live contract', value: 'V4', note: 'PrivacyMixer V4 — audited, mainnet-ready (protocol v13)' },
+  { label: 'Mainnet live', value: '2', note: 'VaultLaunch + LaunchDEX — verified on-chain 23.09.2026' },
+  { label: 'Min deposit', value: '526', note: 'XEL to propose a coin · seed ≥ 500 · direct listing ≥ 2,000' },
   { label: 'Legacy suite', value: '51', note: 'Moved to legacy/ in v13 · core protocol in consolidation' },
-  { label: 'Testnet demo', value: 'v12R', note: '34-contract demo deployment · registry-resolved addresses' },
   { label: 'Block time', value: '5 s', note: 'XELIS BlockDAG · 8-digit atomic precision everywhere' },
 ]
 
@@ -247,16 +275,27 @@ export function DocsPage() {
                     </button>
                     {isOpen && (
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="overflow-hidden">
-                        <div className="px-5 pb-5 pt-1 grid md:grid-cols-2 gap-3">
-                          {g.steps.map((s, idx) => (
-                            <div key={s.t} className="rounded-none border border-border bg-background/40 p-4">
-                              <div className="flex items-center gap-2 mb-1.5">
-                                <span className="font-mono text-[10px] text-vault font-bold">{String(idx + 1).padStart(2, '0')}</span>
-                                <span className="text-xs font-semibold">{s.t}</span>
+                        <div className="px-5 pb-5 pt-1">
+                          <div className="grid md:grid-cols-2 gap-3">
+                            {g.steps.map((s, idx) => (
+                              <div key={s.t} className="rounded-none border border-border bg-background/40 p-4">
+                                <div className="flex items-center gap-2 mb-1.5">
+                                  <span className="font-mono text-[10px] text-vault font-bold">{String(idx + 1).padStart(2, '0')}</span>
+                                  <span className="text-xs font-semibold">{s.t}</span>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground leading-relaxed">{s.d}</p>
                               </div>
-                              <p className="text-[11px] text-muted-foreground leading-relaxed">{s.d}</p>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
+                          {'cta' in g && g.cta && (
+                            <a
+                              href={g.cta.href}
+                              className="mt-3 inline-flex items-center gap-2 rounded-none border border-vault/40 bg-vault/10 px-4 py-2 text-xs font-semibold text-vault hover:bg-vault/20 transition-colors"
+                            >
+                              {g.cta.label}
+                              <ArrowUpRight className="w-3.5 h-3.5" />
+                            </a>
+                          )}
                         </div>
                       </motion.div>
                     )}
@@ -281,7 +320,7 @@ export function DocsPage() {
             {SPECS.map((s, i) => (
               <Reveal key={s.title} delay={i * 0.05}>
                 <a
-                  href={`${GITHUB_DOCS}/${s.file}`}
+                  href={s.href ?? `${GITHUB_DOCS}/${s.file}`}
                   target="_blank"
                   rel="noreferrer"
                   className="group block h-full rounded-none border border-border bg-card/30 p-5 hover:border-vault/40 hover:bg-card/50 transition-all"
@@ -342,9 +381,14 @@ export function DocsPage() {
               </h3>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {[
+                  { label: 'VaultLaunch — LIVE on mainnet', href: '/launch' },
+                  { label: 'Launchpad guide (on-site)', href: '/launch?view=guide' },
+                  { label: 'Community guide (COMMUNITY.md)', href: `${GITHUB_URL}/blob/main/docs/COMMUNITY.md` },
+                  { label: 'Mainnet runbook (RUNBOOK 3)', href: `${GITHUB_URL}/blob/main/docs/runbooks/RUNBOOK3_MAINNET_INTERACTIONS.md` },
                   { label: 'Protocol repository', href: GITHUB_URL },
                   { label: 'ENTRY_IDS.md (legacy suite)', href: `${GITHUB_DOCS}/ENTRY_IDS.md` },
                   { label: 'Deployment state (v12R)', href: `${GITHUB_DOCS}/deployment_state.json` },
+                  { label: 'Mainnet explorer', href: 'https://explorer.xelis.io' },
                   { label: 'Testnet explorer', href: 'https://testnet-explorer.xelis.io' },
                   { label: 'XELIS faucet', href: XELIS_FAUCET_URL },
                   { label: 'Genesix wallet', href: GENESIX_URL },

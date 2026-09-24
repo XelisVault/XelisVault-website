@@ -86,7 +86,7 @@ export function Hero() {
                 className={`w-1.5 h-1.5 rounded-full${isLaunched ? 'bg-emerald-500' : 'bg-vault'}`}
               />
               {isLaunched
-                ? 'Testnet live · Connect your wallet'
+                ? 'VaultLaunch live on mainnet · since 23.09.2026'
                 : 'v13 · 1 audited mixer live · core in consolidation'}
             </motion.div>
 
@@ -141,6 +141,14 @@ export function Hero() {
                 isLaunched={isLaunched}
                 onLaunch={() => openApp()}
               />
+              <a
+                href="/launch"
+                className="group inline-flex items-center gap-2 text-sm font-medium text-foreground hover:text-vault transition-colors"
+              >
+                <span className="border-b border-foreground/35 group-hover:border-vault group-hover:text-vault transition-colors pb-0.5">
+                  Launchpad · Live on Mainnet
+                </span>
+              </a>
               <a
                 href="#protocol"
                 className="group inline-flex items-center gap-2 text-sm font-medium text-foreground hover:text-vault transition-colors"

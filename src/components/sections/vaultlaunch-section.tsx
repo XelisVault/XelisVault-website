@@ -14,9 +14,10 @@ import { Reveal, SectionLabel } from '@/components/site/reveal'
 
 // ─────────────────────────────────────────────────────────────────
 // Curve math (mirror of the on-chain formulas, see DEX.md / LAUNCHPAD.md)
+// Mainnet gmu = 2: a 500 XEL seed graduates at 1,000 XEL of reserves.
 // ─────────────────────────────────────────────────────────────────
 const SEED = 500
-const TARGET = SEED * 4 // 2,000 XEL: graduation
+const TARGET = SEED * 2 // 1,000 XEL: graduation (mainnet gmu = ×2)
 const FEE_BPS = 50
 
 function mulberry32(seed: number) {
@@ -185,7 +186,7 @@ function CurveDemo() {
               className="absolute inset-0 flex items-center justify-center bg-card/80 backdrop-blur-[2px]"
             >
               <div className="border border-vault/40 bg-card px-8 py-6 text-center shadow-maison">
-                <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-vault">4× crossed</div>
+                <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-vault">2× crossed</div>
                 <div className="mt-2 font-display text-2xl font-semibold">Graduation.</div>
                 <div className="mt-3 space-y-1.5 font-mono text-[10px] text-muted-foreground">
                   {['collecting curve reserves…', 'seeding the LaunchDEX pool…', 'locking the seed forever…'].map((s, i) => (
@@ -234,7 +235,7 @@ function CurveDemo() {
                 />
               </div>
               <div className="mt-2 flex items-center justify-between font-mono text-[9px] text-muted-foreground">
-                <span>migrate() is permissionless: anyone can trigger it at 4×</span>
+                <span>migrate() is permissionless: anyone can trigger it at 2×</span>
                 <span>{Math.max(0, TARGET - reserves).toFixed(0)} XEL of buys to go</span>
               </div>
             </>
@@ -287,29 +288,29 @@ const STEPS: { n: string; title: string; body: string; stat: string; statLabel: 
   {
     n: '01',
     title: 'Propose',
-    body: 'A builder deposits liquidity (500 XEL minimum), pays a 10 XEL submission fee and provisions a 10 XEL asset budget, refunded if the asset is never created. Team allocation is capped at 20% and vests after graduation.',
-    stat: '500 XEL',
-    statLabel: 'minimum seed',
+    body: 'A builder deposits 526 XEL minimum: a 25 XEL submission fee, a 1 XEL asset budget and a 500 XEL seed. Anything above the minimum becomes extra curve liquidity — and a seed of 2,000 XEL or more graduates directly. Rejected proposals are refunded in full.',
+    stat: '526 XEL',
+    statLabel: 'minimum deposit',
   },
   {
     n: '02',
     title: 'The community decides',
-    body: 'Every proposal faces a vote window of about 29 hours: 20 voters minimum at 80% approval, one address one vote, each vote locks a 0.5 XEL refundable deposit against sybil swarms. Rejected proposals are refunded in full, no asset is ever created.',
-    stat: '20 / 80%',
-    statLabel: 'quorum / approval',
+    body: 'Every proposal faces a vote window of about one hour: one address one vote, voting is FREE on mainnet (the sybil dial sits at 0), 80% approval to pass. The team vesting plan is declared at propose and bound by the contract — the community votes on the exact schedule, not a promise.',
+    stat: '1h / 80%',
+    statLabel: 'window / approval',
   },
   {
     n: '03',
     title: 'Bonding curve',
-    body: 'Accepted projects trade on a bonding curve with integer-exact math. Price is reserves over circulating supply, every buy pays 0.50%, every sell pays 0.50% and sells are never gated: not by trust, not by pause, not for anyone.',
+    body: 'Accepted projects mint a REAL confidential XELIS asset — fixed max supply enforced by the protocol itself, buyers hold their tokens in their own wallets from the first second. Price is reserves over circulating supply, every trade pays 0.50%, and sells are never gated: not by trust, not by pause.',
     stat: '0.50%',
     statLabel: 'curve fee, both sides',
   },
   {
     n: '04',
     title: 'Graduation',
-    body: 'At 4× the seed in reserves (2,000 XEL on a minimum seed) anyone can call migrate(): curve reserves and token inventory move atomically into a LaunchDEX pool, a one-time 0.5% fee funds the protocol, and the trading fee drops to 0.25% forever.',
-    stat: '4×',
+    body: 'At 2× the seed in reserves (1,000 XEL on a minimum seed) anyone can call migrate(): curve reserves and token inventory move atomically into a LaunchDEX pool, a one-time 0.5% fee funds the protocol, and the trading fee drops to 0.25% forever.',
+    stat: '2×',
     statLabel: 'graduation trigger',
   },
   {
@@ -343,9 +344,9 @@ function StepCard({ step, i }: { step: (typeof STEPS)[number]; i: number }) {
 // ─────────────────────────────────────────────────────────────────
 const FIGURES: { v: string; label: string; sub: string }[] = [
   { v: '0.50%', label: 'Curve Fee', sub: 'both sides, buys and sells' },
-  { v: '4×', label: 'Graduation', sub: 'reserves over seed' },
-  { v: '500', label: 'Min Seed (XEL)', sub: 'prices the token at launch' },
-  { v: '20/80', label: 'Vote Bar', sub: 'voters / approval %' },
+  { v: '2×', label: 'Graduation', sub: 'reserves over seed' },
+  { v: '526', label: 'Min Deposit (XEL)', sub: '25 fee + 1 budget + 500 seed' },
+  { v: '1h / 80%', label: 'Community Vote', sub: 'free · one address one vote' },
   { v: '0.30%', label: 'DEX Fee', sub: '50% to providers, pro-rata' },
   { v: '0', label: 'Rug Paths', sub: 'the seed never leaves' },
 ]
@@ -368,7 +369,13 @@ export function VaultLaunchSection() {
         <div className="max-w-3xl">
           <Reveal>
             <SectionLabel className="text-vault">
-              <span className="text-vault">VaultLaunch · Coming to Mainnet</span>
+              <span className="inline-flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                </span>
+                <span className="text-vault">VaultLaunch · LIVE on Mainnet</span>
+              </span>
             </SectionLabel>
           </Reveal>
           <Reveal delay={0.1}>
@@ -380,12 +387,31 @@ export function VaultLaunchSection() {
           </Reveal>
           <Reveal delay={0.2}>
             <p className="mt-8 text-lg text-muted-foreground leading-relaxed">
-              A community-validated launchpad and a permanent-liquidity DEX, built
-              for the XELIS BlockDAG. Projects propose, holders vote, survivors
-              trade on a bonding curve, and graduation migrates everything into a
-              pool whose seed is locked for life. No pre-mines, no hidden team
-              allocations, no rug geometry: the anti-rug floor is math, not a promise.
+              A community-validated launchpad and a permanent-liquidity DEX, deployed
+              and verified on the XELIS mainnet since <span className="text-foreground">23.09.2026</span>.
+              Projects propose, holders vote, survivors trade on a bonding curve, and
+              graduation migrates everything into a pool whose seed is locked for life.
+              No pre-mines, no hidden team allocations, no rug geometry: the anti-rug
+              floor is math, not a promise.
             </p>
+          </Reveal>
+          <Reveal delay={0.25}>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <a
+                href="/launch"
+                className="group inline-flex h-12 items-center bg-vault px-7 text-sm font-semibold text-primary-foreground transition-all hover:bg-vault/90 hover:shadow-[0_12px_40px_-10px_var(--vault)]"
+              >
+                Open the Launchpad
+                <span className="ml-2 font-mono transition-transform group-hover:translate-x-1">→</span>
+              </a>
+              <a
+                href="/launch?view=create"
+                className="group inline-flex h-12 items-center border border-vault/50 px-7 text-sm font-semibold text-vault transition-colors hover:bg-vault/10"
+              >
+                Launch your coin
+                <span className="ml-2 font-mono transition-transform group-hover:translate-x-1">→</span>
+              </a>
+            </div>
           </Reveal>
         </div>
 

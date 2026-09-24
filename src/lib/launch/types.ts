@@ -1,21 +1,19 @@
-// VaultLaunch — domain types for the launchpad, bonding curve and DEX demo.
-// Mirrors the on-chain lifecycle of the VaultLaunch v4.2 + LaunchDEX v1.3
-// contracts (xelis-vault repo). All PROTOCOL numbers below are the real
-// on-chain defaults, verified against the contracts:
-//   VaultLaunch.slx  DEFAULT_SUBMISSION_FEE 10 XEL · DEFAULT_ASSET_BUDGET 10 XEL
-//                    DEFAULT_TRADING_FEE_BPS 50 · DEFAULT_GRADUATED_FEE_BPS 25
-//                    DEFAULT_MIGRATION_FEE_BPS 50 · DEFAULT_MIN_APPROVAL_BPS 8000
-//                    DEFAULT_VOTE_DEPOSIT 0.5 XEL · graduation_multiplier 4
-//   LaunchDEX.slx    DEFAULT_SWAP_FEE_BPS 30 · DEFAULT_LP_SHARE_BPS 5000 (50/50)
-//                    MIN_LP_ADD_XEL 1 XEL
+// VaultLaunch — domain types (MAINNET).
+//
+// Mirrors the on-chain lifecycle of VaultLaunch v4.2 + LaunchDEX v1.3
+// as deployed on the XELIS mainnet (23/09/2026). The store maps raw
+// storage cells (reader.ts) into these display-oriented shapes; all
+// amounts are human-readable floats (converted from atomic bigint),
+// EXCEPT where a transaction needs exactness — quotes and min_outs go
+// through chain-math.ts in atomic bigint.
 
-// ─── Lifecycle (on-chain status codes) ───────────────────────────
+// ─── Lifecycle (on-chain status codes) ───────────────────────────────
 // 0 validation → 1 rejected | 2 bonding → 3 graduated → 4 trusted / 5 untrusted → 6 recovery
 export type ProjectStatus =
   | 'validating'    // 0 — community vote window open
   | 'rejected'      // 1 — failed validation, 100% refunded
   | 'bonding'       // 2 — live on the bonding curve
-  | 'graduated'     // 3 — crossed 4x seed, migrated to LaunchDEX
+  | 'graduated'     // 3 — crossed liquidity × gmu, awaiting/after migration
   | 'trusted'       // 4 — graduated + community trust badge
   | 'untrusted'     // 5 — sells open, buys blocked
   | 'recovery'      // 6 — revalidation round
@@ -23,108 +21,144 @@ export type ProjectStatus =
 export interface VoteState {
   supporters: number
   reporters: number
-  /** Minimum voters required (20). */
+  /** Minimum voters required (on-chain `mnp`). */
   quorum: number
-  /** Approval required (80%). */
+  /** Approval required (on-chain `mab`, 0..1). */
   approvalThreshold: number
-  /** Topoheight when the window closes. */
+  /** Topoheight when the window closes (on-chain `ve`). */
   deadlineTopo: number
-  /** Milliseconds timestamp the UI counts down to (demo). */
+  /** Milliseconds timestamp the UI counts down to (derived from topo). */
   deadlineMs: number
-  /** Has the connected wallet voted this round? */
-  userVoted: 'support' | 'report' | null
+  /** Vote round (on-chain `rd`). */
+  round: number
+  /** Has the connected wallet voted this round? (the on-chain slot only
+   *  records THAT you voted — the side is private.) */
+  userVoted: boolean
 }
 
 export interface CurveState {
-  /** XEL reserves held by the curve (atomic → whole XEL in demo). */
+  /** XEL reserves held by the curve (human XEL). */
   reserves: number
-  /** Token circulating supply on the curve. */
+  /** Token inventory still on the curve (human tokens). */
   circulating: number
-  /** Seed liquidity (min 500 XEL) — graduation = reserves ≥ seed × 4. */
+  /** Seed liquidity (human XEL) — graduation = reserves ≥ seed × gmu. */
   seed: number
-  /** Trading fee in basis points (50 = 0.50%). */
+  /** Effective trading fee in basis points (50 bonding / 25 graduated). */
   feeBps: number
   /** Team allocation in bps (≤ 20%). */
   teamBps: number
-  /** Historical price points (XEL per token) for the chart. */
+  /** Historical price points (XEL per token) — persisted locally. */
   history: number[]
   /** Absolute index of history[0] — anchors candle buckets so CLOSED
    *  candles NEVER move, even when the capped array slides. */
   histStart: number
   /** Total price points ever emitted (histStart + history.length). */
   points: number
-  /** 24h volume in XEL. */
-  volume24h: number
-  /** Unique holders (demo counter). */
-  holders: number
+  /** Seconds between points (drives the chart's time axis). */
+  pointSeconds: number
+  /** Total volume traded on the curve (human XEL). */
+  volume: number
+  /** Total trades on the curve. */
+  trades: number
+  /** Live market cap (human XEL). */
+  marketCap: number
+  /** All-time-high market cap (human XEL). */
+  marketCapHigh: number
 }
 
-export interface DexPool {
-  /** Pool id (= project id). */
+export interface PoolState {
+  /** Project id owning the pool's asset. */
   id: string
-  /** XEL side of the pool. */
+  /** Real XELIS asset hash traded in this pool. */
+  asset: string
+  /** XEL side of the pool (human). */
   xel: number
-  /** Token side of the pool. */
+  /** Token side of the pool (human). */
   token: number
-  /** Swap fee (30 bps). */
+  /** Swap fee (30 bps default). */
   feeBps: number
-  /** Admin/LP fee split (5000 bps = 50/50). */
+  /** LP share of the fee (5000 bps = 50/50). */
   adminSplitBps: number
-  /** Protocol-locked seed depth (XEL) — permanent liquidity, cannot be removed. */
+  /** Protocol-locked seed depth (human XEL) — permanent liquidity floor. */
   seedLocked: number
-  /** Total LP parts. */
+  /** Total LP depth (human XEL). */
   totalParts: number
-  /** Withdrawable parts (all parts minus the protocol seed). */
-  withdrawableParts: number
-  /** Historical pool price points. */
+  /** Historical pool price points — persisted locally. */
   history: number[]
   /** Absolute index of history[0] (candle anchoring — see CurveState). */
   histStart: number
   /** Total price points ever emitted. */
   points: number
-  volume24h: number
-  fees24h: number
+  /** Seconds between points (drives the chart's time axis). */
+  pointSeconds: number
+  /** Total swap volume (human XEL). */
+  volume: number
+  /** Lifetime fees collected (human XEL). */
+  fees: number
+  /** Total swaps. */
+  trades: number
+  /** Trust-synced buys pause (D17). */
+  buysPaused: boolean
 }
 
 export interface Project {
+  /** Project id (pid as string — the on-chain index). */
   id: string
+  /** Numeric pid. */
+  pid: number
   name: string
   ticker: string
   description: string
   longDescription: string
+  /** Creator address (xel:…). */
   creator: string
-  /** Genesis-style address (display only). */
   creatorAddress: string
   website?: string
+  logo?: string
+  twitter?: string
+  telegram?: string
+  discord?: string
   /** Letter avatar + brand hue (0-360). */
   hue: number
   avatar: string
   status: ProjectStatus
-  /** Direct-listing snapshot at propose (≥ 2000 XEL → instant graduation). */
+  /** Direct-listing snapshot at propose (≥ dlt XEL → instant graduation). */
   directListing: boolean
-  proposedAt: number
+  graduated: boolean
+  migrated: boolean
+  /** The REAL XELIS asset hash of the token (null until validation passes). */
+  asset: string | null
+  proposedAtTopo: number
   vote?: VoteState
   curve?: CurveState
-  pool?: DexPool
-  /** Trust tallies (lifetime). */
+  pool?: PoolState
+  /** Trust tallies (lifetime, on-chain sp/rp). */
   trust: { up: number; down: number }
   tags: string[]
+  /** Declared team vesting plan in topos (0 = claim at graduation). */
+  vestingPlanTopos: number
+  teamBps: number
+  /** Total supply (human tokens). */
+  totalSupply: number
+  /** Trust mirrored to the DEX pool (D17). */
+  dexSynced: boolean
+  /** Creator already claimed the rejection refund. */
+  refundClaimed: boolean
 }
 
-// ─── Portfolio ────────────────────────────────────────────────────
-export interface BondingPosition {
-  projectId: string
-  tokens: number
-  /** Average XEL paid per token. */
-  avgPrice: number
-}
+// ─── Wallet positions (XELIS balances are confidential: the wallet
+//      itself is the only source — no on-chain ledger exists) ────────
 
 export interface LpPosition {
   poolId: string
+  asset: string
+  /** XEL depth provided (parts). */
   parts: number
-  /** XEL provided when entering. */
-  xelProvided: number
-  feesEarnedXel: number
+  /** Withdrawable parts (X12). */
+  withdrawable: number
+  /** Crystallised claimable fees (human). */
+  claimableXel: number
+  claimableTokens: number
 }
 
 export interface ActivityItem {
@@ -136,25 +170,6 @@ export interface ActivityItem {
   amountXel?: number
   tokens?: number
   price?: number
+  txHash?: string
   note?: string
 }
-
-// ─── Protocol constants (from LAUNCHPAD.md / DEX.md specs) ───────
-export const PROTOCOL = {
-  submissionFee: 10,        // XEL
-  assetBudget: 10,          // XEL (refundable)
-  minLiquidity: 500,        // XEL seed
-  graduationMultiplier: 4,  // reserves ≥ seed × 4
-  directListingThreshold: 2000, // XEL snapshot at propose
-  tradingFeeBps: 50,        // 0.50% bonding curve
-  graduatedFeeBps: 25,      // 0.25% after graduation (irreversible discount)
-  migrationFeeBps: 50,      // 0.5% one-time at graduation
-  dexFeeBps: 30,            // 0.30% LaunchDEX
-  dexAdminSplitBps: 5000,   // 50/50 LP/admin
-  voteQuorum: 20,           // minimum voters
-  voteApproval: 0.80,       // 80% approval
-  voteDeposit: 0.5,         // XEL refundable
-  voteWindowTopos: 51_840,  // ≈ 29h at ~2s/topo
-  teamMaxBps: 2000,         // ≤ 20%
-  maxProjects: 8192,
-} as const

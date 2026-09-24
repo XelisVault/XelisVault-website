@@ -12,7 +12,8 @@
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react'
 import { motion, useSpring, useTransform } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import { useEngine } from '@/lib/launch/engine'
+import { useMainnet } from '@/lib/launch/mainnet-store'
+import { TOPO_SECONDS } from '@/lib/launch/protocol'
 
 // ─────────────────────────────────────────────────────────────────
 // BracketButton — the signature action: hairline frame with four
@@ -180,18 +181,18 @@ export function AnimatedNumber({
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Countdown — simulated-time countdown driven by the engine topoheight
-// (1 topo = 2s). Renders a placeholder until mounted (SSR-safe).
+// Countdown — MAINNET-time countdown driven by the node's topoheight
+// (1 topo = 5s on mainnet). Renders a placeholder until mounted (SSR-safe).
 // ─────────────────────────────────────────────────────────────────
 function useSimRemaining(deadlineTopo: number | undefined): number | null {
-  const topoheight = useEngine((s) => s.topoheight)
+  const topoheight = useMainnet((s) => s.topoheight)
   const [, setDrift] = useState(0) // re-render every 500ms for smooth seconds
   useEffect(() => {
     const t = setInterval(() => setDrift((d) => d + 1), 500)
     return () => clearInterval(t)
   }, [])
-  if (deadlineTopo == null) return null
-  return Math.max(0, (deadlineTopo - topoheight) * 2000)
+  if (deadlineTopo == null || !topoheight) return null
+  return Math.max(0, (deadlineTopo - topoheight) * TOPO_SECONDS * 1000)
 }
 
 function fmtCountdown(ms: number): string {

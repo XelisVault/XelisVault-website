@@ -12,7 +12,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: '*',
         allow: '/',
         // stateless checkout: one URL per shared invoice, no canonical content
-        disallow: ['/nerva/pay', '/launch'],
+        disallow: ['/nerva/pay'],
       },
     ],
     sitemap: 'https://xelisvault.xyz/sitemap.xml',

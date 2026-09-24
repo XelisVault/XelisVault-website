@@ -16,8 +16,9 @@
 //   • DRAG (mouse or touch) pans back through history
 //   • WHEEL / TRACKPAD / PINCH zooms, anchored under the cursor
 //   • a LIVE button snaps back to the present; double-click does too
-//   • a bottom time axis (1 point = 1 topo = 2s of simulated time)
-//     labels the visible window relative to "now"
+//   • a bottom time axis labels the visible window relative to "now"
+//     (1 point = `pointSeconds` of mainnet time — the series itself
+//     defines the spacing, and survives page refreshes via persist.ts)
 // Closed candles keep their frozen guarantee: navigation only changes
 // WHICH immutable candles are on screen, never their values.
 //
@@ -52,12 +53,13 @@ export type Candle = {
   closed: boolean
 }
 
-/** Interval presets. 1 point = 1 topo = 2s of simulated time. */
+/** Interval presets — real-time durations; the chunk size adapts to
+ *  the series spacing (1 point = `pointSeconds` of mainnet time). */
 export const INTERVALS = [
-  { id: '12s', label: '12s', chunk: 6 },
-  { id: '1m', label: '1m', chunk: 30 },
-  { id: '5m', label: '5m', chunk: 150 },
-  { id: '15m', label: '15m', chunk: 450 },
+  { id: '2m', label: '2m', seconds: 120 },
+  { id: '10m', label: '10m', seconds: 600 },
+  { id: '30m', label: '30m', seconds: 1800 },
+  { id: '2h', label: '2h', seconds: 7200 },
 ] as const
 export type IntervalId = (typeof INTERVALS)[number]['id']
 
@@ -166,8 +168,9 @@ export function PriceChart({
   style,
   unit = 'XEL',
   defaultMode = 'line',
-  defaultInterval = '1m',
+  defaultInterval = '2m',
   accent = 'gold',
+  pointSeconds = 30,
 }: {
   data: number[]
   /** absolute index of data[0] — REQUIRED for frozen closed candles */
@@ -182,6 +185,8 @@ export function PriceChart({
   defaultInterval?: IntervalId
   /** gold (curve) or teal (dex) — tints the interval pills' active state */
   accent?: 'gold' | 'teal'
+  /** seconds of mainnet time between two points — drives the time axis */
+  pointSeconds?: number
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -220,7 +225,8 @@ export function PriceChart({
   const headerH = 30
   const chartH = Math.max(120, height - headerH)
   const n = data.length
-  const chunk = INTERVALS.find((i) => i.id === iv)?.chunk ?? 30
+  const ivSeconds = INTERVALS.find((i) => i.id === iv)?.seconds ?? 120
+  const chunk = Math.max(1, Math.round(ivSeconds / Math.max(1, pointSeconds)))
   const candles = toCandles(data, histStart, chunk)
   const count = candles.length
 
@@ -410,7 +416,7 @@ export function PriceChart({
   useEffect(() => { fitRef.current = { data, histStart, width } })
   useEffect(() => {
     const { data: d, histStart: h, width: w } = fitRef.current
-    const c = toCandles(d, h, INTERVALS.find((x) => x.id === iv)?.chunk ?? 30).length
+    const c = toCandles(d, h, chunk).length
     const plot = Math.max(10, w - 56)
     setCSp(clampN(plot / clampN(c + 4, 18, 90), 3.2, 24))
     setCOff(0)
@@ -442,9 +448,9 @@ export function PriceChart({
       if (mode === 'candles') {
         const idx = idToIdx?.get(u)
         if (idx == null) continue
-        timeTicks.push({ x: xOf(idx), label: fmtRel((u * chunk - lastAbs) * 2) })
+        timeTicks.push({ x: xOf(idx), label: fmtRel((u * chunk - lastAbs) * pointSeconds) })
       } else {
-        timeTicks.push({ x: xOf(u - histStart), label: fmtRel((u - lastAbs) * 2) })
+        timeTicks.push({ x: xOf(u - histStart), label: fmtRel((u - lastAbs) * pointSeconds) })
       }
     }
   }
@@ -494,7 +500,7 @@ export function PriceChart({
                   type="button"
                   onClick={() => { setIv(ivl.id); setHover(null) }}
                   aria-pressed={iv === ivl.id}
-                  title={`1 candle = ${ivl.label} of simulated time`}
+                  title={`1 candle = ${ivl.label} of mainnet time`}
                   className={cn(
                     'border px-1.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.1em] transition-colors',
                     iv === ivl.id
@@ -785,7 +791,7 @@ export function PriceChart({
           </>
         )}
 
-        {/* ── bottom time axis (sim time; 1 point = 1 topo = 2s) ── */}
+        {/* ── bottom time axis (mainnet time; spacing = pointSeconds) ── */}
         {total > 1 && (
           <g>
             <line x1={0} x2={plotW} y1={axisY} y2={axisY} stroke="var(--border)" strokeWidth={1} />

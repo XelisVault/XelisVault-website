@@ -1,33 +1,62 @@
-// DEX view — LaunchDEX.
+// DEX view — LaunchDEX on MAINNET.
 //
 // Two modes, like the curve terminal:
-//   • GRID (no focus): global stats + every pool as a rich card.
+//   • GRID (no focus): global stats + every migrated pool as a card.
 //     Click → the pool's own page.
-//   • POOL (focus): ONE pool — chart with intervals, swap widget, the
-//     liquidity provider panel (add / remove pro-rata, fee earnings),
-//     the permanent seed floor. No other pools on screen.
+//   • POOL (focus): ONE pool — chart, swap widget with slippage-protected
+//     min_out, the liquidity provider panel (add at the pool ratio /
+//     remove pro-rata / claim fees — all real transactions), the
+//     permanent seed floor.
 
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
-import { useEngine } from '@/lib/launch/engine'
+import { useMainnet } from '@/lib/launch/mainnet-store'
 import { useToast } from '@/hooks/use-toast'
 import { useLaunchWallet } from '@/lib/launch/wallet'
+import { fetchLpInfo } from '@/lib/launch/reader'
+import {
+  swapXelForTokenTx, swapTokenForXelTx, addLiquidityTx, removeLiquidityTx, claimLpFeesTx,
+} from '@/lib/launch/tx'
+import {
+  dexXelToTokens, dexTokensToXel, liquidityFit, removeOuts, toAtomic, toHuman, withSlippage, fmtAtomic,
+} from '@/lib/launch/chain-math'
 import { Sparkline, AnimatedNumber, BracketButton, PanelHead, StatusTag, CHART_TEAL } from './shared'
 import { ProjectLogo, PairLogo } from './logos'
 import { PriceChart } from './chart'
-import { quoteDexSwap, quoteDexSwapToXel, fmtXel, fmtPrice, fmtPct } from '@/lib/launch/math'
+import { fmtXel, fmtPrice, fmtPct } from '@/lib/launch/math'
 import type { Project } from '@/lib/launch/types'
 import { cn } from '@/lib/utils'
-import type { AppView } from './app-shell'
+import type { AppView } from './launchpad-view'
+
+// ─────────────────────────────────────────────────────────────────
+// Live LP position (on-chain provider slots, polled)
+// ─────────────────────────────────────────────────────────────────
+
+function useLpInfo(asset: string | null, address: string | null) {
+  const [lp, setLp] = useState<{ parts: bigint; withdrawable: bigint; claimableXel: bigint; claimableTokens: bigint } | null>(null)
+  const refresh = useCallback(async () => {
+    if (!asset || !address) { setLp(null); return }
+    try {
+      setLp(await fetchLpInfo(asset, address))
+    } catch { /* node hiccup — keep the last value */ }
+  }, [asset, address])
+  useEffect(() => {
+    void refresh()
+    const t = setInterval(() => void refresh(), 30_000)
+    return () => clearInterval(t)
+  }, [refresh])
+  return { lp, refreshLp: refresh }
+}
 
 // ─────────────────────────────────────────────────────────────────
 // GRID MODE — all the pools
 // ─────────────────────────────────────────────────────────────────
 
 function PoolCard({ p, rank, onOpen }: { p: Project; rank: number; onOpen: () => void }) {
+  const params = useMainnet((s) => s.params)
   if (!p.pool) return null
   const price = p.pool.xel / p.pool.token
   const first = p.pool.history[0] ?? price
@@ -49,8 +78,8 @@ function PoolCard({ p, rank, onOpen }: { p: Project; rank: number; onOpen: () =>
               <span className="font-semibold tracking-tight">XEL / {p.ticker}</span>
             </div>
             <div className="mt-1.5 flex items-center gap-2">
-              <StatusTag status={p.status} />
-              <span className="font-mono text-[10px] text-muted-foreground">fee 0.30%</span>
+              <StatusTag status={p.pool.buysPaused ? 'untrusted' : p.status} />
+              <span className="font-mono text-[10px] text-muted-foreground">fee {(params.dexSwapFeeBps / 100).toFixed(2)}%</span>
             </div>
           </div>
         </div>
@@ -70,8 +99,8 @@ function PoolCard({ p, rank, onOpen }: { p: Project; rank: number; onOpen: () =>
       <div className="mt-4 grid grid-cols-3 gap-2">
         {[
           ['TVL', `${fmtXel(p.pool.xel)} XEL`],
-          ['VOL 24H', fmtXel(p.pool.volume24h)],
-          ['FEES 24H', `${p.pool.fees24h.toFixed(1)}`],
+          ['VOLUME', fmtXel(p.pool.volume)],
+          ['FEES', `${p.pool.fees.toFixed(1)}`],
         ].map(([k, v]) => (
           <div key={k} className="border border-border/70 bg-background/50 p-2.5 text-center">
             <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{k}</div>
@@ -96,45 +125,70 @@ function PoolCard({ p, rank, onOpen }: { p: Project; rank: number; onOpen: () =>
 // POOL MODE components
 // ─────────────────────────────────────────────────────────────────
 
+const SLIPPAGE_CHOICES = [0.5, 1, 2]
+
 function SwapWidget({ project }: { project: Project }) {
-  const engine = useEngine()
   const { toast } = useToast()
-  const walletMode = useLaunchWallet((s) => s.mode)
+  const wallet = useLaunchWallet()
+  const params = useMainnet((s) => s.params)
   const [direction, setDirection] = useState<'toToken' | 'toXel'>('toToken')
-  const [amount, setAmount] = useState('100')
+  const [amount, setAmount] = useState('10')
+  const [slippagePct, setSlippagePct] = useState(1)
+  const [busy, setBusy] = useState(false)
   const amt = Math.max(0, Number(amount) || 0)
   const pool = project.pool!
-  const ownedToken = engine.tokens[project.ticker] ?? 0
+  const connected = wallet.state === 'connected' && !!wallet.address
+  const ownedToken = project.asset ? (wallet.assetBalances[project.asset] ?? 0) : 0
+  const xelBalance = wallet.xelBalance ?? 0
 
-  const buyQuote = direction === 'toToken' ? quoteDexSwap(amt, pool, pool.feeBps) : null
-  const sellQuote = direction === 'toXel' ? quoteDexSwapToXel(amt, pool, pool.feeBps) : null
-  const q = { out: buyQuote ? buyQuote.out : (sellQuote?.out ?? 0) }
-  const impactPct = buyQuote ? buyQuote.impactPct : null
+  useEffect(() => {
+    if (connected && project.asset) void wallet.ensureAsset(project.asset)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected, project.asset])
 
-  const insufficient = direction === 'toToken' ? amt > engine.xel : amt > ownedToken
-  const disabled = walletMode !== 'demo' || amt <= 0 || insufficient || q.out <= 0
+  // EXACT integer quotes (the contract's formulas)
+  const xA = toAtomic(pool.xel)
+  const yA = toAtomic(pool.token)
+  const feeBps = params.dexSwapFeeBps
+  const buyQuote = direction === 'toToken' && amt > 0
+    ? dexXelToTokens(xA, yA, toAtomic(amt), feeBps)
+    : null
+  const sellQuote = direction === 'toXel' && amt > 0
+    ? dexTokensToXel(xA, yA, toAtomic(amt), feeBps)
+    : null
+  const out = buyQuote ?? sellQuote ?? 0n
+  const minOut = out > 0n ? withSlippage(out, Math.round(slippagePct * 100)) : 0n
 
-  function execute() {
-    const res = direction === 'toToken'
-      ? engine.swapToToken(project.id, amt)
-      : engine.swapToXel(project.id, amt)
-    toast({
-      title: res.ok ? 'Swap executed' : 'Swap failed',
-      description: res.message,
-      variant: res.ok ? 'default' : 'destructive',
-    })
-    if (res.ok) setAmount('')
+  const insufficient = direction === 'toToken' ? amt > xelBalance : amt > ownedToken
+  const disabled = !connected || busy || amt <= 0 || out <= 0n || insufficient
+
+  async function execute() {
+    setBusy(true)
+    try {
+      const res = direction === 'toToken'
+        ? await swapXelForTokenTx(project.pool!.asset, toAtomic(amt), minOut)
+        : await swapTokenForXelTx(project.pool!.asset, toAtomic(amt), minOut)
+      toast({
+        title: res.ok ? 'Swap broadcast' : 'Swap failed',
+        description: res.message,
+        variant: res.ok ? 'default' : 'destructive',
+      })
+      if (res.ok) setAmount('')
+    } finally {
+      setBusy(false)
+    }
   }
 
   const fromLabel = direction === 'toToken' ? 'XEL' : project.ticker
   const toLabel = direction === 'toToken' ? project.ticker : 'XEL'
-  const fromBalance = direction === 'toToken' ? engine.xel : ownedToken
+  const fromBalance = direction === 'toToken' ? xelBalance : ownedToken
+  const outHuman = toHuman(out)
 
   return (
     <div className="border border-border/70 bg-card/50">
       <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
         <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">swap</span>
-        <span className="font-mono text-[10px] text-xusd">fee {(pool.feeBps / 100).toFixed(2)}%</span>
+        <span className="font-mono text-[10px] text-xusd">fee {(feeBps / 100).toFixed(2)}%</span>
       </div>
 
       <div className="p-4">
@@ -148,6 +202,7 @@ function SwapWidget({ project }: { project: Project }) {
             <input
               type="number"
               min={0}
+              step="any"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
@@ -177,12 +232,12 @@ function SwapWidget({ project }: { project: Project }) {
         {/* To */}
         <div className="border border-border bg-background/60 p-3.5">
           <div className="flex items-center justify-between font-mono text-[10px] text-muted-foreground">
-            <span>you receive</span>
-            <span>≈</span>
+            <span>you receive (est.)</span>
+            <span>min {out > 0n ? fmtAtomic(minOut, 2) : '—'}</span>
           </div>
           <div className="mt-2 flex items-center justify-between">
             <span className="font-mono text-xl font-semibold tabular-nums text-xusd">
-              {q.out > 0 ? (q.out >= 100 ? q.out.toFixed(1) : q.out.toFixed(4)) : '0.00'}
+              {out > 0n ? (outHuman >= 100 ? outHuman.toFixed(1) : outHuman.toFixed(4)) : '0.00'}
             </span>
             <span className="flex items-center gap-1.5 border border-border bg-card px-2.5 py-1.5 font-mono text-xs font-semibold">
               {toLabel === 'XEL'
@@ -193,16 +248,37 @@ function SwapWidget({ project }: { project: Project }) {
           </div>
         </div>
 
-        {amt > 0 && q.out > 0 && (
+        {/* slippage */}
+        <div className="mt-3 flex items-center justify-between border border-border/60 bg-background/40 px-3 py-2 font-mono text-[10px] text-muted-foreground">
+          <span>slippage tolerance (min_out)</span>
+          <div className="flex gap-1">
+            {SLIPPAGE_CHOICES.map((s) => (
+              <button
+                key={s}
+                onClick={() => setSlippagePct(s)}
+                className={cn(
+                  'border px-2 py-0.5 transition-colors',
+                  slippagePct === s ? 'border-xusd/50 bg-xusd/10 text-xusd' : 'border-border hover:text-foreground',
+                )}
+              >
+                {s}%
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {amt > 0 && out > 0n && (
           <div className="mt-3 grid grid-cols-2 gap-2 font-mono text-[10px]">
             <div className="border border-border/60 bg-background/50 p-2.5">
               <div className="text-muted-foreground">PRICE</div>
-              <div className="mt-0.5 tabular-nums text-foreground">{fmtPrice(direction === 'toToken' ? amt / q.out : q.out / amt)}</div>
+              <div className="mt-0.5 tabular-nums text-foreground">{fmtPrice(direction === 'toToken' ? amt / outHuman : outHuman / amt)}</div>
             </div>
             <div className="border border-border/60 bg-background/50 p-2.5">
-              <div className="text-muted-foreground">IMPACT</div>
-              <div className={cn('mt-0.5 tabular-nums', impactPct != null && impactPct > 5 ? 'text-vault-soft' : 'text-emerald-400')}>
-                {impactPct != null ? `${impactPct.toFixed(2)}%` : '0.00%'}
+              <div className="text-muted-foreground">FEE</div>
+              <div className="mt-0.5 tabular-nums text-foreground">
+                {(toAtomic(amt) * BigInt(feeBps) / 10000n).toString() !== '0'
+                  ? fmtAtomic(toAtomic(amt) * BigInt(feeBps) / 10000n, 4)
+                  : '0'}
               </div>
             </div>
           </div>
@@ -215,41 +291,72 @@ function SwapWidget({ project }: { project: Project }) {
           disabled={disabled}
           onClick={execute}
         >
-          {walletMode !== 'demo' ? 'demo wallet required'
+          {!connected ? 'connect wallet to swap'
             : insufficient ? `insufficient ${fromLabel}`
+            : busy ? 'signing…'
             : `Swap ${fromLabel} for ${toLabel}`}
         </BracketButton>
+
+        {pool.buysPaused && (
+          <div className="mt-2 border border-destructive/40 bg-destructive/10 p-2.5 font-mono text-[10px] leading-relaxed text-destructive">
+            buys are paused on this pool (community trust) — sells, claims and removes stay open, always.
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
 function LpPanel({ project }: { project: Project }) {
-  const engine = useEngine()
   const { toast } = useToast()
-  const walletMode = useLaunchWallet((s) => s.mode)
+  const wallet = useLaunchWallet()
+  const params = useMainnet((s) => s.params)
   const pool = project.pool!
-  const lp = engine.lps.find((l) => l.poolId === project.id)
+  const connected = wallet.state === 'connected' && !!wallet.address
+  const address = wallet.address
+  const { lp, refreshLp } = useLpInfo(pool.asset, address ?? null)
 
   const [tab, setTab] = useState<'add' | 'position'>(lp ? 'position' : 'add')
-  const [addAmount, setAddAmount] = useState('100')
+  const [addAmount, setAddAmount] = useState('10')
   const [removePct, setRemovePct] = useState(50)
+  const [busy, setBusy] = useState<string | null>(null)
   const addAmt = Math.max(0, Number(addAmount) || 0)
-  const partsToRemove = lp ? lp.parts * (removePct / 100) : 0
-  const xelOut = (partsToRemove * pool.xel) / Math.max(pool.totalParts, 1)
-  const tokenOut = (partsToRemove * pool.token) / Math.max(pool.totalParts, 1)
+  const ownedToken = project.asset ? (wallet.assetBalances[project.asset] ?? 0) : 0
 
-  function add() {
-    const res = engine.addLiquidity(project.id, addAmt)
-    toast({ title: res.ok ? 'Liquidity added' : 'Cannot add', description: res.message, variant: res.ok ? 'default' : 'destructive' })
-    if (res.ok) setAddAmount('')
-  }
-  function remove() {
-    const res = engine.removeLiquidity(project.id, partsToRemove)
-    toast({ title: res.ok ? 'Liquidity removed' : 'Cannot remove', description: res.message, variant: res.ok ? 'default' : 'destructive' })
+  // what add_liquidity would actually take at the pool's ratio (X7 fit)
+  const fit = addAmt > 0
+    ? liquidityFit(toAtomic(pool.xel), toAtomic(pool.token), toAtomic(addAmt), toAtomic(ownedToken))
+    : null
+  const addInvalid = !fit || fit.xelEff < 100_000_000n // 1 XEL LP floor
+  const needTokens = fit ? toHuman(fit.tokEff) : 0
+  const tokensInsufficient = fit ? fit.tokBack < 0n || toAtomic(ownedToken) < fit.tokEff : false
+
+  // remove quote (X12 exact pro-rata)
+  const withdrawable = lp?.withdrawable ?? 0n
+  const partsToRemove = withdrawable > 0n ? (withdrawable * BigInt(Math.round(removePct))) / 100n : 0n
+  const outs = partsToRemove > 0n
+    ? removeOuts(toAtomic(pool.xel), toAtomic(pool.token), partsToRemove, toAtomic(pool.totalParts))
+    : { xel: 0n, tokens: 0n }
+
+  async function run(kind: string, fn: () => Promise<{ ok: boolean; message: string }>) {
+    setBusy(kind)
+    try {
+      const res = await fn()
+      toast({
+        title: res.ok ? 'Transaction sent' : 'Transaction failed',
+        description: res.message,
+        variant: res.ok ? 'default' : 'destructive',
+      })
+      if (res.ok) {
+        setTimeout(() => void refreshLp(), 4000)
+        if (kind === 'add') setAddAmount('')
+      }
+    } finally {
+      setBusy(null)
+    }
   }
 
-  const share = lp ? (lp.parts / Math.max(pool.totalParts, 1)) * 100 : 0
+  const share = lp && pool.totalParts > 0 ? (toHuman(lp.parts) / pool.totalParts) * 100 : 0
 
   return (
     <div className="border border-border/70 bg-card/50">
@@ -260,7 +367,7 @@ function LpPanel({ project }: { project: Project }) {
             onClick={() => setTab(t)}
             className={cn(
               'relative py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] transition-colors',
-              tab === t ? 'bg-xusd/12 text-xusd' : 'text-muted-foreground hover:text-foreground'
+              tab === t ? 'bg-xusd/12 text-xusd' : 'text-muted-foreground hover:text-foreground',
             )}
           >
             {t === 'add' ? 'Provide' : 'Position'}
@@ -274,12 +381,12 @@ function LpPanel({ project }: { project: Project }) {
       {tab === 'add' && (
         <div className="space-y-3 p-4">
           <div className="flex items-center justify-between font-mono text-[11px] text-muted-foreground">
-            <span>XEL side (adds the {project.ticker} side at ratio)</span>
-            <span className="text-foreground"><AnimatedNumber value={engine.xel} format={(v) => fmtXel(v)} /> XEL</span>
+            <span>XEL side (the {project.ticker} side rides at the pool ratio)</span>
+            <span className="text-foreground"><AnimatedNumber value={wallet.xelBalance ?? 0} format={(v) => fmtXel(v)} /> XEL</span>
           </div>
           <div className="relative">
             <input
-              type="number" min={0} value={addAmount}
+              type="number" min={0} step="any" value={addAmount}
               onChange={(e) => setAddAmount(e.target.value)}
               aria-label="XEL to provide"
               className="h-11 w-full border border-border bg-background/70 pr-14 pl-4 text-right font-mono tabular-nums text-foreground focus:border-xusd/60 focus:outline-none"
@@ -287,34 +394,73 @@ function LpPanel({ project }: { project: Project }) {
             <span className="absolute right-3.5 top-1/2 -translate-y-1/2 font-mono text-sm text-muted-foreground">XEL</span>
           </div>
           <div className="flex gap-1.5">
-            {[100, 500, 1000, 5000].map((q) => (
+            {[10, 50, 100, 500].map((q) => (
               <button key={q} onClick={() => setAddAmount(String(q))}
                 className="flex-1 border border-border bg-background/50 py-1.5 font-mono text-[11px] text-muted-foreground hover:border-xusd/40 hover:text-xusd">
                 {q.toLocaleString()}
               </button>
             ))}
           </div>
+
+          {fit && addAmt > 0 && (
+            <div className="border border-border/60 bg-background/40 p-2.5 font-mono text-[10px] leading-relaxed text-muted-foreground">
+              <div className="flex justify-between">
+                <span>effective deposit</span>
+                <span className="text-foreground">
+                  {fmtAtomic(fit.xelEff, 2)} XEL + {fmtAtomic(fit.tokEff, 2)} {project.ticker}
+                </span>
+              </div>
+              {(fit.xelBack > 0n || fit.tokBack > 0n) && (
+                <div className="mt-1 flex justify-between">
+                  <span>refunded excess (ratio fit)</span>
+                  <span className="text-foreground">
+                    {fmtAtomic(fit.xelBack, 2)} XEL{fit.tokBack > 0n ? ` + ${fmtAtomic(fit.tokBack, 2)} ${project.ticker}` : ''}
+                  </span>
+                </div>
+              )}
+              <div className="mt-1 flex justify-between">
+                <span>your {project.ticker} balance</span>
+                <span className={cn(tokensInsufficient ? 'text-destructive' : 'text-foreground')}>
+                  {fmtXel(ownedToken)} {project.ticker}
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="border border-border/60 bg-background/40 p-2.5 font-mono text-[10px] leading-relaxed text-muted-foreground">
-            You mint LP parts pro-rata (min 1 XEL). Exit any time, pro-rata both
-            sides, price-neutral: it works even under an emergency pause. The
-            protocol seed cannot compete with you, it never withdraws.
+            Price-neutral by construction (X7): a deposit can never move the price, the excess side is refunded.
+            You mint WITHDRAWABLE parts and earn {(params.dexFeeSplitBps / 100).toFixed(0)}% of every fee, pro-rata of depth.
+            Exit any time, both sides, even under an emergency pause. The protocol seed never competes — it never withdraws.
           </div>
-          <BracketButton variant="teal" className="w-full" disabled={walletMode !== 'demo' || addAmt < 1} onClick={add}>
-            Add liquidity
+          <BracketButton
+            variant="teal"
+            className="w-full"
+            disabled={!connected || busy != null || addInvalid || tokensInsufficient}
+            onClick={() => run('add', () => addLiquidityTx(
+              pool.asset,
+              toAtomic(addAmt),
+              toAtomic(ownedToken),
+            ))}
+          >
+            {!connected ? 'connect wallet'
+              : busy === 'add' ? 'signing…'
+              : addInvalid ? 'min 1 XEL effective'
+              : tokensInsufficient ? `need ≈ ${needTokens.toFixed(2)} ${project.ticker}`
+              : 'Add liquidity'}
           </BracketButton>
         </div>
       )}
 
       {tab === 'position' && (
         <div className="space-y-3 p-4">
-          {lp ? (
+          {lp && (lp.parts > 0n || lp.withdrawable > 0n) ? (
             <>
               <div className="grid grid-cols-2 gap-2.5">
                 {[
-                  ['YOUR PARTS', lp.parts.toFixed(2)],
+                  ['YOUR DEPTH', fmtAtomic(lp.parts, 2)],
                   ['POOL SHARE', `${share.toFixed(3)}%`],
-                  ['XEL PROVIDED', fmtXel(lp.xelProvided)],
-                  ['FEES EARNED', `${lp.feesEarnedXel.toFixed(3)} XEL`],
+                  ['WITHDRAWABLE', fmtAtomic(lp.withdrawable, 2)],
+                  ['CLAIMABLE FEES', `${fmtAtomic(lp.claimableXel, 4)} XEL`],
                 ].map(([k, v]) => (
                   <div key={k} className="border border-border/60 bg-background/50 p-2.5 text-center">
                     <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">{k}</div>
@@ -322,9 +468,19 @@ function LpPanel({ project }: { project: Project }) {
                   </div>
                 ))}
               </div>
+
+              <BracketButton
+                variant="quiet"
+                className="w-full"
+                disabled={!connected || busy != null || lp.claimableXel <= 0n}
+                onClick={() => run('claim', () => claimLpFeesTx(pool.asset))}
+              >
+                {busy === 'claim' ? 'signing…' : 'Claim provider fees'}
+              </BracketButton>
+
               <div>
                 <div className="flex justify-between font-mono text-[11px] text-muted-foreground">
-                  <span>remove pro-rata</span>
+                  <span>remove pro-rata (withdrawable parts)</span>
                   <span className="text-foreground">{removePct}%</span>
                 </div>
                 <input
@@ -334,17 +490,29 @@ function LpPanel({ project }: { project: Project }) {
                   aria-label="Remove percentage"
                 />
                 <div className="mt-2 border border-border/60 bg-background/50 p-2.5 text-center font-mono text-[11px]">
-                  you receive ≈ <span className="font-semibold text-emerald-400">{xelOut.toFixed(2)} XEL</span>
-                  {' + '}<span className="font-semibold text-emerald-400">{tokenOut.toFixed(0)} {project.ticker}</span>
+                  you receive ≈ <span className="font-semibold text-emerald-400">{fmtAtomic(outs.xel, 2)} XEL</span>
+                  {' + '}<span className="font-semibold text-emerald-400">{fmtAtomic(outs.tokens, 0)} {project.ticker}</span>
                 </div>
               </div>
-              <BracketButton variant="quiet" className="w-full" disabled={walletMode !== 'demo'} onClick={remove}>
-                Remove {removePct}% of position
+              <BracketButton
+                variant="quiet"
+                className="w-full"
+                disabled={!connected || busy != null || partsToRemove <= 0n}
+                onClick={() => run('remove', () => removeLiquidityTx(
+                  pool.asset,
+                  partsToRemove,
+                  withSlippage(outs.xel, 100),
+                  withSlippage(outs.tokens, 100),
+                ))}
+              >
+                {busy === 'remove' ? 'signing…' : `Remove ${removePct}% of position`}
               </BracketButton>
             </>
           ) : (
             <div className="border border-dashed border-border py-8 text-center font-mono text-xs text-muted-foreground">
-              no LP position in XEL/{project.ticker} yet · provide to earn 50% of the fees
+              {connected
+                ? `no LP position in XEL/${project.ticker} yet · provide to earn ${(params.dexFeeSplitBps / 100).toFixed(0)}% of the fees`
+                : 'connect your wallet to see your position'}
             </div>
           )}
         </div>
@@ -361,7 +529,9 @@ export function DexView({ setView, focusId }: {
   setView: (v: AppView, id?: string) => void
   focusId?: string | null
 }) {
-  const projects = useEngine((s) => s.projects)
+  const projects = useMainnet((s) => s.projects)
+  const params = useMainnet((s) => s.params)
+  const status = useMainnet((s) => s.status)
   const pools = projects.filter((p) => !!p.pool)
 
   // Derived selection: focused pool if it exists, else grid mode.
@@ -369,17 +539,17 @@ export function DexView({ setView, focusId }: {
 
   // ── GRID MODE: global stats + every pool ──
   if (!focusId || !project || !project.pool) {
-    const totalVol = pools.reduce((a, p) => a + (p.pool?.volume24h ?? 0), 0)
+    const totalVol = pools.reduce((a, p) => a + (p.pool?.volume ?? 0), 0)
     const totalTvl = pools.reduce((a, p) => a + (p.pool?.xel ?? 0), 0)
-    const totalFees = pools.reduce((a, p) => a + (p.pool?.fees24h ?? 0), 0)
+    const totalFees = pools.reduce((a, p) => a + (p.pool?.fees ?? 0), 0)
     return (
       <div>
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           {[
             { k: 'POOLS', v: pools.length.toString(), sub: 'seed floors locked' },
             { k: 'TOTAL TVL', v: fmtXel(totalTvl), sub: 'XEL' },
-            { k: 'VOLUME 24H', v: fmtXel(totalVol), sub: 'XEL' },
-            { k: 'FEES 24H', v: totalFees.toFixed(1), sub: 'XEL · 50% to LPs' },
+            { k: 'VOLUME', v: fmtXel(totalVol), sub: 'XEL · total' },
+            { k: 'LIFETIME FEES', v: totalFees.toFixed(1), sub: `XEL · ${(params.dexFeeSplitBps / 100).toFixed(0)}% to LPs` },
           ].map((s, i) => (
             <motion.div
               key={s.k}
@@ -410,7 +580,9 @@ export function DexView({ setView, focusId }: {
           </motion.div>
         ) : (
           <div className="mt-8 border border-dashed border-border p-10 text-center font-mono text-sm text-muted-foreground">
-            No pools on the DEX yet · projects graduate from the bonding curve.
+            {status !== 'live'
+              ? 'connecting to the XELIS mainnet…'
+              : 'No pools on the DEX yet · projects graduate from the bonding curve.'}
           </div>
         )}
       </div>
@@ -422,7 +594,7 @@ export function DexView({ setView, focusId }: {
   const price = pool.xel / pool.token
   const first = pool.history[0] ?? price
   const change = first > 0 ? ((price - first) / first) * 100 : 0
-  const seedShare = (pool.seedLocked / pool.xel) * 100
+  const seedShare = pool.xel > 0 ? (pool.seedLocked / pool.xel) * 100 : 0
 
   return (
     <div>
@@ -445,9 +617,9 @@ export function DexView({ setView, focusId }: {
                 <div>
                   <h2 className="text-lg font-semibold tracking-tight">XEL / {project.ticker}</h2>
                   <div className="mt-1 flex items-center gap-2">
-                    <StatusTag status={project.status} />
+                    <StatusTag status={pool.buysPaused ? 'untrusted' : project.status} />
                     <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                      {project.name} · migrated · fee 0.30% · split 50/50
+                      {project.name} · migrated · fee {(params.dexSwapFeeBps / 100).toFixed(2)}% · split {(params.dexFeeSplitBps / 100).toFixed(0)}/{100 - params.dexFeeSplitBps / 100}
                     </span>
                   </div>
                 </div>
@@ -461,14 +633,21 @@ export function DexView({ setView, focusId }: {
             </div>
 
             <div className="mt-4">
-              <PriceChart
-                data={pool.history}
-                histStart={pool.histStart}
-                height={340}
-                color={CHART_TEAL}
-                defaultMode="candles"
-                accent="teal"
-              />
+              {pool.history.length >= 2 ? (
+                <PriceChart
+                  data={pool.history}
+                  histStart={pool.histStart}
+                  height={340}
+                  color={CHART_TEAL}
+                  defaultMode="candles"
+                  accent="teal"
+                  pointSeconds={pool.pointSeconds}
+                />
+              ) : (
+                <div className="flex h-[340px] items-center justify-center border border-dashed border-border font-mono text-xs text-muted-foreground">
+                  chart is warming up — samples arrive every ~30s from the chain
+                </div>
+              )}
             </div>
 
             {/* The seed floor */}
@@ -498,9 +677,9 @@ export function DexView({ setView, focusId }: {
             <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
               {[
                 ['TVL', `${fmtXel(pool.xel)} XEL`],
-                ['VOL 24H', `${fmtXel(pool.volume24h)}`],
-                ['FEES 24H', `${pool.fees24h.toFixed(1)} XEL`],
-                ['TOTAL PARTS', fmtXel(pool.totalParts)],
+                ['VOLUME', `${fmtXel(pool.volume)}`],
+                ['LIFETIME FEES', `${pool.fees.toFixed(2)} XEL`],
+                ['LP DEPTH', fmtXel(pool.totalParts)],
               ].map(([k, v]) => (
                 <div key={k} className="border border-border/70 bg-background/50 p-3">
                   <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">{k}</div>
@@ -525,11 +704,11 @@ export function DexView({ setView, focusId }: {
               </li>
               <li className="flex gap-2.5">
                 <span className="mt-0.5 shrink-0 font-mono text-xusd">⇄</span>
-                <span>Providers exit pro-rata, both sides, price-neutral, ungated: even during an emergency pause.</span>
+                <span>Providers exit pro-rata, both sides, price-neutral, ungated: even during an emergency pause. Sells are NEVER blocked either.</span>
               </li>
               <li className="flex gap-2.5">
                 <span className="mt-0.5 shrink-0 font-mono text-xusd">◈</span>
-                <span>Every swap pays 0.30%: half to the protocol, half to providers. Your share accrues live on your position.</span>
+                <span>Every swap pays {(params.dexSwapFeeBps / 100).toFixed(2)}%: half to the protocol, half to providers. Your share accrues live on your position.</span>
               </li>
             </ul>
           </div>

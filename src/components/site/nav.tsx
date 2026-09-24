@@ -21,6 +21,7 @@ const LINKS = [
   { label: 'Contracts', href: '/#contracts' },
   { label: 'VaultChat', href: '/#vaultchat' },
   { label: 'VaultLaunch', href: '/#vaultlaunch' },
+  { label: 'Launchpad', href: '/launch' },
   { label: 'Roadmap', href: '/#roadmap' },
 ]
 
@@ -46,6 +47,7 @@ const NAV_GROUPS = [
       { label: 'Mining & Delegation', href: '/#mining' },
       { label: 'VaultChat', href: '/#vaultchat' },
       { label: 'VaultLaunch · Launchpad', href: '/#vaultlaunch' },
+      { label: 'Open the Launchpad — live on mainnet', href: '/launch' },
     ],
   },
 ]
@@ -53,6 +55,7 @@ const NAV_GROUPS = [
 // Resources shown in a dropdown on desktop and inline on mobile
 const RESOURCES = [
   { label: 'Documentation', href: '/docs', desc: 'Guides, specs, contract reference' },
+  { label: 'VaultLaunch Guide', href: '/launch?view=guide', desc: 'Launchpad docs — live mainnet' },
   { label: 'Vault Simulator', href: '/vault-simulator', desc: 'Practice before testnet launches' },
   { label: 'Security', href: '/security', desc: 'Audits, bug bounty, security model' },
   { label: 'Learn', href: '/learn', desc: 'Cryptography and DeFi concepts' },
@@ -120,9 +123,13 @@ export function Nav() {
                 <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 animate-ping" />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
               </span>
-              {isLaunched ? 'Testnet live' : 'Testnet launches Aug 30 · 14:00 UTC'}
+              {isLaunched ? 'VaultLaunch live on mainnet' : 'Testnet launches Aug 30 · 14:00 UTC'}
               <span className="hidden sm:inline text-ink-foreground/30">·</span>
               <span className="hidden sm:inline">XELIS BlockDAG · 5s finality</span>
+              <span className="hidden md:inline text-ink-foreground/30">·</span>
+              <a href="/launch" className="hidden md:inline text-vault-soft hover:text-vault transition-colors uppercase tracking-[0.14em]">
+                Open the launchpad →
+              </a>
             </div>
             <nav className="flex items-center gap-4" aria-label="Utility">
               <SideSwitchPill />

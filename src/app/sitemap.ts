@@ -13,6 +13,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const xelis: MetadataRoute.Sitemap = [
     { path: '', priority: 1, freq: 'weekly' }, // home
+    { path: '/launch', priority: 1, freq: 'daily' }, // VaultLaunch — LIVE on mainnet
     { path: '/vault-simulator', priority: 0.9, freq: 'monthly' },
     { path: '/antumbra', priority: 0.9, freq: 'weekly' },
     { path: '/explorer', priority: 0.9, freq: 'daily' },

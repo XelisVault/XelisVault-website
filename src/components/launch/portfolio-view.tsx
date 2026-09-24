@@ -1,263 +1,264 @@
-// Portfolio view — the demo fortune, live positions with P&L, LP earnings,
-// and the full activity history.
+// Portfolio view — the connected wallet's REAL mainnet holdings.
+//
+// XELIS balances are confidential: the wallet itself is the only
+// source. The portfolio therefore shows exactly what the wallet knows:
+//   • XEL balance
+//   • every launched asset the wallet tracks, priced from the live
+//     curve/pool reserves
+//   • liquidity-provider positions (on-chain provider slots)
+// plus links to the explorer for the full history.
 
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
-import { useEngine } from '@/lib/launch/engine'
+import { useCallback, useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
+import { ExternalLink } from 'lucide-react'
+import { useMainnet } from '@/lib/launch/mainnet-store'
 import { useLaunchWallet } from '@/lib/launch/wallet'
-import { AnimatedNumber, Bar, BracketButton, Sparkline, SquareDot } from './shared'
-import { ProjectLogo, PairLogo } from './logos'
-import { fmtXel, fmtPrice, fmtPct } from '@/lib/launch/math'
+import { fetchLpInfo } from '@/lib/launch/reader'
+import { explorerAddressUrl } from '@/lib/launch/protocol'
+import { fmtAtomic } from '@/lib/launch/chain-math'
+import { AnimatedNumber, BracketButton, Sparkline, StatusTag } from './shared'
+import { ProjectLogo } from './logos'
+import { fmtXel, fmtPrice } from '@/lib/launch/math'
 import { cn } from '@/lib/utils'
-import type { AppView } from './app-shell'
+import type { AppView } from './launchpad-view'
 
-const KIND_MARKS: Record<string, { glyph: string; cls: string }> = {
-  buy: { glyph: '▲', cls: 'text-emerald-400' },
-  sell: { glyph: '▼', cls: 'text-destructive' },
-  swap: { glyph: '⇄', cls: 'text-xusd' },
-  vote: { glyph: '✓', cls: 'text-vault-soft' },
-  graduation: { glyph: '✦', cls: 'text-vault' },
-  migration: { glyph: '▣', cls: 'text-xusd' },
-  lp: { glyph: '◈', cls: 'text-vault' },
-  proposal: { glyph: '◆', cls: 'text-vault-soft' },
+interface LpRow {
+  ticker: string
+  asset: string
+  parts: bigint
+  withdrawable: bigint
+  claimableXel: bigint
+  claimableTokens: bigint
 }
 
 export function PortfolioView({ setView }: { setView: (v: AppView, id?: string) => void }) {
-  const engine = useEngine()
-  const walletMode = useLaunchWallet((s) => s.mode)
+  const projects = useMainnet((s) => s.projects)
+  const wallet = useLaunchWallet()
+  const connected = wallet.state === 'connected' && !!wallet.address
 
-  const priceOf = (ticker: string): { price: number; history: number[]; stage: 'curve' | 'dex' } => {
-    const p = engine.projects.find((x) => x.ticker === ticker)
-    if (p?.curve) return { price: p.curve.reserves / p.curve.circulating, history: p.curve.history, stage: 'curve' }
-    if (p?.pool) return { price: p.pool.xel / p.pool.token, history: p.pool.history, stage: 'dex' }
-    return { price: 0, history: [], stage: 'dex' }
+  const [lps, setLps] = useState<LpRow[]>([])
+  const address = wallet.address
+  const refreshLps = useCallback(async () => {
+    if (!address) { setLps([]); return }
+    const pools = projects.filter((p) => p.pool && p.pool.asset)
+    const rows = await Promise.all(
+      pools.map(async (p) => {
+        try {
+          const lp = await fetchLpInfo(p.pool!.asset, address)
+          if (lp.parts > 0n || lp.withdrawable > 0n) {
+            return {
+              ticker: p.ticker, asset: p.pool!.asset,
+              parts: lp.parts, withdrawable: lp.withdrawable,
+              claimableXel: lp.claimableXel, claimableTokens: lp.claimableTokens,
+            }
+          }
+        } catch { /* ignore */ }
+        return null
+      }),
+    )
+    setLps(rows.filter((r): r is LpRow => !!r))
+  }, [projects, address])
+
+  useEffect(() => {
+    void refreshLps()
+    const t = setInterval(() => void refreshLps(), 45_000)
+    return () => clearInterval(t)
+  }, [refreshLps])
+
+  // ── disconnected state ──
+  if (!connected) {
+    return (
+      <div className="mt-10 border border-dashed border-border p-10 text-center">
+        <div className="font-display text-xl font-semibold">Connect your wallet to see your portfolio</div>
+        <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
+          XELIS balances are confidential — only your wallet (Genesix on mainnet, XSWD enabled)
+          can show what you hold. The site reads balances through your own wallet connection
+          and never sees your keys.
+        </p>
+      </div>
+    )
+  }
+
+  // ── holdings ──
+  const priceOf = (asset: string | null): { price: number; project: typeof projects[number] | null } => {
+    if (!asset) return { price: 0, project: null }
+    const p = projects.find((x) => x.asset === asset)
+    if (!p) return { price: 0, project: null }
+    if (p.pool) return { price: p.pool.xel / p.pool.token, project: p }
+    if (p.curve) return { price: p.curve.reserves / p.curve.circulating, project: p }
+    return { price: 0, project: p }
   }
 
   const holdings = [
-    { ticker: 'XEL', balance: engine.xel, price: 1, history: [] as number[], stage: 'dex' as const },
-    ...Object.entries(engine.tokens)
-      .filter(([, bal]) => bal > 0.01)
-      .map(([ticker, balance]) => ({ ticker, balance, ...priceOf(ticker) })),
-  ].map((r) => ({ ...r, value: r.balance * r.price }))
+    {
+      ticker: 'XEL',
+      name: 'XELIS',
+      balance: wallet.xelBalance ?? 0,
+      price: 1,
+      stage: 'native',
+      project: null as typeof projects[number] | null,
+      asset: null as string | null,
+    },
+    ...Object.entries(wallet.assetBalances)
+      .filter(([, bal]) => bal > 0.000001)
+      .map(([asset, bal]) => {
+        const { price, project } = priceOf(asset)
+        return {
+          ticker: project?.ticker ?? asset.slice(0, 6).toUpperCase(),
+          name: project?.name ?? 'Unknown asset',
+          balance: bal,
+          price,
+          stage: project?.pool ? 'LaunchDEX' : project?.curve ? 'bonding curve' : 'untracked',
+          project,
+          asset,
+        }
+      }),
+  ]
 
-  const totalValue = holdings.reduce((a, h) => a + h.value, 0)
-
-  const bondingPositions = engine.positions.map((pos) => {
-    const p = engine.projects.find((x) => x.id === pos.projectId)
-    const price = p?.curve ? p.curve.reserves / p.curve.circulating : 0
-    const value = pos.tokens * price
-    const cost = pos.tokens * pos.avgPrice
-    return { pos, project: p, price, value, pnl: value - cost, pnlPct: cost > 0 ? ((value - cost) / cost) * 100 : 0 }
-  }).filter((b) => b.project)
-
-  const lpPositions = engine.lps.map((lp) => {
-    const p = engine.projects.find((x) => x.id === lp.poolId)
-    return { lp, project: p }
-  }).filter((l) => l.project?.pool)
+  const totalValue = holdings.reduce((a, h) => a + h.balance * h.price, 0)
 
   return (
-    <div className="space-y-5">
-      {/* The fortune */}
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden border border-border/70 bg-card/50 p-7"
-        >
-          {/* corner brackets: this panel is the account headline */}
-          <span aria-hidden className="absolute left-0 top-0 h-3.5 w-3.5 border-l-2 border-t-2 border-vault" />
-          <span aria-hidden className="absolute right-0 top-0 h-3.5 w-3.5 border-r-2 border-t-2 border-vault" />
-          <span aria-hidden className="absolute bottom-0 left-0 h-3.5 w-3.5 border-b-2 border-l-2 border-vault" />
-          <span aria-hidden className="absolute bottom-0 right-0 h-3.5 w-3.5 border-b-2 border-r-2 border-vault" />
-
-          <div className="relative">
-            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-              <span className="h-1.5 w-1.5 bg-vault" />
-              {walletMode === 'demo' ? 'demo wallet · total value' : 'xswd wallet · demo market value'}
+    <div className="space-y-6">
+      {/* Fortune */}
+      <div className="border border-border/70 bg-card/50 p-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              total value · mainnet wallet
             </div>
-            <div className="mt-4 font-display text-5xl font-semibold tabular-nums tracking-tight text-foreground sm:text-6xl">
-              <AnimatedNumber value={totalValue} format={(v) => v.toLocaleString('en-US', { maximumFractionDigits: 0 })} />
-              <span className="ml-3 font-mono text-xl text-muted-foreground">XEL</span>
+            <div className="mt-2 font-display text-4xl font-semibold tabular-nums">
+              <AnimatedNumber value={totalValue} format={(v) => v.toLocaleString('en-US', { maximumFractionDigits: 2 })} />
+              <span className="ml-2 text-lg text-muted-foreground">XEL</span>
             </div>
-            <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
-              a treasury built for testing every animation · buy, sell, provide,
-              graduate something, watch the fees accrue
-            </p>
-            <div className="mt-7 flex flex-wrap gap-2.5">
-              <BracketButton variant="primary" size="sm" onClick={() => setView('trading')}>Trade the curve</BracketButton>
-              <BracketButton variant="teal" size="sm" onClick={() => setView('dex')}>Provide liquidity</BracketButton>
-              <BracketButton variant="quiet" size="sm" onClick={() => setView('launchpad')}>Vote on proposals</BracketButton>
+            <div className="mt-2 flex items-center gap-2 font-mono text-[10px] text-muted-foreground">
+              <span>{address != null ? `${address.slice(0, 14)}…${address.slice(-6)}` : ''}</span>
+              <a
+                href={address != null ? explorerAddressUrl(address) : '#'}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-vault hover:underline"
+              >
+                explorer <ExternalLink className="h-3 w-3" />
+              </a>
+              {wallet.isMainnet === false && (
+                <span className="text-destructive">· NOT on mainnet ({wallet.network})</span>
+              )}
             </div>
           </div>
-        </motion.div>
-
-        {/* Holdings */}
-        <div className="border border-border/70 bg-card/50 p-5">
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">holdings</div>
-          <div className="mt-3 divide-y divide-border/40">
-            {holdings.map((h) => (
-              <div key={h.ticker} className="flex items-center justify-between py-3">
-                <div className="flex items-center gap-3">
-                  <ProjectLogo ticker={h.ticker} size="sm" />
-                  <div>
-                    <div className="text-sm font-semibold">{h.ticker}</div>
-                    <div className="font-mono text-[10px] text-muted-foreground">
-                      {h.ticker === 'XEL' ? 'native' : h.stage === 'curve' ? 'bonding curve' : 'LaunchDEX'}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  {h.history.length > 2 && h.ticker !== 'XEL' && <Sparkline data={h.history.slice(-45)} width={70} height={22} />}
-                  <div className="text-right">
-                    <div className="font-mono text-sm font-semibold tabular-nums">
-                      <AnimatedNumber value={h.balance} format={(v) => fmtXel(v)} />
-                    </div>
-                    {h.ticker !== 'XEL' && (
-                      <div className="font-mono text-[10px] text-muted-foreground">
-                        @ {fmtPrice(h.price)} · <span className="text-foreground">{fmtXel(h.value)} XEL</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="flex flex-wrap gap-2">
+            <BracketButton size="sm" onClick={() => setView('trading')}>curve trading</BracketButton>
+            <BracketButton size="sm" variant="teal" onClick={() => setView('dex')}>launchdex</BracketButton>
+            <BracketButton size="sm" variant="quiet" onClick={() => setView('launchpad')}>launchpad</BracketButton>
           </div>
         </div>
       </div>
 
-      {/* Positions */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Bonding positions */}
-        <div className="border border-border/70 bg-card/50 p-5">
-          <div className="flex items-center justify-between">
-            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">bonding curve positions</div>
-            <span className="font-mono text-[10px] text-vault">{bondingPositions.length} open</span>
-          </div>
-          <div className="mt-3 space-y-3">
-            {bondingPositions.length === 0 && (
-              <div className="border border-dashed border-border py-6 text-center font-mono text-xs text-muted-foreground">
-                no curve positions · buy something on the Curve Trading tab
-              </div>
-            )}
-            {bondingPositions.map(({ pos, project, price, value, pnl, pnlPct }) => (
-              <div key={pos.projectId} className="border border-border/60 bg-background/50 p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <ProjectLogo ticker={project!.ticker} size="sm" />
-                    <div>
-                      <div className="text-sm font-semibold">{project!.name}</div>
-                      <div className="font-mono text-[10px] text-muted-foreground">
-                        {fmtXel(pos.tokens)} {project!.ticker} @ avg {fmtPrice(pos.avgPrice)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-mono text-sm font-semibold tabular-nums">{fmtXel(value)} XEL</div>
-                    <div className={cn('font-mono text-[11px] font-semibold tabular-nums', pnl >= 0 ? 'text-emerald-400' : 'text-destructive')}>
-                      {fmtPct(pnlPct, 1)} ({pnl >= 0 ? '+' : ''}{fmtXel(Math.abs(pnl))} XEL)
-                    </div>
-                  </div>
+      {/* Holdings */}
+      <div>
+        <h3 className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">holdings</h3>
+        <div className="border border-border/70 bg-card/50">
+          {holdings.map((h, i) => (
+            <motion.div
+              key={h.ticker + (h.asset ?? '')}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.04 }}
+              className={cn(
+                'flex items-center gap-3 px-4 py-3',
+                i > 0 && 'border-t border-border/60',
+              )}
+            >
+              {h.ticker === 'XEL'
+                ? <ProjectLogo ticker="XEL" size="sm" />
+                : <ProjectLogo ticker={h.ticker} size="sm" />}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">{h.name}</span>
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{h.stage}</span>
+                  {h.project && <StatusTag status={h.project.status} />}
                 </div>
-                <div className="mt-3">
-                  <div className="flex justify-between font-mono text-[10px] text-muted-foreground">
-                    <span>entry {fmtPrice(pos.avgPrice)} → now {fmtPrice(price)}</span>
-                    <button onClick={() => setView('trading', pos.projectId)} className="text-vault hover:underline">
-                      trade →
-                    </button>
-                  </div>
-                  <Bar value={Math.min(1, Math.max(0, 0.5 + pnlPct / 100))} className="mt-1.5 h-[3px]" />
+                <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">
+                  {h.asset ? `${h.asset.slice(0, 16)}…` : 'native asset'}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* LP positions */}
-        <div className="border border-border/70 bg-card/50 p-5">
-          <div className="flex items-center justify-between">
-            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">liquidity provided</div>
-            <span className="font-mono text-[10px] text-xusd">{lpPositions.length} pools</span>
-          </div>
-          <div className="mt-3 space-y-3">
-            {lpPositions.length === 0 && (
-              <div className="border border-dashed border-border py-6 text-center font-mono text-xs text-muted-foreground">
-                no LP positions · provide on the LaunchDEX tab and earn 50% of the fees
-              </div>
-            )}
-            {lpPositions.map(({ lp, project }) => {
-              const pool = project!.pool!
-              const share = lp.parts / pool.totalParts
-              const xelNow = share * pool.xel
-              return (
-                <div key={lp.poolId} className="border border-border/60 bg-background/50 p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <PairLogo ticker={project!.ticker} size="sm" />
-                      <div>
-                        <div className="text-sm font-semibold">XEL / {project!.ticker}</div>
-                        <div className="font-mono text-[10px] text-muted-foreground">
-                          {lp.parts.toFixed(0)} parts · {(share * 100).toFixed(3)}% of the pool
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-mono text-sm font-semibold tabular-nums">{fmtXel(xelNow)} XEL</div>
-                      <div className="font-mono text-[11px] font-semibold tabular-nums text-emerald-400">
-                        +{lp.feesEarnedXel.toFixed(3)} XEL fees
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex justify-between font-mono text-[10px] text-muted-foreground">
-                    <span>fees accrue live on every swap · 50% of the 0.30%</span>
-                    <button onClick={() => setView('dex', lp.poolId)} className="text-xusd hover:underline">
-                      manage →
-                    </button>
-                  </div>
+              {h.project && (h.project.curve || h.project.pool) && (
+                <Sparkline
+                  data={(h.project.curve ?? h.project.pool)!.history.slice(-45)}
+                  width={84}
+                  height={26}
+                  color={h.project.pool ? 'var(--xusd)' : 'auto'}
+                />
+              )}
+              <div className="w-36 text-right font-mono text-xs tabular-nums">
+                <div className="text-foreground">{fmtXel(h.balance)} {h.ticker}</div>
+                <div className="text-muted-foreground">
+                  {h.price > 0 ? `@ ${fmtPrice(h.price)} · ${fmtXel(h.balance * h.price)} XEL` : 'unpriced'}
                 </div>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Full activity */}
-      <div className="border border-border/70 bg-card/50 p-5">
-        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-          <SquareDot className="text-vault" /> your full activity
-        </div>
-        <div className="mt-3 max-h-80 divide-y divide-border/40 overflow-y-auto">
-          {engine.activity.filter((a) => a.actor === 'you').length === 0 && (
-            <div className="border border-dashed border-border py-6 text-center font-mono text-xs text-muted-foreground">
-              nothing yet · your trades will appear here
+              </div>
+              {h.project && (
+                <div className="w-16 text-right">
+                  <button
+                    onClick={() => h.project!.pool ? setView('dex', h.project!.id) : setView('trading', h.project!.id)}
+                    className="font-mono text-[10px] uppercase tracking-wider text-vault hover:underline"
+                  >
+                    {h.project.pool ? 'pool →' : 'trade →'}
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          ))}
+          {holdings.length === 1 && (
+            <div className="border-t border-border/60 px-4 py-6 text-center font-mono text-xs text-muted-foreground">
+              no launched tokens in this wallet yet · buy on a curve or a pool to start
             </div>
           )}
-          <AnimatePresence initial={false}>
-            {engine.activity.filter((a) => a.actor === 'you').map((a) => {
-              const p = engine.projects.find((x) => x.id === a.projectId)
-              const mark = KIND_MARKS[a.kind] ?? { glyph: '·', cls: 'text-muted-foreground' }
-              return (
-                <motion.div
-                  key={a.id}
-                  layout
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center gap-3 py-2.5 font-mono text-xs"
-                >
-                  <span className={cn('text-sm', mark.cls)}>{mark.glyph}</span>
-                  <span className="font-semibold">{p?.ticker ?? ''}</span>
-                  <span className="text-muted-foreground">
-                    {a.note ?? `${a.kind} ${a.amountXel != null ? fmtXel(a.amountXel) + ' XEL' : ''}`}
-                  </span>
-                  <span className="ml-auto text-[10px] text-muted-foreground/80">
-                    {new Date(a.ts).toLocaleTimeString('en-US', { hour12: false })}
-                  </span>
-                </motion.div>
-              )
-            })}
-          </AnimatePresence>
         </div>
       </div>
+
+      {/* LP positions */}
+      <div>
+        <h3 className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          liquidity provider positions
+        </h3>
+        {lps.length > 0 ? (
+          <div className="border border-border/70 bg-card/50">
+            {lps.map((lp, i) => {
+              const p = projects.find((x) => x.asset === lp.asset)
+              return (
+                <div key={lp.asset} className={cn('flex items-center gap-3 px-4 py-3', i > 0 && 'border-t border-border/60')}>
+                  <ProjectLogo ticker={lp.ticker} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold">XEL / {lp.ticker}</div>
+                    <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">
+                      depth {fmtAtomic(lp.parts, 2)} · withdrawable {fmtAtomic(lp.withdrawable, 2)} · claimable {fmtAtomic(lp.claimableXel, 4)} XEL
+                    </div>
+                  </div>
+                  {p && (
+                    <button
+                      onClick={() => setView('dex', p.id)}
+                      className="font-mono text-[10px] uppercase tracking-wider text-xusd hover:underline"
+                    >
+                      manage →
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="border border-dashed border-border p-8 text-center font-mono text-xs text-muted-foreground">
+            no LP positions · provide liquidity on a LaunchDEX pool to earn {'50'}% of the fees
+          </div>
+        )}
+      </div>
+
+      {/* note */}
+      <p className="text-center font-mono text-[10px] leading-relaxed text-muted-foreground">
+        Balances come from your wallet (XELIS balances are confidential — there is no public ledger).
+        Prices come live from the on-chain curve and pool reserves.
+      </p>
     </div>
   )
 }

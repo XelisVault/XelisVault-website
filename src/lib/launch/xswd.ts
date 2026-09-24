@@ -3,8 +3,8 @@
 // The VaultLaunch application registers with the wallet as its OWN dApp
 // (name "VaultLaunch"), separate from the XELIS Vault testnet app. XSWD has
 // no network selector: it follows whatever network the wallet's daemon is
-// on. VaultLaunch targets MAINNET, so the wallet (Genesix / xelis_wallet)
-// must run against a mainnet daemon.
+// on. VaultLaunch targets MAINNET (live since 23/09/2026), so the wallet
+// (Genesix / xelis_wallet) must run against a mainnet daemon.
 //
 // The protocol layer is the battle-tested client from lib/xelis/xswd.ts
 // (same handshake, same permissions); only the application identity and
