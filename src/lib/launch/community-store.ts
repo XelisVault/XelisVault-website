@@ -108,6 +108,49 @@ const internal: { fast: ReturnType<typeof setInterval> | null; deep: ReturnType<
  *  retried by the next deep scan or navigation. */
 const backfillTried = new Set<number>()
 
+/** A rebuild in one of these phases will REPLACE the coin's series on
+ *  commit — the live sampler is therefore HELD while it runs (sampling
+ *  into the empty/fragment local series would flip the chart on
+ *  prematurely, with a couple of live points — the "0 candles" bug). */
+export function isBackfillActive(bf: CoinBackfillState | undefined | null): boolean {
+  return bf != null && (
+    bf.phase === 'starting' || bf.phase === 'scanning' || bf.phase === 'rebuilding'
+  )
+}
+
+/** Does a series start at (or just after) the coin's creation — i.e. is
+ *  it the FULL history rather than a live-sampled fragment? The chart
+ *  gate and the backfill trigger (MODE A) share this exact test. */
+export function seriesCoversBirth(
+  histStart: number,
+  intervalTopo: number,
+  createdTopo: number,
+): boolean {
+  return histStart * intervalTopo <= createdTopo + 2 * intervalTopo
+}
+
+/** THE chart gate the coin view asks: is the FULL chart ready to draw
+ *  RIGHT NOW? Not while the chain rebuild runs (its commit replaces
+ *  the series anyway), and not from a live-sampled fragment that
+ *  starts after the coin's birth — the loading panel covers both, so
+ *  the animated "scanning the chain" state stays visible for the whole
+ *  walk (~1 min on a first visit) instead of flashing a broken chart. */
+export function isCurveChartReady(coin: {
+  createdTopo: number
+  curve?: {
+    history: number[]
+    histStart: number
+    intervalTopo?: number
+  } | null
+}, bf?: CoinBackfillState | null): boolean {
+  const curve = coin.curve
+  if (!curve || curve.history.length < 2) return false
+  if (isBackfillActive(bf)) return false
+  // legacy shapes without intervalTopo: trust the backfill gate alone
+  if (curve.intervalTopo == null) return true
+  return seriesCoversBirth(curve.histStart, curve.intervalTopo, coin.createdTopo)
+}
+
 /** Patch one coin's backfill state (shallow, immutable replace). */
 function patchBackfill(
   cid: number,
@@ -190,137 +233,153 @@ export const useCommunity = create<CommunityStore>((set, get) => ({
     const coin = get().coins.find((c) => c.cid === cid)
     if (!coin || !coin.curve || coin.migratedTopo > 0) return // curve era only
 
-    const topo = await getTopoheight('mainnet').catch(() => 0)
-    if (!topo || topo <= coin.createdTopo) return
-
+    // ── MODE A detection is SYNCHRONOUS (loadSeries only reads
+    // localStorage): deciding before any await makes the loading panel
+    // appear on the first paint of the coin view — no one-frame flash
+    // of a partial chart while the walk arms. v3 semantics: histStart
+    // is the ABSOLUTE grid index of history[0], so the topo of the
+    // first point is histStart × intervalTopo. The series "covers
+    // birth" when its first point sits at (or just after) the coin's
+    // creation — exactly what a new visitor lacks.
     const existing = loadSeries('coin', coin.id)
+    const modeA = !existing || existing.history.length < 2
+      || !seriesCoversBirth(existing.histStart, existing.intervalTopo, coin.createdTopo)
+
+    if (modeA) {
+      backfillTried.add(cid)
+      patchBackfill(cid, {
+        phase: 'starting', startedAt: Date.now(), finishedAt: null,
+        pages: 0, foundTrades: 0,
+      }, set, get)
+    }
+
+    const topo = await getTopoheight('mainnet').catch(() => 0)
+    if (!topo || topo <= coin.createdTopo) {
+      if (modeA) {
+        backfillTried.delete(cid) // node hiccup — allow the retry
+        patchBackfill(cid, { phase: 'error', finishedAt: Date.now() }, set, get)
+      }
+      return
+    }
+
     const params = get().cParams
 
-    // ── MODE A — full chain backfill (series missing or starts late) ──
-    // v3 semantics: histStart is the ABSOLUTE grid index of history[0],
-    // so the topo of the first point is histStart × intervalTopo. The
-    // series "covers birth" when its first point sits at (or just
-    // after) the coin's creation — exactly what a new visitor lacks.
-    if (
-      !existing || existing.history.length < 2 ||
-      existing.histStart * existing.intervalTopo > coin.createdTopo + 2 * existing.intervalTopo
-    ) {
+    // ── MODE B — catch-up: the series covers birth but went stale
+    // (tab closed / hidden — the sampler froze it instead of
+    // flat-filling over unseen trades) ──
+    if (!modeA) {
+      const staleness = topo - existing!.lastTopo
+      if (staleness <= COIN_STALE_TOPOS) return // live sampling is active
       backfillTried.add(cid)
-      patchBackfill(cid, { phase: 'starting', startedAt: Date.now(), finishedAt: null }, set, get)
+
       const fresh = await fetchCoinFast(cid).catch(() => null)
       if (!fresh || fresh.xr == null || fresh.yr == null || fresh.migrated) {
         backfillTried.delete(cid)
-        patchBackfill(cid, { phase: 'error', finishedAt: Date.now() }, set, get)
         return
       }
-      const series = await backfillCoinCurveSeries({
-        cid,
-        currentTopo: topo,
-        createdTopo: coin.createdTopo,
+
+      const fees = {
         y0: toAtomicSafe(coin.curve.initialInventory),
         vx: toAtomicSafe(coin.curve.virtualXel),
         graduated: coin.status === 'graduated',
         graduatedTopo: coin.graduatedTopo,
         curveFeeBps: params.curveFeeBps,
         graduatedFeeBps: params.graduatedFeeBps,
+      }
+      const livePrice = toHuman(coinSpotPrice(fresh.xr, fresh.yr, fees.y0, fees.vx))
+
+      const windowTrades = await fetchWindowTrades(cid).catch(() => [] as BackfillTrade[])
+      const newer = windowTrades.filter((t) => t.topo > existing!.lastTopo)
+
+      let next: ChartSeries | null = null
+      if (newer.length > 0 && existing!.st) {
+        // continue the EXACT integer replay from the stored state across
+        // the trades that landed while we were away — the calibration
+        // against the fresh live state proves nothing was missed
+        const r = replayFromState(existing!.st, newer, fees)
+        if (closeEnough(r.xr, fresh.xr) && closeEnough(r.yr, fresh.yr)) {
+          let s = existing!
+          for (const step of r.steps) s = appendPoint(s, step.price, step.topo)
+          s = appendPoint(s, livePrice, topo)
+          next = { ...s, st: { xr: r.xr.toString(), yr: r.yr.toString() } }
+        }
+      } else if (newer.length === 0) {
+        // no trades while away — the gap is genuinely flat
+        next = appendPoint(existing!, livePrice, topo)
+      }
+
+      if (next && next.history.length >= 2) {
+        commitCoinSeries(coin.id, next, set, get)
+        return
+      }
+
+      // no state anchor, or the window missed trades (>20 while away) —
+      // rebuild the whole history from the chain (the walk is the truth)
+      const series = await backfillCoinCurveSeries({
+        cid,
+        currentTopo: topo,
+        createdTopo: coin.createdTopo,
+        y0: fees.y0,
+        vx: fees.vx,
+        graduated: fees.graduated,
+        graduatedTopo: fees.graduatedTopo,
+        curveFeeBps: fees.curveFeeBps,
+        graduatedFeeBps: fees.graduatedFeeBps,
         totalTrades: fresh.trades ?? 0,
         liveXr: fresh.xr,
         liveYr: fresh.yr,
-        onProgress: (p) => patchBackfill(cid, {
-          phase: p.phase === 'walk' ? 'scanning' : 'rebuilding',
-          pages: p.pages,
-          maxPages: p.maxPages,
-          foundTrades: p.foundTrades,
-          totalTrades: p.totalTrades,
-        }, set, get),
       })
-      if (series && series.history.length >= 2) {
-        patchBackfill(cid, {
-          phase: 'done',
-          foundTrades: fresh.trades ?? 0,
-          totalTrades: fresh.trades ?? 0,
-          finishedAt: Date.now(),
-        }, set, get)
-        commitCoinSeries(coin.id, series, set, get)
-      } else if (series) {
-        // a flat birth series with a single slot — the coin is BRAND
-        // NEW: nothing went wrong, the chart starts with the trades
-        patchBackfill(cid, {
-          phase: 'done', totalTrades: fresh.trades ?? 0, finishedAt: Date.now(),
-        }, set, get)
-      } else {
-        backfillTried.delete(cid) // node hiccup — allow a retry
-        patchBackfill(cid, { phase: 'error', finishedAt: Date.now() }, set, get)
-      }
+      if (series && series.history.length >= 2) commitCoinSeries(coin.id, series, set, get)
+      else backfillTried.delete(cid) // node hiccup — allow a retry
       return
     }
 
-    // ── MODE B — catch-up: the series covers birth but went stale
-    // (tab closed / hidden — the sampler froze it instead of
-    // flat-filling over unseen trades) ──
-    const staleness = topo - existing.lastTopo
-    if (staleness <= COIN_STALE_TOPOS) return // live sampling is active
-    backfillTried.add(cid)
-
+    // ── MODE A — full chain backfill (series missing or starts late) ──
     const fresh = await fetchCoinFast(cid).catch(() => null)
     if (!fresh || fresh.xr == null || fresh.yr == null || fresh.migrated) {
       backfillTried.delete(cid)
+      patchBackfill(cid, { phase: 'error', finishedAt: Date.now() }, set, get)
       return
     }
-
-    const fees = {
+    const series = await backfillCoinCurveSeries({
+      cid,
+      currentTopo: topo,
+      createdTopo: coin.createdTopo,
       y0: toAtomicSafe(coin.curve.initialInventory),
       vx: toAtomicSafe(coin.curve.virtualXel),
       graduated: coin.status === 'graduated',
       graduatedTopo: coin.graduatedTopo,
       curveFeeBps: params.curveFeeBps,
       graduatedFeeBps: params.graduatedFeeBps,
-    }
-    const livePrice = toHuman(coinSpotPrice(fresh.xr, fresh.yr, fees.y0, fees.vx))
-
-    const windowTrades = await fetchWindowTrades(cid).catch(() => [] as BackfillTrade[])
-    const newer = windowTrades.filter((t) => t.topo > existing.lastTopo)
-
-    let next: ChartSeries | null = null
-    if (newer.length > 0 && existing.st) {
-      // continue the EXACT integer replay from the stored state across
-      // the trades that landed while we were away — the calibration
-      // against the fresh live state proves nothing was missed
-      const r = replayFromState(existing.st, newer, fees)
-      if (closeEnough(r.xr, fresh.xr) && closeEnough(r.yr, fresh.yr)) {
-        let s = existing
-        for (const step of r.steps) s = appendPoint(s, step.price, step.topo)
-        s = appendPoint(s, livePrice, topo)
-        next = { ...s, st: { xr: r.xr.toString(), yr: r.yr.toString() } }
-      }
-    } else if (newer.length === 0) {
-      // no trades while away — the gap is genuinely flat
-      next = appendPoint(existing, livePrice, topo)
-    }
-
-    if (next && next.history.length >= 2) {
-      commitCoinSeries(coin.id, next, set, get)
-      return
-    }
-
-    // no state anchor, or the window missed trades (>20 while away) —
-    // rebuild the whole history from the chain (the walk is the truth)
-    const series = await backfillCoinCurveSeries({
-      cid,
-      currentTopo: topo,
-      createdTopo: coin.createdTopo,
-      y0: fees.y0,
-      vx: fees.vx,
-      graduated: fees.graduated,
-      graduatedTopo: fees.graduatedTopo,
-      curveFeeBps: fees.curveFeeBps,
-      graduatedFeeBps: fees.graduatedFeeBps,
       totalTrades: fresh.trades ?? 0,
       liveXr: fresh.xr,
       liveYr: fresh.yr,
+      onProgress: (p) => patchBackfill(cid, {
+        phase: p.phase === 'walk' ? 'scanning' : 'rebuilding',
+        pages: p.pages,
+        maxPages: p.maxPages,
+        foundTrades: p.foundTrades,
+        totalTrades: p.totalTrades,
+      }, set, get),
     })
-    if (series && series.history.length >= 2) commitCoinSeries(coin.id, series, set, get)
-    else backfillTried.delete(cid) // node hiccup — allow a retry
+    if (series && series.history.length >= 2) {
+      patchBackfill(cid, {
+        phase: 'done',
+        foundTrades: fresh.trades ?? 0,
+        totalTrades: fresh.trades ?? 0,
+        finishedAt: Date.now(),
+      }, set, get)
+      commitCoinSeries(coin.id, series, set, get)
+    } else if (series) {
+      // a flat birth series with a single slot — the coin is BRAND
+      // NEW: nothing went wrong, the chart starts with the trades
+      patchBackfill(cid, {
+        phase: 'done', totalTrades: fresh.trades ?? 0, finishedAt: Date.now(),
+      }, set, get)
+    } else {
+      backfillTried.delete(cid) // node hiccup — allow a retry
+      patchBackfill(cid, { phase: 'error', finishedAt: Date.now() }, set, get)
+    }
   },
 }));
 
@@ -349,11 +408,25 @@ function commitCoinSeries(
             histStart: series.histStart,
             points: series.points,
             pointSeconds: seriesPointSeconds(series, TOPO_SECONDS),
+            intervalTopo: series.intervalTopo,
           },
         }
       : c,
   )
   set({ charts, coins })
+}
+
+/** The series a coin should display RIGHT NOW: the held/existing one
+ *  while a backfill runs (sampling would build a premature fragment —
+ *  the backfill's commit replaces it anyway), the freshly sampled one
+ *  otherwise. */
+function currentSeries(
+  charts: Record<string, ChartSeries>,
+  kind: string,
+  id: string,
+  topo: number,
+): ChartSeries {
+  return charts[`${kind}:${id}`] ?? loadSeries(kind, id) ?? emptySeries(topo)
 }
 
 /** Fast fields of active coins + live pool reserves + price samples. */
@@ -371,7 +444,13 @@ async function fastScan(topo: number, set: SetFn, get: GetFn): Promise<void> {
     const c = coins[i]
     if (c.status === 'live' || c.status === 'graduated') {
       const fresh = await fetchCoinFast(c.cid).catch(() => null)
-      if (fresh) coins[i] = mergeFast(coins[i], fresh, topo, get().cParams, charts)
+      if (fresh) {
+        // HOLD the sampler while the coin's chain rebuild runs: its
+        // commit replaces the series, and a couple of live points would
+        // flip the chart on prematurely (the "0 candles" bug)
+        const hold = isBackfillActive(get().backfills[c.cid])
+        coins[i] = mergeFast(coins[i], fresh, topo, get().cParams, charts, hold)
+      }
     }
     if (c.status === 'migrated' && c.asset) {
       const pool = await fetchPool(c.asset).catch(() => null)
@@ -414,7 +493,7 @@ async function deepScan(topo: number, set: SetFn, get: GetFn): Promise<void> {
   const charts = { ...get().charts }
   const coins = valid.map((raw) => {
     const pool = poolByCid.get(raw.cid) ?? null
-    return mapCoin(raw, pool, topo, cParams, charts)
+    return mapCoin(raw, pool, topo, cParams, charts, get().backfills)
   })
 
   set({ cParams, cStats, coins, charts })
@@ -474,6 +553,7 @@ function mapCoin(
   topo: number,
   params: CommunityParams,
   charts: Record<string, ChartSeries>,
+  backfills: Record<number, CoinBackfillState> = {},
 ): CommunityCoin {
   const status: CoinStatus = COIN_STATUS_FROM_CODE[raw.status] ?? 'live'
   const ticker = raw.symbol || `C${raw.cid}`
@@ -529,7 +609,13 @@ function mapCoin(
   if (!raw.migrated && raw.yr > 0n) {
     const priceA = coinSpotPrice(raw.xr, raw.yr, raw.y0, raw.vx)
     const price = toHuman(priceA)
-    const series = samplePrice(charts, 'coin', c.id, price, topo, { xr: raw.xr, yr: raw.yr })
+    // HOLD the sampler while the coin's chain rebuild runs — the
+    // rebuild's commit replaces the series, and live-sampling into the
+    // empty/fragment local series flipped the chart on prematurely
+    // (the "0 candles" bug on a first visit)
+    const series = isBackfillActive(backfills[raw.cid])
+      ? currentSeries(charts, 'coin', c.id, topo)
+      : samplePrice(charts, 'coin', c.id, price, topo, { xr: raw.xr, yr: raw.yr })
     const mcapA = coinMarketCap(raw.xr, raw.yr, raw.y0, raw.vx, raw.totalSupply)
     const feeBps = raw.graduated
       ? Math.min(params.graduatedFeeBps, params.curveFeeBps)
@@ -545,6 +631,7 @@ function mapCoin(
       histStart: series.histStart,
       points: series.points,
       pointSeconds: seriesPointSeconds(series, TOPO_SECONDS),
+      intervalTopo: series.intervalTopo,
       volume: toHuman(raw.volume),
       trades: raw.trades,
     }
@@ -598,6 +685,7 @@ function mergeFast(
   topo: number,
   params: CommunityParams,
   charts: Record<string, ChartSeries>,
+  holdChart = false,
 ): CommunityCoin {
   const next: CommunityCoin = { ...c }
   if (fresh.status != null) {
@@ -621,7 +709,12 @@ function mergeFast(
     const y0 = toAtomicSafe(next.curve.initialInventory)
     const vx = toAtomicSafe(next.curve.virtualXel)
     const price = toHuman(coinSpotPrice(fresh.xr, fresh.yr, y0, vx))
-    const series = samplePrice(charts, 'coin', c.id, price, topo, { xr: fresh.xr, yr: fresh.yr })
+    // holdChart: the chain rebuild running for this coin will REPLACE
+    // the series on commit — keep the current one instead of sampling a
+    // premature fragment (price/mcap/reserves below stay live)
+    const series = holdChart
+      ? currentSeries(charts, 'coin', c.id, topo)
+      : samplePrice(charts, 'coin', c.id, price, topo, { xr: fresh.xr, yr: fresh.yr })
     // graduation flips the curve fee to the graduated rate (cfe → gfe)
     const feeBps = fresh.graduated
       ? Math.min(params.graduatedFeeBps, params.curveFeeBps)
@@ -635,6 +728,7 @@ function mergeFast(
       histStart: series.histStart,
       points: series.points,
       pointSeconds: seriesPointSeconds(series, TOPO_SECONDS),
+      intervalTopo: series.intervalTopo,
       volume: toHuman(fresh.volume ?? 0n),
       trades: fresh.trades ?? next.curve.trades,
     }

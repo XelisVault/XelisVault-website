@@ -18,7 +18,7 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Share2, Check } from 'lucide-react'
-import { useCommunity } from '@/lib/launch/community-store'
+import { useCommunity, isCurveChartReady } from '@/lib/launch/community-store'
 import { useMainnet } from '@/lib/launch/mainnet-store'
 import { useToast } from '@/hooks/use-toast'
 import { useLaunchWallet } from '@/lib/launch/wallet'
@@ -1035,6 +1035,7 @@ export function CommunityView({ setView, focusId }: {
   const coins = useCommunity((s) => s.coins)
   const cParams = useCommunity((s) => s.cParams)
   const status = useCommunity((s) => s.status)
+  const backfills = useCommunity((s) => s.backfills)
   const [filter, setFilter] = useState<Filter>('all')
 
   // focus resolves by cid OR by ticker — the share links of official
@@ -1061,6 +1062,12 @@ export function CommunityView({ setView, focusId }: {
     const history = series?.history ?? []
     const change = coinChange(coin)
     const official = coin.official ? officialInfoOf(coin.ticker) : null
+    // the chart lands ONLY when the FULL history is here: never while
+    // the chain rebuild runs (the loading panel then covers the whole
+    // ~1 min walk) and never from a live-sampled fragment — this is
+    // what kept the "scanning the chain" animation on screen for the
+    // entire rebuild instead of flashing a 0-candle chart at ~30 s
+    const chartReady = isCurveChartReady(coin, backfills[coin.cid])
 
     return (
       <div>
@@ -1159,7 +1166,7 @@ export function CommunityView({ setView, focusId }: {
               )}
 
               <div className="mt-4">
-                {history.length >= 2 ? (
+                {chartReady ? (
                   <PriceChart
                     data={history}
                     histStart={series?.histStart ?? 0}

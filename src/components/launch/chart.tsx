@@ -91,15 +91,21 @@ export function toCandles(data: number[], histStart: number, chunk: number): Can
   const lastAbs = histStart + data.length - 1
   const liveBucket = Math.floor(lastAbs / chunk)
 
-  // Walk from the live bucket DOWN, but only over buckets that START inside
-  // the visible window (bucket*chunk >= histStart). A bucket that starts
-  // before the window has lost points on its left → its o/h/l would mutate
-  // as the window slides → it is dropped entirely instead. Every rendered
-  // candle is therefore computed from complete, immutable data.
-  for (let bucket = liveBucket; bucket * chunk >= histStart; bucket--) {
-    const from = bucket * chunk - histStart
+  // Walk from the live bucket DOWN over every bucket that intersects the
+  // data. A bucket that starts BEFORE data[0] (a young series, or a birth
+  // that isn't grid-aligned) opens at the FIRST KNOWN point — exactly how
+  // an exchange draws the first candle of a newly listed pair. The frozen
+  // guarantee holds: histStart only ever changes when the whole series is
+  // rebuilt (backfill commit / decimation), never on an append — so a
+  // partial first bucket still never moves. This used to DROP such
+  // buckets, which rendered ZERO candles for a short misaligned series
+  // (the "0 candles" bug on a first visit).
+  for (let bucket = liveBucket; bucket >= 0; bucket--) {
+    // exclusive end of this bucket in data coordinates
     const to = Math.min(data.length, (bucket + 1) * chunk - histStart)
-    if (to <= from || from < 0) continue
+    if (to <= 0) break // this bucket — and every older one — is entirely before the data
+    const from = Math.max(0, bucket * chunk - histStart)
+    if (to <= from) continue
     const slice = data.slice(from, to)
     if (slice.length === 0) continue
     const o = slice[0]

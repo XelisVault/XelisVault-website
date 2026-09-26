@@ -172,6 +172,10 @@ export interface CoinCurve {
   histStart: number
   points: number
   pointSeconds: number
+  /** Grid spacing of the series, in topos — with histStart it drives
+   *  the "covers birth" test (a fragment that starts after the coin's
+   *  creation is NOT the full history — the loading panel stays). */
+  intervalTopo?: number
   /** Total volume traded on the curve (human XEL). */
   volume: number
   trades: number
