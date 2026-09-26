@@ -32,7 +32,10 @@ import { fetchPool } from './reader'
 import { loadSeries, saveSeries, appendPoint, emptySeries, seriesPointSeconds, type ChartSeries } from './persist'
 import { toHuman } from './chain-math'
 import { coinSpotPrice, coinMarketCap, coinContinuity } from './community-math'
-import { backfillCoinCurveSeries } from './community-backfill'
+import {
+  backfillCoinCurveSeries, fetchWindowTrades, replayFromState, closeEnough,
+  type BackfillTrade,
+} from './community-backfill'
 import { isHiddenTicker, officialInfoOf } from './official'
 import type { CommunityCoin, CoinStatus, PoolState } from './types'
 
@@ -72,12 +75,21 @@ const FAST_MS = 15_000
 const DEEP_MS = 60_000
 /** Hard cap on fully-scanned coins per deep cycle (newest first). */
 const SCAN_CAP = 150
+/** A coin series older than this (topos) stops being live-sampled
+ *  until the catch-up has reconciled it with the chain — sampling
+ *  into the gap would flat-fill OVER trades that happened while the
+ *  tab was closed. */
+const COIN_STALE_TOPOS = 30 // ~2.5 min
+/** Beyond this staleness the sampler gives up waiting for the catch-up
+ *  and flat-fills anyway (the next full backfill rebuilds the truth). */
+const COIN_STALE_HARD_TOPOS = 1440 // ~2 h
 
 const internal: { fast: ReturnType<typeof setInterval> | null; deep: ReturnType<typeof setInterval> | null; started: boolean } = {
   fast: null, deep: null, started: false,
 }
 
-/** Backfill bookkeeping: once per coin per session is enough. */
+/** Backfill bookkeeping: once per coin per SUCCESS — failures are
+ *  retried by the next deep scan or navigation. */
 const backfillTried = new Set<number>()
 
 /** float human → atomic bigint without float-drift (via string). */
@@ -142,55 +154,109 @@ export const useCommunity = create<CommunityStore>((set, get) => ({
     const coin = get().coins.find((c) => c.cid === cid)
     if (!coin || !coin.curve || coin.migratedTopo > 0) return // curve era only
 
-    const existing = loadSeries('coin', coin.id)
     const topo = await getTopoheight('mainnet').catch(() => 0)
     if (!topo || topo <= coin.createdTopo) return
 
-    // run when the local series is missing, empty, or starts too late
-    // (it covers less than 60% of the coin's life — the early history
-    // is exactly what a new visitor is missing)
-    const spanLocal = (existing?.points ?? 0) * (existing?.intervalTopo ?? 1)
-    const spanLife = topo - coin.createdTopo
-    if (existing && existing.history.length >= 2 && spanLocal >= spanLife * 0.6) {
+    const existing = loadSeries('coin', coin.id)
+    const params = get().cParams
+
+    // ── MODE A — full chain backfill (series missing or starts late) ──
+    // v3 semantics: histStart is the ABSOLUTE grid index of history[0],
+    // so the topo of the first point is histStart × intervalTopo. The
+    // series "covers birth" when its first point sits at (or just
+    // after) the coin's creation — exactly what a new visitor lacks.
+    if (
+      !existing || existing.history.length < 2 ||
+      existing.histStart * existing.intervalTopo > coin.createdTopo + 2 * existing.intervalTopo
+    ) {
       backfillTried.add(cid)
+      const fresh = await fetchCoinFast(cid).catch(() => null)
+      if (!fresh || fresh.xr == null || fresh.yr == null || fresh.migrated) return
+      const series = await backfillCoinCurveSeries({
+        cid,
+        currentTopo: topo,
+        createdTopo: coin.createdTopo,
+        y0: toAtomicSafe(coin.curve.initialInventory),
+        vx: toAtomicSafe(coin.curve.virtualXel),
+        graduated: coin.status === 'graduated',
+        graduatedTopo: coin.graduatedTopo,
+        curveFeeBps: params.curveFeeBps,
+        graduatedFeeBps: params.graduatedFeeBps,
+        totalTrades: fresh.trades ?? 0,
+        liveXr: fresh.xr,
+        liveYr: fresh.yr,
+      })
+      if (series && series.history.length >= 2) commitCoinSeries(coin.id, series, set, get)
+      else backfillTried.delete(cid) // node hiccup — allow a retry
       return
     }
+
+    // ── MODE B — catch-up: the series covers birth but went stale
+    // (tab closed / hidden — the sampler froze it instead of
+    // flat-filling over unseen trades) ──
+    const staleness = topo - existing.lastTopo
+    if (staleness <= COIN_STALE_TOPOS) return // live sampling is active
     backfillTried.add(cid)
 
-    // fresh atomic state — the calibration target
     const fresh = await fetchCoinFast(cid).catch(() => null)
-    if (!fresh || fresh.xr == null || fresh.yr == null || fresh.migrated) return
+    if (!fresh || fresh.xr == null || fresh.yr == null || fresh.migrated) {
+      backfillTried.delete(cid)
+      return
+    }
 
-    const params = get().cParams
-    const series = await backfillCoinCurveSeries({
-      cid,
-      currentTopo: topo,
-      createdTopo: coin.createdTopo,
+    const fees = {
       y0: toAtomicSafe(coin.curve.initialInventory),
       vx: toAtomicSafe(coin.curve.virtualXel),
       graduated: coin.status === 'graduated',
       graduatedTopo: coin.graduatedTopo,
       curveFeeBps: params.curveFeeBps,
       graduatedFeeBps: params.graduatedFeeBps,
+    }
+    const livePrice = toHuman(coinSpotPrice(fresh.xr, fresh.yr, fees.y0, fees.vx))
+
+    const windowTrades = await fetchWindowTrades(cid).catch(() => [] as BackfillTrade[])
+    const newer = windowTrades.filter((t) => t.topo > existing.lastTopo)
+
+    let next: ChartSeries | null = null
+    if (newer.length > 0 && existing.st) {
+      // continue the EXACT integer replay from the stored state across
+      // the trades that landed while we were away — the calibration
+      // against the fresh live state proves nothing was missed
+      const r = replayFromState(existing.st, newer, fees)
+      if (closeEnough(r.xr, fresh.xr) && closeEnough(r.yr, fresh.yr)) {
+        let s = existing
+        for (const step of r.steps) s = appendPoint(s, step.price, step.topo)
+        s = appendPoint(s, livePrice, topo)
+        next = { ...s, st: { xr: r.xr.toString(), yr: r.yr.toString() } }
+      }
+    } else if (newer.length === 0) {
+      // no trades while away — the gap is genuinely flat
+      next = appendPoint(existing, livePrice, topo)
+    }
+
+    if (next && next.history.length >= 2) {
+      commitCoinSeries(coin.id, next, set, get)
+      return
+    }
+
+    // no state anchor, or the window missed trades (>20 while away) —
+    // rebuild the whole history from the chain (the walk is the truth)
+    const series = await backfillCoinCurveSeries({
+      cid,
+      currentTopo: topo,
+      createdTopo: coin.createdTopo,
+      y0: fees.y0,
+      vx: fees.vx,
+      graduated: fees.graduated,
+      graduatedTopo: fees.graduatedTopo,
+      curveFeeBps: fees.curveFeeBps,
+      graduatedFeeBps: fees.graduatedFeeBps,
+      totalTrades: fresh.trades ?? 0,
       liveXr: fresh.xr,
       liveYr: fresh.yr,
     })
-    if (!series || series.history.length < 2) return
-
-    // commit: persist + live charts + the coin's own curve fields
-    saveSeries('coin', coin.id, series)
-    const charts = { ...get().charts, [`coin:${coin.id}`]: series }
-    const coins = get().coins.map((c) => c.cid === cid && c.curve ? {
-      ...c,
-      curve: {
-        ...c.curve,
-        history: series.history,
-        histStart: series.histStart,
-        points: series.points,
-        pointSeconds: seriesPointSeconds(series, TOPO_SECONDS),
-      },
-    } : c)
-    set({ charts, coins })
+    if (series && series.history.length >= 2) commitCoinSeries(coin.id, series, set, get)
+    else backfillTried.delete(cid) // node hiccup — allow a retry
   },
 }));
 
@@ -198,6 +264,33 @@ export const useCommunity = create<CommunityStore>((set, get) => ({
 
 type SetFn = (partial: Partial<CommunityStore>) => void
 type GetFn = () => CommunityStore
+
+/** Commit a rebuilt/caught-up series: persist + live charts + the
+ *  coin's own curve fields (the UI reads those directly). */
+function commitCoinSeries(
+  coinId: string,
+  series: ChartSeries,
+  set: SetFn,
+  get: GetFn,
+): void {
+  saveSeries('coin', coinId, series)
+  const charts = { ...get().charts, [`coin:${coinId}`]: series }
+  const coins = get().coins.map((c) =>
+    c.id === coinId && c.curve
+      ? {
+          ...c,
+          curve: {
+            ...c.curve,
+            history: series.history,
+            histStart: series.histStart,
+            points: series.points,
+            pointSeconds: seriesPointSeconds(series, TOPO_SECONDS),
+          },
+        }
+      : c,
+  )
+  set({ charts, coins })
+}
 
 /** Fast fields of active coins + live pool reserves + price samples. */
 async function fastScan(topo: number, set: SetFn, get: GetFn): Promise<void> {
@@ -261,6 +354,17 @@ async function deepScan(topo: number, set: SetFn, get: GetFn): Promise<void> {
   })
 
   set({ cParams, cStats, coins, charts })
+
+  // re-arm the catch-up for coins whose series went stale while the
+  // tab was closed (the sampler freezes those instead of flat-filling
+  // over unseen trades) — ensureCoinHistory no-ops once reconciled
+  for (const c of coins) {
+    if (!c.curve) continue
+    const s = charts[`coin:${c.id}`] ?? loadSeries('coin', c.id)
+    if (s && s.history.length > 0 && topo - s.lastTopo > COIN_STALE_TOPOS) {
+      void get().ensureCoinHistory(c.cid)
+    }
+  }
 }
 
 // ── Mapping (raw storage → display shape) ────────────────────────────
@@ -271,10 +375,28 @@ function samplePrice(
   id: string,
   price: number,
   topo: number,
+  st?: { xr: bigint; yr: bigint },
 ): ChartSeries {
   const key = `${kind}:${id}`
   const s = charts[key] ?? loadSeries(kind, id) ?? emptySeries(topo)
-  const next = appendPoint(s, price, topo)
+  // A STALE coin series is frozen until the catch-up has reconciled
+  // it with the chain — sampling into the gap would flat-fill OVER
+  // trades that happened while the tab was closed. Past the hard cap
+  // the sampler gives up and flat-fills (the next full backfill
+  // rebuilds the truth).
+  if (
+    kind === 'coin' && s.history.length > 0 &&
+    topo - s.lastTopo > COIN_STALE_TOPOS &&
+    topo - s.lastTopo <= COIN_STALE_HARD_TOPOS
+  ) {
+    return s
+  }
+  let next = appendPoint(s, price, topo)
+  // track the replayed curve state so a later catch-up can continue
+  // the EXACT integer replay from where the series stopped
+  if (st && kind === 'coin') {
+    next = { ...next, st: { xr: st.xr.toString(), yr: st.yr.toString() } }
+  }
   saveSeries(kind, id, next)
   charts[key] = next
   return next
@@ -341,7 +463,7 @@ function mapCoin(
   if (!raw.migrated && raw.yr > 0n) {
     const priceA = coinSpotPrice(raw.xr, raw.yr, raw.y0, raw.vx)
     const price = toHuman(priceA)
-    const series = samplePrice(charts, 'coin', c.id, price, topo)
+    const series = samplePrice(charts, 'coin', c.id, price, topo, { xr: raw.xr, yr: raw.yr })
     const mcapA = coinMarketCap(raw.xr, raw.yr, raw.y0, raw.vx, raw.totalSupply)
     const feeBps = raw.graduated
       ? Math.min(params.graduatedFeeBps, params.curveFeeBps)
@@ -429,7 +551,7 @@ function mergeFast(
     const y0 = toAtomicSafe(next.curve.initialInventory)
     const vx = toAtomicSafe(next.curve.virtualXel)
     const price = toHuman(coinSpotPrice(fresh.xr, fresh.yr, y0, vx))
-    const series = samplePrice(charts, 'coin', c.id, price, topo)
+    const series = samplePrice(charts, 'coin', c.id, price, topo, { xr: fresh.xr, yr: fresh.yr })
     // graduation flips the curve fee to the graduated rate (cfe → gfe)
     const feeBps = fresh.graduated
       ? Math.min(params.graduatedFeeBps, params.curveFeeBps)
