@@ -32,6 +32,7 @@ import { fetchPool } from './reader'
 import { loadSeries, saveSeries, appendPoint, emptySeries, seriesPointSeconds, type ChartSeries } from './persist'
 import { toHuman } from './chain-math'
 import { coinSpotPrice, coinMarketCap, coinContinuity } from './community-math'
+import { backfillCoinCurveSeries } from './community-backfill'
 import { isHiddenTicker, officialInfoOf } from './official'
 import type { CommunityCoin, CoinStatus, PoolState } from './types'
 
@@ -61,6 +62,10 @@ interface CommunityStore {
   start: () => void
   refresh: (deep?: boolean) => Promise<void>
   seriesFor: (kind: string, id: string) => ChartSeries
+  /** Rebuild a coin's price history FROM THE CHAIN when the local
+   *  series is missing or short — a brand-new visitor gets the full
+   *  chart, not a blank one. Runs at most once per coin per session. */
+  ensureCoinHistory: (cid: number) => Promise<void>
 }
 
 const FAST_MS = 15_000
@@ -70,6 +75,16 @@ const SCAN_CAP = 150
 
 const internal: { fast: ReturnType<typeof setInterval> | null; deep: ReturnType<typeof setInterval> | null; started: boolean } = {
   fast: null, deep: null, started: false,
+}
+
+/** Backfill bookkeeping: once per coin per session is enough. */
+const backfillTried = new Set<number>()
+
+/** float human → atomic bigint without float-drift (via string). */
+function toAtomicSafe(human: number): bigint {
+  const s = human.toFixed(8)
+  const [int, frac = ''] = s.split('.')
+  return BigInt((int || '0') + (frac + '0'.repeat(8)).slice(0, 8))
 }
 
 export const useCommunity = create<CommunityStore>((set, get) => ({
@@ -121,7 +136,63 @@ export const useCommunity = create<CommunityStore>((set, get) => ({
       set({ syncing: false })
     }
   },
-}))
+
+  ensureCoinHistory: async (cid) => {
+    if (backfillTried.has(cid)) return
+    const coin = get().coins.find((c) => c.cid === cid)
+    if (!coin || !coin.curve || coin.migratedTopo > 0) return // curve era only
+
+    const existing = loadSeries('coin', coin.id)
+    const topo = await getTopoheight('mainnet').catch(() => 0)
+    if (!topo || topo <= coin.createdTopo) return
+
+    // run when the local series is missing, empty, or starts too late
+    // (it covers less than 60% of the coin's life — the early history
+    // is exactly what a new visitor is missing)
+    const spanLocal = (existing?.points ?? 0) * (existing?.intervalTopo ?? 1)
+    const spanLife = topo - coin.createdTopo
+    if (existing && existing.history.length >= 2 && spanLocal >= spanLife * 0.6) {
+      backfillTried.add(cid)
+      return
+    }
+    backfillTried.add(cid)
+
+    // fresh atomic state — the calibration target
+    const fresh = await fetchCoinFast(cid).catch(() => null)
+    if (!fresh || fresh.xr == null || fresh.yr == null || fresh.migrated) return
+
+    const params = get().cParams
+    const series = await backfillCoinCurveSeries({
+      cid,
+      currentTopo: topo,
+      createdTopo: coin.createdTopo,
+      y0: toAtomicSafe(coin.curve.initialInventory),
+      vx: toAtomicSafe(coin.curve.virtualXel),
+      graduated: coin.status === 'graduated',
+      graduatedTopo: coin.graduatedTopo,
+      curveFeeBps: params.curveFeeBps,
+      graduatedFeeBps: params.graduatedFeeBps,
+      liveXr: fresh.xr,
+      liveYr: fresh.yr,
+    })
+    if (!series || series.history.length < 2) return
+
+    // commit: persist + live charts + the coin's own curve fields
+    saveSeries('coin', coin.id, series)
+    const charts = { ...get().charts, [`coin:${coin.id}`]: series }
+    const coins = get().coins.map((c) => c.cid === cid && c.curve ? {
+      ...c,
+      curve: {
+        ...c.curve,
+        history: series.history,
+        histStart: series.histStart,
+        points: series.points,
+        pointSeconds: seriesPointSeconds(series, TOPO_SECONDS),
+      },
+    } : c)
+    set({ charts, coins })
+  },
+}));
 
 // ── Scan cycles ──────────────────────────────────────────────────────
 
@@ -445,13 +516,6 @@ function mergePool(
       buysPaused: pool.buysPaused,
     },
   }
-}
-
-/** float human → atomic bigint without float-drift (via string). */
-function toAtomicSafe(human: number): bigint {
-  const s = human.toFixed(8)
-  const [int, frac = ''] = s.split('.')
-  return BigInt((int || '0') + (frac + '0'.repeat(8)).slice(0, 8))
 }
 
 function buildTags(raw: RawCoin, status: CoinStatus, params: CommunityParams): string[] {

@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils'
 import { useMainnet } from '@/lib/launch/mainnet-store'
 import { useCommunity } from '@/lib/launch/community-store'
 import { useLaunchWallet, initLaunchWalletSync } from '@/lib/launch/wallet'
+import { useConnectModal } from '@/lib/launch/connect-modal'
 import { TOPO_SECONDS } from '@/lib/launch/protocol'
 import { LaunchpadView, type AppView } from './launchpad-view'
 import { TradingView } from './trading-view'
@@ -383,7 +384,9 @@ function ConnectModal({ open, onClose }: { open: boolean; onClose: () => void })
 export function LaunchAppShell({ initialView, initialFocus }: { initialView?: AppView; initialFocus?: string }) {
   const [view, setViewRaw] = useState<AppView>(initialView ?? 'launchpad')
   const [focus, setFocus] = useState<string | null>(initialFocus ?? null)
-  const [connectOpen, setConnectOpen] = useState(false)
+  const connectOpen = useConnectModal((s) => s.open)
+  const openConnect = useConnectModal((s) => s.show)
+  const closeConnect = useConnectModal((s) => s.hide)
   const contentRef = useRef<HTMLDivElement>(null)
 
   // deep links arrive after mount (the URL only exists client-side) —
@@ -425,7 +428,10 @@ export function LaunchAppShell({ initialView, initialFocus }: { initialView?: Ap
 
   const activeIndex = NAV.findIndex((n) => n.id === view)
   const title = VIEW_TITLES[view]
-  const connected = wallet.state === 'connected' && wallet.address != null
+  // connected = the XSWD session is live (the app was approved). The
+  // address is a best-effort enrichment — trading signs through the
+  // wallet and never needs it.
+  const connected = wallet.state === 'connected'
   const address = wallet.address
   const xelBalance = wallet.xelBalance
 
@@ -490,19 +496,23 @@ export function LaunchAppShell({ initialView, initialFocus }: { initialView?: Ap
                 )}
                 <button
                   type="button"
-                  onClick={() => setConnectOpen(true)}
+                  onClick={openConnect}
                   className="flex items-center gap-2 border border-border bg-foreground/[0.03] px-2.5 py-1.5 font-mono text-[10px] transition-colors hover:border-vault/50"
                 >
                   <span className={cn('inline-block h-1.5 w-1.5 rounded-full', connected ? 'bg-emerald-400' : 'bg-vault')} />
-                  {connected && address ? (
-                    <>
-                      <span className="tabular-nums text-foreground">
-                        {xelBalance != null ? `${xelBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })} XEL` : '…'}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {address.slice(0, 8)}…{address.slice(-4)}
-                      </span>
-                    </>
+                  {connected ? (
+                    address ? (
+                      <>
+                        <span className="tabular-nums text-foreground">
+                          {xelBalance != null ? `${xelBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })} XEL` : '…'}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {address.slice(0, 8)}…{address.slice(-4)}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-emerald-400">connected</span>
+                    )
                   ) : (
                     <span className="text-vault">connect wallet</span>
                   )}
@@ -561,7 +571,7 @@ export function LaunchAppShell({ initialView, initialFocus }: { initialView?: Ap
           </div>
         </div>
 
-        <ConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} />
+        <ConnectModal open={connectOpen} onClose={closeConnect} />
         <CommunityLaunchWatcher />
       </div>
     </MainnetProvider>

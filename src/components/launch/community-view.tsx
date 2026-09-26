@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useLaunchWallet } from '@/lib/launch/wallet'
 import { copyText } from '@/lib/clipboard'
 import { coinSharePath, officialInfoOf } from '@/lib/launch/official'
+import { useConnectModal } from '@/lib/launch/connect-modal'
 import {
   buyCoinTx, sellCoinTx, migrateCoinTx, claimCreatorAllocationTx,
   swapXelForTokenTx, swapTokenForXelTx,
@@ -246,7 +247,8 @@ function CoinCard({ c, rank, onOpen, params }: { c: CommunityCoin; rank: number;
 // COIN MODE — trade panels
 // ─────────────────────────────────────────────────────────────────
 
-/** Square side-switch: BUY | SELL. */
+/** Square side-switch: BUY | SELL — exchange colors: green buys,
+ *  red sells. */
 function SideSwitch({ side, onChange }: { side: 'buy' | 'sell'; onChange: (s: 'buy' | 'sell') => void }) {
   return (
     <div className="grid grid-cols-2 border border-border">
@@ -257,7 +259,7 @@ function SideSwitch({ side, onChange }: { side: 'buy' | 'sell'; onChange: (s: 'b
           className={cn(
             'relative py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] transition-colors',
             side === s
-              ? s === 'buy' ? 'bg-vlt/15 text-vlt' : 'bg-destructive/12 text-destructive'
+              ? s === 'buy' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-destructive/12 text-destructive'
               : 'text-muted-foreground hover:text-foreground',
           )}
         >
@@ -265,7 +267,7 @@ function SideSwitch({ side, onChange }: { side: 'buy' | 'sell'; onChange: (s: 'b
           {side === s && (
             <motion.span
               layoutId="coin-side-marker"
-              className={cn('absolute inset-x-0 bottom-0 h-[2px]', s === 'buy' ? 'bg-vlt' : 'bg-destructive')}
+              className={cn('absolute inset-x-0 bottom-0 h-[2px]', s === 'buy' ? 'bg-emerald-400' : 'bg-destructive')}
               transition={{ type: 'spring', stiffness: 380, damping: 32 }}
             />
           )}
@@ -281,6 +283,7 @@ const SLIPPAGE_CHOICES = [0.5, 1, 2, 5]
 function CoinTradePanel({ coin }: { coin: CommunityCoin }) {
   const { toast } = useToast()
   const wallet = useLaunchWallet()
+  const openConnect = useConnectModal((s) => s.show)
   const [side, setSide] = useState<'buy' | 'sell'>('buy')
   const [buyAmount, setBuyAmount] = useState('5')
   const [sellAmount, setSellAmount] = useState('1000')
@@ -288,7 +291,9 @@ function CoinTradePanel({ coin }: { coin: CommunityCoin }) {
   const [busy, setBusy] = useState(false)
 
   const curve = coin.curve
-  const connected = wallet.state === 'connected' && !!wallet.address
+  // the XSWD session is what matters for signing — the address is
+  // best-effort enrichment and must never block a trade
+  const connected = wallet.state === 'connected'
   const owned = coin.asset ? (wallet.assetBalances[coin.asset] ?? 0) : 0
   const xelBalance = wallet.xelBalance ?? 0
 
@@ -341,7 +346,9 @@ function CoinTradePanel({ coin }: { coin: CommunityCoin }) {
 
   const insufficient = side === 'buy' ? buyAmt > xelBalance : sellAmt > owned
   const amountInvalid = side === 'buy' ? buyAmt <= 0 : sellAmt <= 0
-  const disabled = !connected || busy || amountInvalid || insufficient || whale || tooSmall || tooBig
+  // NOT connected → the button stays clickable and opens the connect
+  // modal (never a dead end)
+  const disabled = !connected ? false : busy || amountInvalid || insufficient || whale || tooSmall || tooBig
 
   return (
     <div className="flex h-full flex-col border border-border/70 bg-card/50">
@@ -481,11 +488,16 @@ function CoinTradePanel({ coin }: { coin: CommunityCoin }) {
         )}
 
         <BracketButton
-          variant={side === 'buy' ? 'vlt' : 'danger'}
+          variant={side === 'buy' ? 'strong' : 'danger'}
           size="lg"
-          className={side === 'buy' ? 'w-full border-vlt bg-vlt text-[oklch(0.155_0.01_80)]' : 'w-full'}
+          className={cn(
+            'w-full',
+            // exchange-green buy button — near-black label from the
+            // strong variant, champagne brackets, readable everywhere
+            side === 'buy' && 'border-emerald-500 bg-emerald-500',
+          )}
           disabled={disabled}
-          onClick={execute}
+          onClick={!connected ? openConnect : execute}
         >
           {!connected
             ? 'connect wallet to trade'
@@ -524,6 +536,7 @@ function CoinTradePanel({ coin }: { coin: CommunityCoin }) {
 function CoinSwapPanel({ coin }: { coin: CommunityCoin }) {
   const { toast } = useToast()
   const wallet = useLaunchWallet()
+  const openConnect = useConnectModal((s) => s.show)
   const params = useMainnet((s) => s.params)
   const [side, setSide] = useState<'buy' | 'sell'>('buy')
   const [buyAmount, setBuyAmount] = useState('5')
@@ -533,7 +546,7 @@ function CoinSwapPanel({ coin }: { coin: CommunityCoin }) {
 
   const pool = coin.pool
   const feeBps = params.dexSwapFeeBps
-  const connected = wallet.state === 'connected' && !!wallet.address
+  const connected = wallet.state === 'connected'
   const owned = coin.asset ? (wallet.assetBalances[coin.asset] ?? 0) : 0
   const xelBalance = wallet.xelBalance ?? 0
 
@@ -569,7 +582,9 @@ function CoinSwapPanel({ coin }: { coin: CommunityCoin }) {
   }
 
   const insufficient = side === 'buy' ? buyAmt > xelBalance : sellAmt > owned
-  const disabled = !connected || busy || (side === 'buy' ? buyAmt <= 0 : sellAmt <= 0) || insufficient
+  // not connected → the button opens the connect modal instead of
+  // being a disabled dead end
+  const disabled = !connected ? false : busy || (side === 'buy' ? buyAmt <= 0 : sellAmt <= 0) || insufficient
 
   return (
     <div className="flex h-full flex-col border border-border/70 bg-card/50">
@@ -670,11 +685,14 @@ function CoinSwapPanel({ coin }: { coin: CommunityCoin }) {
         )}
 
         <BracketButton
-          variant={side === 'buy' ? 'vlt' : 'danger'}
+          variant={side === 'buy' ? 'strong' : 'danger'}
           size="lg"
-          className={side === 'buy' ? 'w-full border-vlt bg-vlt text-[oklch(0.155_0.01_80)]' : 'w-full'}
+          className={cn(
+            'w-full',
+            side === 'buy' && 'border-emerald-500 bg-emerald-500',
+          )}
           disabled={disabled}
-          onClick={execute}
+          onClick={!connected ? openConnect : execute}
         >
           {!connected
             ? 'connect wallet to swap'
@@ -700,9 +718,12 @@ function CoinSwapPanel({ coin }: { coin: CommunityCoin }) {
 function CoinActions({ coin }: { coin: CommunityCoin }) {
   const { toast } = useToast()
   const wallet = useLaunchWallet()
+  const openConnect = useConnectModal((s) => s.show)
   const [busy, setBusy] = useState<string | null>(null)
-  const connected = wallet.state === 'connected' && !!wallet.address
-  const isCreator = connected && coin.creator === wallet.address
+  // the session is what signs; the address only refines the creator
+  // check (the claim stays safe on-chain regardless)
+  const connected = wallet.state === 'connected'
+  const isCreator = !!wallet.address && coin.creator === wallet.address
 
   async function run(kind: string, fn: () => Promise<{ ok: boolean; message: string }>) {
     setBusy(kind)
@@ -739,10 +760,10 @@ function CoinActions({ coin }: { coin: CommunityCoin }) {
           <BracketButton
             variant="teal"
             className="w-full"
-            disabled={!connected || busy != null}
-            onClick={() => run('migrate', () => migrateCoinTx(coin.cid))}
+            disabled={busy != null}
+            onClick={connected ? () => run('migrate', () => migrateCoinTx(coin.cid)) : openConnect}
           >
-            {busy === 'migrate' ? 'signing…' : 'Migrate to LaunchDEX'}
+            {busy === 'migrate' ? 'signing…' : !connected ? 'connect wallet to migrate' : 'Migrate to LaunchDEX'}
           </BracketButton>
         </>
       )}
@@ -756,10 +777,10 @@ function CoinActions({ coin }: { coin: CommunityCoin }) {
           <BracketButton
             variant="vlt"
             className="w-full"
-            disabled={!connected || busy != null}
-            onClick={() => run('claim', () => claimCreatorAllocationTx(coin.cid))}
+            disabled={busy != null}
+            onClick={connected ? () => run('claim', () => claimCreatorAllocationTx(coin.cid)) : openConnect}
           >
-            {busy === 'claim' ? 'signing…' : 'Claim creator allocation'}
+            {busy === 'claim' ? 'signing…' : !connected ? 'connect wallet to claim' : 'Claim creator allocation'}
           </BracketButton>
         </>
       )}
@@ -824,6 +845,17 @@ function CoinScoreboard({ coin }: { coin: CommunityCoin }) {
 
 type Filter = 'all' | 'live' | 'graduated' | 'migrated'
 
+/** Fires the on-chain history backfill once for the focused coin — a
+ *  brand-new visitor gets the FULL chart (rebuilt from the factory's
+ *  public transactions), not a blank one. */
+function CoinHistoryEnsurer({ cid }: { cid: number }) {
+  const ensureCoinHistory = useCommunity((s) => s.ensureCoinHistory)
+  useEffect(() => {
+    void ensureCoinHistory(cid)
+  }, [cid, ensureCoinHistory])
+  return null
+}
+
 export function CommunityView({ setView, focusId }: {
   setView: (v: AppView, id?: string) => void
   focusId?: string | null
@@ -860,6 +892,7 @@ export function CommunityView({ setView, focusId }: {
 
     return (
       <div>
+        <CoinHistoryEnsurer cid={coin.cid} />
         <div className="mb-4 flex items-center justify-between gap-3">
           <button
             onClick={() => coin.official ? setView('launchpad') : setView('community', '')}
@@ -964,7 +997,7 @@ export function CommunityView({ setView, focusId }: {
                   />
                 ) : (
                   <div className="flex h-[360px] items-center justify-center border border-dashed border-border font-mono text-xs text-muted-foreground">
-                    chart is warming up — samples arrive every ~30s from the chain
+                    loading price history — rebuilding it from the chain…
                   </div>
                 )}
               </div>

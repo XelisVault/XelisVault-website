@@ -4,12 +4,13 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useMainnet, graduationOf } from '@/lib/launch/mainnet-store'
 import { useCommunity } from '@/lib/launch/community-store'
 import { useLaunchWallet } from '@/lib/launch/wallet'
+import { useConnectModal } from '@/lib/launch/connect-modal'
 import { supportTx, reportTx, finalizeValidationTx, migrateTx, claimRefundTx } from '@/lib/launch/tx'
 import { shortenAddress } from '@/lib/xelis/types'
 import { explorerContractUrl } from '@/lib/launch/protocol'
@@ -203,13 +204,14 @@ function ProjectDialog({ p, open, onClose, onTrade }: {
 }) {
   const { toast } = useToast()
   const wallet = useLaunchWallet()
+  const openConnect = useConnectModal((s) => s.show)
   const params = useMainnet((s) => s.params)
   const topoheight = useMainnet((s) => s.topoheight)
   const [busy, setBusy] = useState<string | null>(null)
 
   if (!p) return null
 
-  const connected = wallet.state === 'connected' && !!wallet.address
+  const connected = wallet.state === 'connected'
   const windowClosed = p.vote != null && topoheight > 0 && p.vote.deadlineTopo > 0 && topoheight >= p.vote.deadlineTopo
   const userVoted = p.vote?.userVoted ?? false
 
@@ -319,16 +321,16 @@ function ProjectDialog({ p, open, onClose, onTrade }: {
                     <BracketButton
                       variant="primary"
                       className="flex-1"
-                      disabled={!connected || !!userVoted || busy != null}
-                      onClick={() => run('support', () => supportTx(p.pid))}
+                      disabled={connected && (!!userVoted || busy != null)}
+                      onClick={!connected ? openConnect : () => run('support', () => supportTx(p.pid))}
                     >
                       {busy === 'support' ? 'signing…' : userVoted ? 'voted' : 'Support'}
                     </BracketButton>
                     <BracketButton
                       variant="danger"
                       className="flex-1"
-                      disabled={!connected || !!userVoted || busy != null}
-                      onClick={() => run('report', () => reportTx(p.pid))}
+                      disabled={connected && (!!userVoted || busy != null)}
+                      onClick={!connected ? openConnect : () => run('report', () => reportTx(p.pid))}
                     >
                       {busy === 'report' ? 'signing…' : 'Report'}
                     </BracketButton>
@@ -345,8 +347,8 @@ function ProjectDialog({ p, open, onClose, onTrade }: {
                     <BracketButton
                       variant="strong"
                       className="mt-3 w-full"
-                      disabled={!connected || busy != null}
-                      onClick={() => run('finalize', () => finalizeValidationTx(p.pid))}
+                      disabled={connected && busy != null}
+                      onClick={!connected ? openConnect : () => run('finalize', () => finalizeValidationTx(p.pid))}
                     >
                       {busy === 'finalize' ? 'signing…' : 'Finalize validation — open the bonding curve'}
                     </BracketButton>
@@ -362,8 +364,8 @@ function ProjectDialog({ p, open, onClose, onTrade }: {
                     <BracketButton
                       variant="strong"
                       size="sm"
-                      disabled={!connected || busy != null}
-                      onClick={() => run('migrate', () => migrateTx(p.pid))}
+                      disabled={connected && busy != null}
+                      onClick={!connected ? openConnect : () => run('migrate', () => migrateTx(p.pid))}
                     >
                       {busy === 'migrate' ? 'signing…' : 'migrate()'}
                     </BracketButton>
@@ -383,8 +385,8 @@ function ProjectDialog({ p, open, onClose, onTrade }: {
                     <BracketButton
                       variant="quiet"
                       size="sm"
-                      disabled={!connected || busy != null}
-                      onClick={() => run('refund', () => claimRefundTx(p.pid))}
+                      disabled={connected && busy != null}
+                      onClick={!connected ? openConnect : () => run('refund', () => claimRefundTx(p.pid))}
                     >
                       {busy === 'refund' ? 'signing…' : 'claim refund'}
                     </BracketButton>
@@ -537,6 +539,13 @@ export function LaunchpadView({ setView }: { setView: (v: AppView, id?: string) 
 
   // the platform's official tokens — flagship slots on the project board
   const officialCoins = coins.filter((c) => c.official)
+
+  // the flagship's chart must exist for everyone: rebuild its history
+  // from the chain when the local series is missing/short
+  const ensureCoinHistory = useCommunity((s) => s.ensureCoinHistory)
+  useEffect(() => {
+    for (const c of officialCoins) void ensureCoinHistory(c.cid)
+  }, [officialCoins.map((c) => c.cid).join(','), ensureCoinHistory])
 
   // Keep the dialog project in sync with on-chain updates
   const liveSelected = selected ? projects.find((p) => p.id === selected.id) ?? selected : null

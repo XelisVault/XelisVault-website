@@ -16,6 +16,7 @@ import { ExternalLink } from 'lucide-react'
 import { useMainnet } from '@/lib/launch/mainnet-store'
 import { useCommunity } from '@/lib/launch/community-store'
 import { useLaunchWallet } from '@/lib/launch/wallet'
+import { useConnectModal } from '@/lib/launch/connect-modal'
 import { fetchLpInfo } from '@/lib/launch/reader'
 import { explorerAddressUrl } from '@/lib/launch/protocol'
 import { fmtAtomic } from '@/lib/launch/chain-math'
@@ -39,7 +40,8 @@ export function PortfolioView({ setView }: { setView: (v: AppView, id?: string) 
   const projects = useMainnet((s) => s.projects)
   const coins = useCommunity((s) => s.coins)
   const wallet = useLaunchWallet()
-  const connected = wallet.state === 'connected' && !!wallet.address
+  const openConnect = useConnectModal((s) => s.show)
+  const connected = wallet.state === 'connected'
 
   const [lps, setLps] = useState<LpRow[]>([])
   const address = wallet.address
@@ -80,6 +82,9 @@ export function PortfolioView({ setView }: { setView: (v: AppView, id?: string) 
           can show what you hold. The site reads balances through your own wallet connection
           and never sees your keys.
         </p>
+        <BracketButton variant="strong" className="mt-6" onClick={openConnect}>
+          connect wallet
+        </BracketButton>
       </div>
     )
   }

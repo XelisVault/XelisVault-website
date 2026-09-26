@@ -19,6 +19,7 @@ import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useCommunity } from '@/lib/launch/community-store'
 import { useLaunchWallet } from '@/lib/launch/wallet'
+import { useConnectModal } from '@/lib/launch/connect-modal'
 import { launchCoinTx } from '@/lib/launch/tx'
 import { fetchCoinTickerTaken } from '@/lib/launch/community-reader'
 import { toAtomic, fmtAtomic } from '@/lib/launch/chain-math'
@@ -90,6 +91,7 @@ const inputCls =
 export function CoinLaunchView({ setView }: { setView: (v: AppView, id?: string) => void }) {
   const cParams = useCommunity((s) => s.cParams)
   const wallet = useLaunchWallet()
+  const openConnect = useConnectModal((s) => s.show)
   const { toast } = useToast()
 
   const [form, setForm] = useState<FormState>(INITIAL)
@@ -97,7 +99,7 @@ export function CoinLaunchView({ setView }: { setView: (v: AppView, id?: string)
   const [tickerCheck, setTickerCheck] = useState<'idle' | 'checking' | 'free' | 'taken'>('idle')
   const [lastTx, setLastTx] = useState<string | null>(null)
 
-  const connected = wallet.state === 'connected' && !!wallet.address
+  const connected = wallet.state === 'connected'
   const set = (k: keyof FormState, v: string) => setForm((f) => ({ ...f, [k]: v }))
 
   const supply = Math.max(0, Number(form.totalSupply) || 0)
@@ -402,11 +404,11 @@ export function CoinLaunchView({ setView }: { setView: (v: AppView, id?: string)
           </div>
 
           <BracketButton
-            variant="vlt"
+            variant="vltSolid"
             size="lg"
-            className="w-full border-vlt bg-vlt text-[oklch(0.155_0.01_80)]"
-            disabled={!valid || !connected || busy || (wallet.xelBalance != null && wallet.xelBalance < depositXel)}
-            onClick={submit}
+            className="w-full"
+            disabled={connected && (!valid || busy || (wallet.xelBalance != null && wallet.xelBalance < depositXel))}
+            onClick={!connected ? openConnect : submit}
           >
             {!connected
               ? 'connect your wallet'

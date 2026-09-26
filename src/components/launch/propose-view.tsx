@@ -16,6 +16,7 @@ import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useMainnet } from '@/lib/launch/mainnet-store'
 import { useLaunchWallet } from '@/lib/launch/wallet'
+import { useConnectModal } from '@/lib/launch/connect-modal'
 import { proposeTx } from '@/lib/launch/tx'
 import { fetchTickerTaken } from '@/lib/launch/reader'
 import { toAtomic } from '@/lib/launch/chain-math'
@@ -92,6 +93,7 @@ export function ProposeView({ setView }: { setView: (v: AppView, id?: string) =>
   const params = useMainnet((s) => s.params)
   const topoheight = useMainnet((s) => s.topoheight)
   const wallet = useLaunchWallet()
+  const openConnect = useConnectModal((s) => s.show)
   const { toast } = useToast()
 
   const [form, setForm] = useState<FormState>(INITIAL)
@@ -99,7 +101,7 @@ export function ProposeView({ setView }: { setView: (v: AppView, id?: string) =>
   const [tickerCheck, setTickerCheck] = useState<'idle' | 'checking' | 'free' | 'taken'>('idle')
   const [lastTx, setLastTx] = useState<string | null>(null)
 
-  const connected = wallet.state === 'connected' && !!wallet.address
+  const connected = wallet.state === 'connected'
   const set = (k: keyof FormState, v: string | number) => setForm((f) => ({ ...f, [k]: v }))
 
   const supply = Math.max(0, Number(form.totalSupply) || 0)
@@ -399,8 +401,8 @@ export function ProposeView({ setView }: { setView: (v: AppView, id?: string) =>
             variant="strong"
             size="lg"
             className="w-full"
-            disabled={!valid || !connected || busy || (wallet.xelBalance != null && wallet.xelBalance < depositXel)}
-            onClick={submit}
+            disabled={connected && (!valid || busy || (wallet.xelBalance != null && wallet.xelBalance < depositXel))}
+            onClick={!connected ? openConnect : submit}
           >
             {!connected
               ? 'connect your wallet'

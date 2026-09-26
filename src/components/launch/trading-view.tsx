@@ -19,6 +19,7 @@ import { ArrowLeft } from 'lucide-react'
 import { useMainnet, graduationOf } from '@/lib/launch/mainnet-store'
 import { useToast } from '@/hooks/use-toast'
 import { useLaunchWallet } from '@/lib/launch/wallet'
+import { useConnectModal } from '@/lib/launch/connect-modal'
 import { buyCurveTx, sellCurveTx } from '@/lib/launch/tx'
 import {
   curveBuyQuote, curveSellQuote, toAtomic, withSlippage, fmtAtomic, toHuman,
@@ -139,7 +140,7 @@ function SideSwitch({ side, onChange }: { side: 'buy' | 'sell'; onChange: (s: 'b
           className={cn(
             'relative py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] transition-colors',
             side === s
-              ? s === 'buy' ? 'bg-vault/12 text-vault' : 'bg-destructive/12 text-destructive'
+              ? s === 'buy' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-destructive/12 text-destructive'
               : 'text-muted-foreground hover:text-foreground',
           )}
         >
@@ -147,7 +148,7 @@ function SideSwitch({ side, onChange }: { side: 'buy' | 'sell'; onChange: (s: 'b
           {side === s && (
             <motion.span
               layoutId="side-switch-marker"
-              className={cn('absolute inset-x-0 bottom-0 h-[2px]', s === 'buy' ? 'bg-vault' : 'bg-destructive')}
+              className={cn('absolute inset-x-0 bottom-0 h-[2px]', s === 'buy' ? 'bg-emerald-400' : 'bg-destructive')}
               transition={{ type: 'spring', stiffness: 380, damping: 32 }}
             />
           )}
@@ -162,6 +163,7 @@ const SLIPPAGE_CHOICES = [0.5, 1, 2]
 function TradePanel({ project }: { project: Project }) {
   const { toast } = useToast()
   const wallet = useLaunchWallet()
+  const openConnect = useConnectModal((s) => s.show)
   const [side, setSide] = useState<'buy' | 'sell'>('buy')
   const [buyAmount, setBuyAmount] = useState('10')
   const [sellAmount, setSellAmount] = useState('100')
@@ -169,14 +171,13 @@ function TradePanel({ project }: { project: Project }) {
   const [busy, setBusy] = useState(false)
 
   const curve = project.curve
-  const connected = wallet.state === 'connected' && !!wallet.address
+  const connected = wallet.state === 'connected'
   const owned = project.asset ? (wallet.assetBalances[project.asset] ?? 0) : 0
   const xelBalance = wallet.xelBalance ?? 0
 
   // make sure the wallet tracks this project's asset (to read the balance)
   useEffect(() => {
     if (connected && project.asset) void wallet.ensureAsset(project.asset)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, project.asset])
 
   const buyAmt = Math.max(0, Number(buyAmount) || 0)
@@ -214,7 +215,8 @@ function TradePanel({ project }: { project: Project }) {
 
   const insufficient = side === 'buy' ? buyAmt > xelBalance : sellAmt > owned
   const amountInvalid = side === 'buy' ? buyAmt <= 0 : sellAmt <= 0
-  const disabled = !connected || busy || amountInvalid || insufficient
+  // not connected → the button opens the connect modal (no dead ends)
+  const disabled = !connected ? false : busy || amountInvalid || insufficient
 
   return (
     <div className="flex h-full flex-col border border-border/70 bg-card/50">
@@ -355,9 +357,9 @@ function TradePanel({ project }: { project: Project }) {
         <BracketButton
           variant={side === 'buy' ? 'strong' : 'danger'}
           size="lg"
-          className="w-full"
+          className={cn('w-full', side === 'buy' && 'border-emerald-500 bg-emerald-500')}
           disabled={disabled}
-          onClick={execute}
+          onClick={!connected ? openConnect : execute}
         >
           {!connected
             ? 'connect wallet to trade'

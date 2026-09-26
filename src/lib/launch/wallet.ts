@@ -34,6 +34,11 @@ interface LaunchWalletStore {
   connect: () => Promise<void>
   disconnect: () => void
   refreshBalances: () => Promise<void>
+  /** best-effort address fetch + background retries when the wallet is
+   *  connected but the address isn't known yet (permission popup not
+   *  answered). Trading NEVER needs the address — signing goes through
+   *  the wallet — so its absence must never block the trade panels. */
+  ensureAddress: () => Promise<void>
   /** make sure the wallet tracks a launched asset, then read its balance */
   ensureAsset: (asset: string) => Promise<void>
 }
@@ -62,12 +67,17 @@ export const useLaunchWallet = create<LaunchWalletStore>((set, get) => ({
     try {
       set({ state: 'connecting', message: null })
       await client.connect(LAUNCH_APP_DATA)
+      // The application is APPROVED — the session is live. From this
+      // point NOTHING below may flip the state back: a dismissed
+      // address/balance popup is not a disconnection, and trading
+      // (signing) works through the wallet regardless of the address.
+      set({ state: 'connected' })
+
       // ONE grouped permission popup instead of one per method
       client.prefetchPermissions().catch(() => {})
-      const address = await client.getAddress()
-      set({ state: 'connected', address })
 
-      // network check — VaultLaunch is MAINNET only
+      // best-effort enrichment — each step self-heals in the background
+      void get().ensureAddress()
       try {
         const info = await client.getNodeInfo()
         const network = String(info?.network ?? info?.chain ?? '')
@@ -76,7 +86,8 @@ export const useLaunchWallet = create<LaunchWalletStore>((set, get) => ({
         set({ network: null, isMainnet: null })
       }
 
-      // balances + live updates
+      // balances + live updates — non-blocking: the balance prompts may
+      // still be on screen, the chip fills in when they're answered
       try {
         await client.subscribe('balance_changed')
       } catch { /* older wallets */ }
@@ -84,9 +95,7 @@ export const useLaunchWallet = create<LaunchWalletStore>((set, get) => ({
         void get().refreshBalances()
       })
 
-      await get().refreshBalances()
-      // the store reads this wallet's on-chain votes
-      void useMainnet.getState().refreshUserVotes(address)
+      void get().refreshBalances()
     } catch (err) {
       set({
         state: 'error',
@@ -143,6 +152,34 @@ export const useLaunchWallet = create<LaunchWalletStore>((set, get) => ({
     if (address) void useMainnet.getState().refreshUserVotes(address)
   },
 
+  /** Best-effort address fetch with retries — the wallet may need the
+   *  user to answer a permission popup, or the popup can be dismissed
+   *  the first time. Retrying in the background keeps the UI honest
+   *  without ever blocking a trade. */
+  ensureAddress: async () => {
+    const client = getLaunchXSWDClient()
+    for (let attempt = 0; attempt < 4; attempt++) {
+      if (client.state !== 'connected') return
+      if (get().address) {
+        const address = get().address!
+        void useMainnet.getState().refreshUserVotes(address)
+        return
+      }
+      try {
+        const address = await client.getAddress()
+        if (address) {
+          set({ address })
+          void useMainnet.getState().refreshUserVotes(address)
+          void get().refreshBalances()
+          return
+        }
+      } catch {
+        // wait and retry (the popup may still be on screen)
+        await new Promise((r) => setTimeout(r, 3000 * (attempt + 1)))
+      }
+    }
+  },
+
   ensureAsset: async (asset) => {
     const client = getLaunchXSWDClient()
     if (client.state !== 'connected' || !asset) return
@@ -174,6 +211,12 @@ export function initLaunchWalletSync() {
       void useMainnet.getState().refreshUserVotes(null)
     } else {
       useLaunchWallet.setState({ state: s, message: msg ?? null })
+      // self-heal: the socket says connected but the address isn't
+      // known yet (the store may have been re-created, or the state
+      // fired before connect() reached getAddress) — fetch it now.
+      if (s === 'connected' && !useLaunchWallet.getState().address) {
+        void useLaunchWallet.getState().ensureAddress()
+      }
     }
   })
 }

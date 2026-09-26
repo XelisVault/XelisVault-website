@@ -16,6 +16,7 @@ import { ArrowLeft } from 'lucide-react'
 import { useMainnet } from '@/lib/launch/mainnet-store'
 import { useToast } from '@/hooks/use-toast'
 import { useLaunchWallet } from '@/lib/launch/wallet'
+import { useConnectModal } from '@/lib/launch/connect-modal'
 import { fetchLpInfo } from '@/lib/launch/reader'
 import {
   swapXelForTokenTx, swapTokenForXelTx, addLiquidityTx, removeLiquidityTx, claimLpFeesTx,
@@ -130,6 +131,7 @@ const SLIPPAGE_CHOICES = [0.5, 1, 2]
 function SwapWidget({ project }: { project: Project }) {
   const { toast } = useToast()
   const wallet = useLaunchWallet()
+  const openConnect = useConnectModal((s) => s.show)
   const params = useMainnet((s) => s.params)
   const [direction, setDirection] = useState<'toToken' | 'toXel'>('toToken')
   const [amount, setAmount] = useState('10')
@@ -137,13 +139,12 @@ function SwapWidget({ project }: { project: Project }) {
   const [busy, setBusy] = useState(false)
   const amt = Math.max(0, Number(amount) || 0)
   const pool = project.pool!
-  const connected = wallet.state === 'connected' && !!wallet.address
+  const connected = wallet.state === 'connected'
   const ownedToken = project.asset ? (wallet.assetBalances[project.asset] ?? 0) : 0
   const xelBalance = wallet.xelBalance ?? 0
 
   useEffect(() => {
     if (connected && project.asset) void wallet.ensureAsset(project.asset)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, project.asset])
 
   // EXACT integer quotes (the contract's formulas)
@@ -160,7 +161,8 @@ function SwapWidget({ project }: { project: Project }) {
   const minOut = out > 0n ? withSlippage(out, Math.round(slippagePct * 100)) : 0n
 
   const insufficient = direction === 'toToken' ? amt > xelBalance : amt > ownedToken
-  const disabled = !connected || busy || amt <= 0 || out <= 0n || insufficient
+  // not connected → opens the connect modal (no dead ends)
+  const disabled = !connected ? false : busy || amt <= 0 || out <= 0n || insufficient
 
   async function execute() {
     setBusy(true)
@@ -289,7 +291,7 @@ function SwapWidget({ project }: { project: Project }) {
           size="lg"
           className="mt-3 w-full"
           disabled={disabled}
-          onClick={execute}
+          onClick={!connected ? openConnect : execute}
         >
           {!connected ? 'connect wallet to swap'
             : insufficient ? `insufficient ${fromLabel}`
@@ -310,9 +312,10 @@ function SwapWidget({ project }: { project: Project }) {
 function LpPanel({ project }: { project: Project }) {
   const { toast } = useToast()
   const wallet = useLaunchWallet()
+  const openConnect = useConnectModal((s) => s.show)
   const params = useMainnet((s) => s.params)
   const pool = project.pool!
-  const connected = wallet.state === 'connected' && !!wallet.address
+  const connected = wallet.state === 'connected'
   const address = wallet.address
   const { lp, refreshLp } = useLpInfo(pool.asset, address ?? null)
 
@@ -435,8 +438,8 @@ function LpPanel({ project }: { project: Project }) {
           <BracketButton
             variant="teal"
             className="w-full"
-            disabled={!connected || busy != null || addInvalid || tokensInsufficient}
-            onClick={() => run('add', () => addLiquidityTx(
+            disabled={connected && (busy != null || addInvalid || tokensInsufficient)}
+            onClick={!connected ? openConnect : () => run('add', () => addLiquidityTx(
               pool.asset,
               toAtomic(addAmt),
               toAtomic(ownedToken),
@@ -472,10 +475,10 @@ function LpPanel({ project }: { project: Project }) {
               <BracketButton
                 variant="quiet"
                 className="w-full"
-                disabled={!connected || busy != null || lp.claimableXel <= 0n}
-                onClick={() => run('claim', () => claimLpFeesTx(pool.asset))}
+                disabled={connected && (busy != null || lp.claimableXel <= 0n)}
+                onClick={!connected ? openConnect : () => run('claim', () => claimLpFeesTx(pool.asset))}
               >
-                {busy === 'claim' ? 'signing…' : 'Claim provider fees'}
+                {busy === 'claim' ? 'signing…' : !connected ? 'connect wallet' : 'Claim provider fees'}
               </BracketButton>
 
               <div>
@@ -497,8 +500,8 @@ function LpPanel({ project }: { project: Project }) {
               <BracketButton
                 variant="quiet"
                 className="w-full"
-                disabled={!connected || busy != null || partsToRemove <= 0n}
-                onClick={() => run('remove', () => removeLiquidityTx(
+                disabled={connected && (busy != null || partsToRemove <= 0n)}
+                onClick={!connected ? openConnect : () => run('remove', () => removeLiquidityTx(
                   pool.asset,
                   partsToRemove,
                   withSlippage(outs.xel, 100),

@@ -19,7 +19,7 @@ import { TOPO_SECONDS } from '@/lib/launch/protocol'
 // BracketButton — the signature action: hairline frame with four
 // corner brackets that extend toward each other on hover.
 // ─────────────────────────────────────────────────────────────────
-type BracketVariant = 'primary' | 'strong' | 'quiet' | 'danger' | 'teal' | 'vlt'
+type BracketVariant = 'primary' | 'strong' | 'quiet' | 'danger' | 'teal' | 'vlt' | 'vltSolid'
 
 const BRACKET_VARIANTS: Record<BracketVariant, { frame: string; label: string; bracket: string; fill: string }> = {
   primary: {
@@ -57,6 +57,14 @@ const BRACKET_VARIANTS: Record<BracketVariant, { frame: string; label: string; b
     label: 'text-vlt group-hover:text-vlt',
     bracket: 'bg-vlt',
     fill: 'group-hover:bg-vlt/10',
+  },
+  vltSolid: {
+    // the FILLED bordeaux button — white label for real contrast on
+    // the dark bordeaux background (the community-track primary CTA)
+    frame: 'border-vlt bg-vlt text-white',
+    label: 'text-white group-hover:text-white',
+    bracket: 'bg-white/80',
+    fill: 'group-hover:bg-[oklch(0.55_0.13_8)]',
   },
 }
 
