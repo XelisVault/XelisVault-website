@@ -13,9 +13,8 @@ import { supportTx, reportTx, finalizeValidationTx, migrateTx, claimRefundTx } f
 import { shortenAddress } from '@/lib/xelis/types'
 import { explorerContractUrl } from '@/lib/launch/protocol'
 import { useToast } from '@/hooks/use-toast'
-import {
-  AnimatedNumber, Bar, BracketButton, Countdown, StatusTag, Sparkline, SquareDot, pad2,
-} from './shared'
+import { AnimatedNumber, Bar, BracketButton, Countdown, StatusTag, Sparkline, SquareDot, pad2 } from './shared'
+import { CommunityRail } from './community-rail'
 import { ProjectLogo } from './logos'
 import { fmtXel, fmtPrice } from '@/lib/launch/math'
 import type { Project } from '@/lib/launch/types'
@@ -460,8 +459,12 @@ export function LaunchpadView({ setView }: { setView: (v: AppView, id?: string) 
 
   return (
     <div>
+      {/* community launches first — the track anyone can launch on,
+          visible the moment you arrive */}
+      <CommunityRail setView={setView} />
+
       {/* Header stats: the ledger band */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+      <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         {[
           { k: 'IN VALIDATION', v: validating.length.toString(), sub: validating.map((p) => p.ticker).join(' · ') || 'none' },
           { k: 'ON CURVE', v: bonding.length.toString(), sub: bonding.map((p) => p.ticker).join(' · ') || 'none' },

@@ -31,6 +31,7 @@ import { ProposeView } from './propose-view'
 import { GuideView } from './guide-view'
 import { CommunityView } from './community-view'
 import { CoinLaunchView } from './coin-launch-view'
+import { isFreshLaunch } from './community-rail'
 import { BracketButton, SquareDot, pad2 } from './shared'
 import { ProjectLogo } from './logos'
 
@@ -93,6 +94,66 @@ function MainnetProvider({ children }: { children: React.ReactNode }) {
     initLaunchWalletSync()
   }, [start, startCommunity])
   return <>{children}</>
+}
+
+// ── Community nav badge — the live count on the coin board tab ──────
+
+/** Count badge for the Community Coins nav item: how many coins exist,
+ *  pulsing bordeaux while one is less than an hour old. */
+function CommunityNavMark({ expanded, compact }: { expanded?: boolean; compact?: boolean }) {
+  const coins = useCommunity((s) => s.coins)
+  const topoheight = useMainnet((s) => s.topoheight)
+  if (coins.length === 0) return null
+  const fresh = coins.some((c) => isFreshLaunch(c, topoheight))
+  if (compact) {
+    // collapsed sidebar / tight layouts: a pulsing bordeaux dot only
+    return fresh ? (
+      <span className="absolute right-1 top-1/2 -translate-y-1/2">
+        <span className="relative block h-1.5 w-1.5 bg-vlt">
+          <span className="absolute inset-0 animate-ping bg-vlt opacity-60" />
+        </span>
+      </span>
+    ) : (
+      <span className="absolute right-1 top-1/2 h-1 w-1 -translate-y-1/2 bg-vlt/50" />
+    )
+  }
+  return (
+    <span
+      className={cn(
+        'ml-auto shrink-0 border px-1.5 py-px font-mono text-[9px] font-semibold tabular-nums',
+        fresh
+          ? 'animate-pulse border-vlt/60 bg-vlt/15 text-vlt'
+          : expanded ? 'border-border text-muted-foreground/70' : 'border-vlt/40 text-vlt/80',
+      )}
+    >
+      {coins.length}
+    </span>
+  )
+}
+
+/** Toasts a community coin launch the moment the chain shows it — even
+ *  if the user is deep in another view. First load just records the
+ *  existing coins (no toast storm on arrival). */
+function CommunityLaunchWatcher() {
+  const coins = useCommunity((s) => s.coins)
+  const { toast } = useToast()
+  const known = useRef<Set<number> | null>(null)
+  useEffect(() => {
+    if (coins.length === 0) return
+    if (known.current == null) {
+      known.current = new Set(coins.map((c) => c.cid))
+      return
+    }
+    const fresh = coins.filter((c) => !known.current!.has(c.cid))
+    for (const c of fresh) {
+      known.current.add(c.cid)
+      toast({
+        title: `$${c.ticker} just launched`,
+        description: `${c.name} — community track, no validation. The curve is live, trade it now.`,
+      })
+    }
+  }, [coins, toast])
+  return null
 }
 
 // ── Smart sidebar (proximity rail, desktop) ─────────────────────────
@@ -174,12 +235,16 @@ function SmartSidebar({ view, onSelect }: { view: AppView; onSelect: (v: AppView
                     active
                       ? 'bg-vault/10 text-vault'
                       : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground',
+                    n.id === 'community' && 'pr-5',
                   )}
                 >
                   <span className={cn('w-6 shrink-0 text-center text-[9px] tabular-nums', active ? 'text-vault' : 'text-muted-foreground/50')}>
                     {pad2(idx)}
                   </span>
                   {expanded && <span className="truncate">{n.label}</span>}
+                  {n.id === 'community' && (expanded
+                    ? <CommunityNavMark expanded />
+                    : <CommunityNavMark compact />)}
                   {active && <span className="absolute right-0 top-1/2 h-4 w-[2px] -translate-y-1/2 bg-vault" />}
                 </button>
               )
@@ -433,13 +498,14 @@ export function LaunchAppShell({ initialView }: { initialView?: AppView }) {
                   type="button"
                   onClick={() => setView(n.id)}
                   className={cn(
-                    'shrink-0 border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.1em] transition-colors',
+                    'relative flex shrink-0 items-center gap-1.5 border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.1em] transition-colors',
                     n.id === view
                       ? 'border-vault/60 bg-vault/10 text-vault'
                       : 'border-border text-muted-foreground',
                   )}
                 >
                   {n.label}
+                  {n.id === 'community' && <CommunityNavMark />}
                 </button>
               ))}
             </div>
@@ -476,6 +542,7 @@ export function LaunchAppShell({ initialView }: { initialView?: AppView }) {
         </div>
 
         <ConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} />
+        <CommunityLaunchWatcher />
       </div>
     </MainnetProvider>
   )
