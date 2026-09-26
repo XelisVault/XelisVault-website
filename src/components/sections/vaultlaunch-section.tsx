@@ -391,8 +391,11 @@ export function VaultLaunchSection() {
               and verified on the XELIS mainnet since <span className="text-foreground">23.09.2026</span>.
               Projects propose, holders vote, survivors trade on a bonding curve, and
               graduation migrates everything into a pool whose seed is locked for life.
-              No pre-mines, no hidden team allocations, no rug geometry: the anti-rug
-              floor is math, not a promise.
+              And since <span className="text-foreground">25.09.2026</span>, the{' '}
+              <span className="text-vlt">community track</span>: anyone launches a real XELIS
+              asset for ≈ 2 XEL on a virtual-reserve curve — no vote, no founder liquidity,
+              the same locked-seed graduation. No pre-mines, no hidden team allocations,
+              no rug geometry: the anti-rug floor is math, not a promise.
             </p>
           </Reveal>
           <Reveal delay={0.25}>
@@ -405,10 +408,17 @@ export function VaultLaunchSection() {
                 <span className="ml-2 font-mono transition-transform group-hover:translate-x-1">→</span>
               </a>
               <a
+                href="/launch?view=coin-launch"
+                className="group inline-flex h-12 items-center border border-vlt/60 px-7 text-sm font-semibold text-vlt transition-colors hover:bg-vlt/10"
+              >
+                Launch a coin · ≈ 2 XEL
+                <span className="ml-2 font-mono transition-transform group-hover:translate-x-1">→</span>
+              </a>
+              <a
                 href="/launch?view=create"
                 className="group inline-flex h-12 items-center border border-vault/50 px-7 text-sm font-semibold text-vault transition-colors hover:bg-vault/10"
               >
-                Launch your coin
+                Launch a project
                 <span className="ml-2 font-mono transition-transform group-hover:translate-x-1">→</span>
               </a>
             </div>

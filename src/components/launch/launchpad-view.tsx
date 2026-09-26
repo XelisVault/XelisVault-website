@@ -21,7 +21,7 @@ import { fmtXel, fmtPrice } from '@/lib/launch/math'
 import type { Project } from '@/lib/launch/types'
 import { cn } from '@/lib/utils'
 
-export type AppView = 'launchpad' | 'trading' | 'dex' | 'create' | 'portfolio' | 'guide'
+export type AppView = 'launchpad' | 'trading' | 'dex' | 'community' | 'create' | 'coin-launch' | 'portfolio' | 'guide'
 
 const FILTERS = [
   { id: 'all', label: 'All' },

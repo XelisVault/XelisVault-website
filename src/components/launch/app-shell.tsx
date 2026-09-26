@@ -20,6 +20,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { useMainnet } from '@/lib/launch/mainnet-store'
+import { useCommunity } from '@/lib/launch/community-store'
 import { useLaunchWallet, initLaunchWalletSync } from '@/lib/launch/wallet'
 import { TOPO_SECONDS } from '@/lib/launch/protocol'
 import { LaunchpadView, type AppView } from './launchpad-view'
@@ -28,6 +29,8 @@ import { DexView } from './dex-view'
 import { PortfolioView } from './portfolio-view'
 import { ProposeView } from './propose-view'
 import { GuideView } from './guide-view'
+import { CommunityView } from './community-view'
+import { CoinLaunchView } from './coin-launch-view'
 import { BracketButton, SquareDot, pad2 } from './shared'
 import { ProjectLogo } from './logos'
 
@@ -37,7 +40,9 @@ const NAV: { id: AppView; label: string; group: string }[] = [
   { id: 'launchpad', label: 'Launchpad', group: 'Market' },
   { id: 'trading', label: 'Curve Trading', group: 'Market' },
   { id: 'dex', label: 'LaunchDEX', group: 'Market' },
-  { id: 'create', label: 'Create a Coin', group: 'Create' },
+  { id: 'community', label: 'Community Coins', group: 'Community' },
+  { id: 'create', label: 'Create a Project', group: 'Create' },
+  { id: 'coin-launch', label: 'Launch a Coin', group: 'Create' },
   { id: 'portfolio', label: 'Portfolio', group: 'Account' },
   { id: 'guide', label: 'Guide & Docs', group: 'Learn' },
 ]
@@ -55,9 +60,17 @@ const VIEW_TITLES: Record<AppView, { title: string; desc: string }> = {
     title: 'LaunchDEX',
     desc: 'Permanent-liquidity pools for graduated tokens — swaps at 0.30%, providers earn 50% of the fees.',
   },
+  community: {
+    title: 'Community Coins',
+    desc: 'The pump.fun track — anyone launches a real XELIS asset for ~2 XEL, no validation. Virtual curves, demand-proof graduation, permissionless migration.',
+  },
   create: {
-    title: 'Create a Coin',
-    desc: 'Propose a project to the community — 526 XEL minimum, validation in ~1 hour, direct listing at 2 000 XEL.',
+    title: 'Create a Project',
+    desc: 'Propose to the community — 526 XEL minimum, validation in ~1 hour, direct listing at 2 000 XEL. The serious track.',
+  },
+  'coin-launch': {
+    title: 'Launch a Coin',
+    desc: 'The community track — one transaction, ~2 XEL, no vote. Born as a real XELIS asset on a virtual-reserve bonding curve.',
   },
   portfolio: {
     title: 'Portfolio',
@@ -73,10 +86,12 @@ const VIEW_TITLES: Record<AppView, { title: string; desc: string }> = {
 
 function MainnetProvider({ children }: { children: React.ReactNode }) {
   const start = useMainnet((s) => s.start)
+  const startCommunity = useCommunity((s) => s.start)
   useEffect(() => {
     start()
+    startCommunity()
     initLaunchWalletSync()
-  }, [start])
+  }, [start, startCommunity])
   return <>{children}</>
 }
 
@@ -118,7 +133,7 @@ function SmartSidebar({ view, onSelect }: { view: AppView; onSelect: (v: AppView
       )}
       onMouseLeave={() => canHover && setExpanded(false)}
     >
-      {/* brand — the official XelisVault mark */}
+      {/* brand */}
       <Link href="/" className="flex h-14 items-center gap-2.5 border-b border-border px-3">
         <ProjectLogo ticker="VLT" size="sm" className="h-7 w-7 shrink-0" />
         {expanded && (
@@ -363,7 +378,7 @@ export function LaunchAppShell({ initialView }: { initialView?: AppView }) {
             {/* ── topbar ── */}
             <div className="flex h-14 items-center justify-between gap-3 border-b border-border px-3 sm:px-4">
               <div className="flex min-w-0 items-center gap-3">
-                {/* mobile brand — official XelisVault mark */}
+                {/* mobile brand */}
                 <div className="md:hidden">
                   <ProjectLogo ticker="VLT" size="sm" className="h-6 w-6" />
                 </div>
@@ -443,7 +458,9 @@ export function LaunchAppShell({ initialView }: { initialView?: AppView }) {
                   {view === 'launchpad' && <LaunchpadView setView={setView} />}
                   {view === 'trading' && <TradingView setView={setView} focusId={focus} />}
                   {view === 'dex' && <DexView setView={setView} focusId={focus} />}
+                  {view === 'community' && <CommunityView setView={setView} focusId={focus} />}
                   {view === 'create' && <ProposeView setView={setView} />}
+                  {view === 'coin-launch' && <CoinLaunchView setView={setView} />}
                   {view === 'portfolio' && <PortfolioView setView={setView} />}
                   {view === 'guide' && <GuideView setView={setView} />}
                 </motion.div>

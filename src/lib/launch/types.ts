@@ -146,6 +146,80 @@ export interface Project {
   refundClaimed: boolean
 }
 
+// ─── Community track (CommunityLaunch v1.0.1 — C101) ─────────────────
+// 0 live → 1 graduated → 2 migrated (terminal; the pool owns the market)
+export type CoinStatus = 'live' | 'graduated' | 'migrated'
+
+/** The virtual-reserve bonding curve of one community coin. */
+export interface CoinCurve {
+  /** Real XEL in the curve (human XEL) — starts at 0, grows with buys. */
+  reserves: number
+  /** Real token inventory still on the curve (human tokens). */
+  inventory: number
+  /** Initial inventory snapshot (human tokens) — the virtual token
+   *  reserve mirrors it; together with vx it prices the coin at birth. */
+  initialInventory: number
+  /** Virtual XEL snapshot (human XEL) — the simulated book depth. */
+  virtualXel: number
+  /** Graduation depth snapshot (human XEL) — the demand proof. */
+  gradDepth: number
+  /** Effective fee: 1% live, 0.5% once graduated. */
+  feeBps: number
+  /** Historical price points (XEL per token) — persisted locally. */
+  history: number[]
+  histStart: number
+  points: number
+  pointSeconds: number
+  /** Total volume traded on the curve (human XEL). */
+  volume: number
+  trades: number
+}
+
+export interface CommunityCoin {
+  /** Coin id (cid — the on-chain index, 0-based). */
+  cid: number
+  id: string
+  creator: string
+  status: CoinStatus
+  name: string
+  ticker: string
+  description: string
+  website?: string
+  logo?: string
+  twitter?: string
+  telegram?: string
+  discord?: string
+  hue: number
+  avatar: string
+  /** The REAL XELIS asset hash of the coin (set at launch). */
+  asset: string | null
+  /** Total supply (human tokens) — fixed forever at launch. */
+  totalSupply: number
+  /** Creator allocation in bps (≤ 5%, off-curve, post-migration only). */
+  teamBps: number
+  /** Creator already claimed the allocation. */
+  creatorPaid: boolean
+  createdTopo: number
+  graduatedTopo: number
+  migratedTopo: number
+  migratedXel: number
+  migratedTokens: number
+  /** Curve era (live + graduated — the curve keeps trading until the
+   *  pool exists; migrated coins have NO curve). */
+  curve?: CoinCurve
+  /** Pool era (migrated — the LaunchDEX pool owns the market). */
+  pool?: PoolState
+  /** Live spot price in XEL per token (0 once migrated). */
+  price: number
+  /** Live market cap in XEL, FDV convention (0 once migrated). */
+  marketCap: number
+  /** 0..1 — progress of the demand-proof depth (xr / gdx). */
+  progress: number
+  /** The C2 price-continuity condition (xr·y0 ≥ yr·vx). */
+  continuity: boolean
+  tags: string[]
+}
+
 // ─── Wallet positions (XELIS balances are confidential: the wallet
 //      itself is the only source — no on-chain ledger exists) ────────
 

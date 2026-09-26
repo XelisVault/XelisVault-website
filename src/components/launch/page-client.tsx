@@ -1,6 +1,6 @@
 // VaultLaunch page client — the app boots directly (public since the
 // mainnet launch). The optional ?view= parameter deep-links to a tab:
-// /launch?view=create | trading | dex | portfolio | guide.
+// /launch?view=community | coin-launch | create | trading | dex | portfolio | guide.
 
 'use client'
 
@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 import { LaunchAppShell } from './app-shell'
 import type { AppView } from './launchpad-view'
 
-const VIEWS: AppView[] = ['launchpad', 'trading', 'dex', 'create', 'portfolio', 'guide']
+const VIEWS: AppView[] = ['launchpad', 'trading', 'dex', 'community', 'create', 'coin-launch', 'portfolio', 'guide']
 
 export function LaunchPageClient() {
   const [initialView, setInitialView] = useState<AppView | null>(null)

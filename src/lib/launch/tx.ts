@@ -18,10 +18,11 @@ import { getXSWDClient } from '@/lib/xelis/xswd'
 import { rpcCall } from '@/lib/xelis/rpc'
 import { valStr, valU64, valHash, type ValueCell } from '@/lib/xelis/types'
 import {
-  VAULT_CONTRACT, DEX_CONTRACT, XEL_ASSET,
-  VAULT_ENTRIES, DEX_ENTRIES, explorerTxUrl,
+  VAULT_CONTRACT, DEX_CONTRACT, COMMUNITY_CONTRACT, XEL_ASSET,
+  VAULT_ENTRIES, DEX_ENTRIES, COMMUNITY_ENTRIES, explorerTxUrl,
 } from './protocol'
 import { useMainnet } from './mainnet-store'
+import { useCommunity } from './community-store'
 
 export interface TxResult {
   ok: boolean
@@ -88,6 +89,7 @@ async function sendInvoke(args: {
     // confirmation is best-effort: the tx may land while we poll
     const confirmed = await waitConfirmed(hash)
     void useMainnet.getState().refresh(true)
+    void useCommunity.getState().refresh(true)
     return ok(hash, confirmed ? args.success : `${args.success} — confirming on-chain…`)
   } catch (e: any) {
     const raw = e instanceof Error ? e.message : 'Transaction failed'
@@ -313,5 +315,113 @@ export function claimLpFeesTx(asset: string): Promise<TxResult> {
     entryId: DEX_ENTRIES.claim_lp_fees,
     params: [valHash(asset)],
     success: 'Provider fees claimed',
+  })
+}
+
+// ── CommunityLaunch — the pump.fun track (C101) ──────────────────────
+
+export interface LaunchCoinInput {
+  name: string
+  symbol: string
+  description: string
+  website: string
+  logo: string
+  twitter: string
+  telegram: string
+  discord: string
+  totalSupplyAtomic: bigint
+  teamBps: number
+  /** total XEL deposit (atomic): submission fee + asset budget.
+   *  The unused part of the budget is refunded in the same tx. */
+  depositAtomic: bigint
+}
+
+/** launch_coin (15) — the coin is born: ONE transaction, ~2 XEL.
+ *  A REAL XELIS confidential asset is created (fixed supply, the whole
+ *  balance held by the factory) and the virtual curve opens at once. */
+export function launchCoinTx(input: LaunchCoinInput): Promise<TxResult> {
+  return sendInvoke({
+    contract: COMMUNITY_CONTRACT,
+    entryId: COMMUNITY_ENTRIES.launch_coin,
+    params: [
+      valStr(input.name),
+      valStr(input.symbol),
+      valStr(input.description),
+      valStr(input.website),
+      valStr(input.logo),
+      valStr(input.twitter),
+      valStr(input.telegram),
+      valStr(input.discord),
+      valU64(input.totalSupplyAtomic),
+      valU64(input.teamBps),
+    ],
+    deposits: { [XEL_ASSET]: input.depositAtomic },
+    success: `Coin launched — ${input.symbol} is live on its bonding curve`,
+  })
+}
+
+/** buy (16) — buy REAL tokens on the virtual curve, attaching XEL.
+ *  Graduation fires inside this entry when the trade crosses BOTH
+ *  conditions (depth ≥ gdx AND price continuity). */
+export function buyCoinTx(cid: number, xelAtomic: bigint, minTokensOut: bigint): Promise<TxResult> {
+  return sendInvoke({
+    contract: COMMUNITY_CONTRACT,
+    entryId: COMMUNITY_ENTRIES.buy,
+    params: [valU64(cid), valU64(minTokensOut)],
+    deposits: { [XEL_ASSET]: xelAtomic },
+    success: 'Buy sent — tokens will arrive in your wallet',
+  })
+}
+
+/** sell (17) — sell back for XEL, attaching the COIN's tokens (the
+ *  WHOLE deposit is sold). Sells are NEVER blockable — no pause gate. */
+export function sellCoinTx(cid: number, asset: string, tokensAtomic: bigint, minXelOut: bigint): Promise<TxResult> {
+  return sendInvoke({
+    contract: COMMUNITY_CONTRACT,
+    entryId: COMMUNITY_ENTRIES.sell,
+    params: [valU64(cid), valU64(minXelOut)],
+    deposits: { [asset]: tokensAtomic },
+    success: 'Sell sent — the whole attached deposit is sold',
+  })
+}
+
+/** migrate (18) — anyone: the atomic move to the LaunchDEX pool.
+ *  The migration fee is carved from the SEED (never the live curve);
+ *  the buyers' own money becomes the protocol-locked floor. */
+export function migrateCoinTx(cid: number): Promise<TxResult> {
+  return sendInvoke({
+    contract: COMMUNITY_CONTRACT,
+    entryId: COMMUNITY_ENTRIES.migrate,
+    params: [valU64(cid)],
+    success: 'Migration sent — the permanent LaunchDEX pool is being seeded',
+  })
+}
+
+/** claim_creator_allocation (19) — the creator's ≤ 5% reserve, exactly
+ *  once, ONLY after migration (a never-graduating coin pays nothing). */
+export function claimCreatorAllocationTx(cid: number): Promise<TxResult> {
+  return sendInvoke({
+    contract: COMMUNITY_CONTRACT,
+    entryId: COMMUNITY_ENTRIES.claim_creator_allocation,
+    params: [valU64(cid)],
+    success: 'Creator allocation claimed',
+  })
+}
+
+/** update_coin_info (20) — creator: the mutable card (name/symbol
+ *  are immutable forever). */
+export function updateCoinInfoTx(
+  cid: number,
+  info: { description: string; website: string; logo: string; twitter: string; telegram: string; discord: string },
+): Promise<TxResult> {
+  return sendInvoke({
+    contract: COMMUNITY_CONTRACT,
+    entryId: COMMUNITY_ENTRIES.update_coin_info,
+    params: [
+      valU64(cid),
+      valStr(info.description), valStr(info.website), valStr(info.logo),
+      valStr(info.twitter), valStr(info.telegram), valStr(info.discord),
+    ],
+    success: 'Coin info updated',
   })
 }

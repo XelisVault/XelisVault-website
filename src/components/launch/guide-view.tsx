@@ -9,8 +9,9 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useMainnet } from '@/lib/launch/mainnet-store'
+import { useCommunity } from '@/lib/launch/community-store'
 import {
-  VAULT_CONTRACT, DEX_CONTRACT, PROTOCOL_WALLET,
+  VAULT_CONTRACT, DEX_CONTRACT, COMMUNITY_CONTRACT, PROTOCOL_WALLET,
   explorerContractUrl, explorerAddressUrl,
 } from '@/lib/launch/protocol'
 import { BracketButton } from './shared'
@@ -21,6 +22,7 @@ import type { AppView } from './launchpad-view'
 const SECTIONS = [
   { id: 'how', label: 'How it works' },
   { id: 'launch', label: 'Launch a coin' },
+  { id: 'community', label: 'Community coins' },
   { id: 'trade', label: 'Trade' },
   { id: 'lp', label: 'Liquidity' },
   { id: 'verify', label: 'Verify' },
@@ -70,6 +72,8 @@ function Hash({ hash, kind = 'contract' }: { hash: string; kind?: 'contract' | '
 export function GuideView({ setView }: { setView: (v: AppView, id?: string) => void }) {
   const params = useMainnet((s) => s.params)
   const stats = useMainnet((s) => s.stats)
+  const cParams = useCommunity((s) => s.cParams)
+  const cStats = useCommunity((s) => s.cStats)
   const [tab, setTab] = useState<TabId>('how')
 
   const minDeposit = params.submissionFee + params.assetBudget + params.minLiquidity
@@ -204,6 +208,57 @@ export function GuideView({ setView }: { setView: (v: AppView, id?: string) => v
         </Section>
       )}
 
+      {/* ── COMMUNITY COINS ── */}
+      {tab === 'community' && (
+        <Section title="Community coins — the pump.fun track">
+          <p>
+            Next to the serious shelf sits the casino, and it says so honestly. The{' '}
+            <span className="text-foreground">community track</span> (CommunityLaunch v1.0.1, live
+            since 25.09.2026) lets <span className="text-foreground">anyone launch a real XELIS
+            confidential asset in one transaction for ≈ {fmtXel(cParams.submissionFee + cParams.assetBudget)} XEL</span> —
+            no vote, no validation, no founder liquidity. This is NOT a quality filter: scams will
+            launch here, and the design bounds what a scam can DO, not what a coin can BE.
+          </p>
+          <p>
+            <span className="font-semibold text-foreground">The virtual-reserve curve.</span> The
+            coin is born with {fmtXel(cParams.virtualXel)} XEL of VIRTUAL depth: a constant-product
+            curve priced on <Mono>x = xr + vx</Mono> and <Mono>y = yr + y0</Mono> where the real
+            reserves start at zero and the virtual sides never move. Your coin has a price, slippage
+            and an order-book feel from the first buy — with zero founder capital. The math is
+            solvency-proven: k never decreases, the worst-case sell is exactly covered.
+          </p>
+          <p>
+            <span className="font-semibold text-foreground">Graduation = demand proof.</span> The
+            coin graduates when the community&apos;s OWN money fills the curve:{' '}
+            {fmtXel(cParams.graduationDepth)} XEL of real depth <span className="text-foreground">AND</span>{' '}
+            price continuity (<Mono>xr·y0 ≥ yr·vx</Mono> — the pool opens at or above spot, no
+            graduation dump). Graduation fires inside the very buy that crosses both conditions —
+            XELIS has no timers.
+          </p>
+          <p>
+            <span className="font-semibold text-foreground">Permissionless migration.</span> After
+            graduation, anyone — the last buyer, a keeper bot, you — triggers the atomic migration
+            into a permanent LaunchDEX pool through the open seeding endpoint. The{' '}
+            {(cParams.migrationFeeBps / 100).toFixed(2)}% fee is carved from the SEED, never the
+            live curve; the buyers&apos; own money becomes the protocol-locked anti-rug floor.
+          </p>
+          <p>
+            <span className="font-semibold text-foreground">What a scam cannot do here:</span> the
+            supply is fixed forever (enforced by the XELIS protocol itself), the creator never
+            touches the liquidity (there is none of his to pull), the pool seed is locked for life,
+            sells can NEVER be blocked (not even by the emergency pause — it only gates launches and
+            buys), and there is no honeypot surface. What the contract cannot do for you: tell you
+            which coin is worth anything. <span className="text-foreground">DYOR.</span>
+          </p>
+          <p className="border border-vlt/30 bg-vlt/[0.06] p-3 font-mono text-[10px] leading-relaxed">
+            two tracks, one DEX lineage · projects: 526 XEL + community vote → pinned create_pool ·
+            community: ~{fmtXel(cParams.submissionFee + cParams.assetBudget)} XEL + nothing → open
+            create_pool_open (chunk 33) · {(cStats?.coinCount ?? 0)} coins launched so far ·
+            {' '}{(cStats?.migratedCount ?? 0)} graduated to permanent pools
+          </p>
+        </Section>
+      )}
+
       {/* ── TRADE ── */}
       {tab === 'trade' && (
         <Section title="Trading — curve and DEX">
@@ -269,26 +324,32 @@ export function GuideView({ setView }: { setView: (v: AppView, id?: string) => v
         <Section title="Verify the contracts yourself — the golden rule">
           <p>
             <span className="font-semibold text-foreground">Never interact with any other address
-            presented as &quot;the launchpad&quot; or &quot;the DEX&quot;.</span> The two hashes
-            below are the only ones deployed by the official wallet, and they are pinned to each
-            other at the protocol level:
+            presented as &quot;the launchpad&quot;, &quot;the DEX&quot; or &quot;the community
+            factory&quot;.</span> The three hashes below are the only ones deployed by the official
+            wallet, and they are pinned to each other at the protocol level:
           </p>
           <div className="space-y-3">
             <div className="border border-border/60 bg-background/40 p-3">
               <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                VaultLaunch — the launchpad
+                VaultLaunch — the launchpad (projects)
               </div>
               <div className="mt-1.5"><Hash hash={VAULT_CONTRACT} /></div>
             </div>
             <div className="border border-border/60 bg-background/40 p-3">
               <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                LaunchDEX — the DEX
+                LaunchDEX v1.4.1 — the DEX (BOTH tracks)
               </div>
               <div className="mt-1.5"><Hash hash={DEX_CONTRACT} /></div>
             </div>
+            <div className="border border-vlt/30 bg-vlt/[0.05] p-3">
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-vlt">
+                CommunityLaunch — the community factory (pump.fun track)
+              </div>
+              <div className="mt-1.5"><Hash hash={COMMUNITY_CONTRACT} /></div>
+            </div>
             <div className="border border-border/60 bg-background/40 p-3">
               <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Official deployer wallet (the only one that can create pools)
+                Official deployer wallet (the admin / moderation key)
               </div>
               <div className="mt-1.5"><Hash hash={PROTOCOL_WALLET} kind="address" /></div>
             </div>
@@ -300,7 +361,14 @@ export function GuideView({ setView }: { setView: (v: AppView, id?: string) => v
             </li>
             <li className="flex gap-2.5">
               <span className="text-vault">▣</span>
-              <span>Storage <Mono>lpx</Mono> of the DEX = the official wallet — only that wallet can create a pool.</span>
+              <span>Storage <Mono>dxa</Mono> of the community factory = the same DEX hash — community
+                coins migrate through its open endpoint (<Mono>create_pool_open</Mono>, chunk 33).</span>
+            </li>
+            <li className="flex gap-2.5">
+              <span className="text-vault">▣</span>
+              <span>Storage <Mono>lpx</Mono> of the DEX = the official wallet — the moderation key
+                (project pools are created by that wallet; community pools are seeded openly but the
+                pause hook stays pinned).</span>
             </li>
             <li className="flex gap-2.5">
               <span className="text-vault">▣</span>

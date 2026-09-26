@@ -1,13 +1,22 @@
 // VaultLaunch — MAINNET protocol bindings.
 //
-// VaultLaunch v4.2 + LaunchDEX v1.3 were deployed, configured and verified
-// on the official XELIS mainnet on 23/09/2026 (block version V7). This
-// module is the single source of truth for the on-chain identity of the
-// protocol as seen by the website:
-//   • the two contract hashes (pinned to each other on-chain)
+// Generation 1 (VaultLaunch v4.2 + LaunchDEX v1.3) was deployed on the
+// XELIS mainnet on 23/09/2026. On 25/09/2026 the v1.4.1 cut (RUNBOOK 3
+// §1A) deployed a NEW DEX generation and repinned the launchpad to it:
+//   • LaunchDEX v1.4.1 (D141) — serves BOTH tracks: the pinned
+//     create_pool for projects, the open create_pool_open (chunk 33)
+//     for community coins; also carries the second-migration fix
+//   • CommunityLaunch v1.0.1 (C101) — the permissionless community
+//     factory (the pump.fun track)
+//   • the gen-1 DEX is orphaned — never served a pool, never will
+//
+// This module is the single source of truth for the on-chain identity of
+// the protocol as seen by the website:
+//   • the three contract hashes (pinned to each other on-chain)
 //   • every entry id a transaction can invoke (from the SDK ABI tables)
-//   • every storage key the reader polls (from LAUNCHPAD.md §7 / DEX.md)
-//   • the mainnet configuration, as DEPLOYED (runbook 3, verified 16/16
+//   • every storage key the reader polls (LAUNCHPAD.md §7 / DEX.md /
+//     COMMUNITY_LAUNCH.md §8 + the .slx storage map)
+//   • the mainnet configuration, as DEPLOYED (runbook 3, verified
 //     storage reads on-chain) — used as defaults until the live values
 //     are fetched from the chain.
 //
@@ -23,9 +32,15 @@ import { keyStr, parseCell, fromAtomic } from '@/lib/xelis/types'
 export const VAULT_CONTRACT =
   '45baf014edd09f1f93a7746aa7d7c45f1dea01daa07b0bc438f2a0e80664cc54'
 
-/** LaunchDEX — the AMM for graduated tokens. */
+/** LaunchDEX v1.4.1 (D141, 25/09/2026) — the AMM for BOTH tracks.
+ *  The gen-1 DEX (bce37bde…) is orphaned and never served a pool. */
 export const DEX_CONTRACT =
-  'bce37bde7ac8e0410656d5b67c398b172cbb6047f6b390041c9dbb3dbdeae11d'
+  'f3c461afe698a2bdfc7e5d941e86300876ecf16ac33ea45d8c6ddd936f7e24ef'
+
+/** CommunityLaunch v1.0.1 (C101, 25/09/2026) — the permissionless
+ *  community-coin factory (the pump.fun track, ~2 XEL per launch). */
+export const COMMUNITY_CONTRACT =
+  '8252cf7b7157dd05daf2d4e3bad78009c155c67bb3c908d042c61484dd7e89b9'
 
 /** The official deployer/admin wallet (the only one that can create pools). */
 export const PROTOCOL_WALLET =
@@ -77,6 +92,16 @@ export const DEX_ENTRIES = {
   set_fee_split: 29,
   claim_lp_fees: 30,
   remove_liquidity: 32,
+} as const
+
+// CommunityLaunch entry ids (abi/CommunityLaunch.abi.json v1.1.1)
+export const COMMUNITY_ENTRIES = {
+  launch_coin: 15,
+  buy: 16,
+  sell: 17,
+  migrate: 18,
+  claim_creator_allocation: 19,
+  update_coin_info: 20,
 } as const
 
 // ── Storage keys (must match the contracts' key builders exactly) ────
@@ -162,6 +187,36 @@ export const DG = {
   emergency: 'xpa', launchpadPinned: 'lpp', feeSplitBps: 'fsl',
 } as const
 
+// ── CommunityLaunch storage keys (CommunityLaunch.slx storage map) ───
+
+/** `c:{cid}:{field}` — one community coin record field. */
+export const coinKey = (cid: number, field: string) => `c:${cid}:${field}`
+
+/** Coin field keys (c:{cid}:*) */
+export const CF = {
+  creator: 'cr', status: 'st', name: 'nm', symbol: 'sy',
+  description: 'ds', website: 'ws', logo: 'lg',
+  twitter: 'tw', telegram: 'tg', discord: 'dc',
+  supply: 'ts', creatorBps: 'cb',
+  xelReserve: 'xr', tokenInventory: 'yr', initialInventory: 'y0',
+  virtualXel: 'vx', gradDepth: 'gx',
+  created: 'ct', graduated: 'gr', graduatedAt: 'gt',
+  migrated: 'mi', migratedAt: 'ma', migratedXel: 'mx', migratedTokens: 'mt',
+  creatorPaid: 'cp', asset: 'ah',
+  buyVolume: 'bv', sellVolume: 'sv', trades: 'tc', lastTrade: 'lt',
+  volume: 'vo',
+} as const
+
+/** Global keys — CommunityLaunch */
+export const CG = {
+  admin: 'adm', count: 'pc', submissionFee: 'sub', assetBudget: 'abd',
+  curveFeeBps: 'cfe', graduatedFeeBps: 'gfe', migrationFeeBps: 'mgf',
+  graduationDepth: 'gdx', virtualXel: 'vxs', dexAddress: 'dxa',
+  pendingFees: 'pfe', feesCollected: 'fcl', paused: 'pz',
+  totalBuyVolume: 'tbv', totalSellVolume: 'tsv', totalTrades: 'ttc',
+  totalVolume: 'tvl', migratedCount: 'mgc', totalCurveXel: 'tcx',
+} as const
+
 // ── Mainnet configuration as deployed (runbook 3, §2) ───────────────
 // These are DEFAULTS — the live values are read from the chain at boot
 // and after every slow refresh, so an admin tune shows up on its own.
@@ -215,6 +270,40 @@ export function minProposeDeposit(p: ProtocolParams): number {
   return p.submissionFee + p.assetBudget + p.minLiquidity
 }
 
+// ── CommunityLaunch configuration as deployed (runbook 3 §1A) ────────
+// C101 was deployed with contract defaults — nothing to set. Live values
+// are read from the chain at boot and after every deep refresh.
+
+export interface CommunityParams {
+  submissionFee: number      // XEL (sub)
+  assetBudget: number        // XEL (abd) — unused part refunded in-tx
+  curveFeeBps: number        // cfe — live curve fee
+  graduatedFeeBps: number    // gfe — post-graduation curve fee (≤ cfe)
+  migrationFeeBps: number    // mgf — carved from the SEED at migration
+  graduationDepth: number    // XEL (gdx) — demand-proof depth
+  virtualXel: number         // XEL (vxs) — the virtual reserve
+  paused: boolean            // launches + buys only (sells never block)
+  dexAddress: string | null  // the one-way DEX pin
+}
+
+export const COMMUNITY_PARAMS: CommunityParams = {
+  submissionFee: 1,
+  assetBudget: 1,
+  curveFeeBps: 100,          // 1% live
+  graduatedFeeBps: 50,       // 0.5% graduated
+  migrationFeeBps: 50,       // 0.5% from the seed
+  graduationDepth: 50,       // XEL of real depth to graduate
+  virtualXel: 100,           // XEL of virtual depth
+  paused: false,
+  dexAddress: DEX_CONTRACT,
+}
+
+/** The launch_coin deposit: submission fee + asset budget (unused
+ *  part of the budget is refunded in the same transaction). */
+export function launchCoinDeposit(p: CommunityParams): number {
+  return p.submissionFee + p.assetBudget
+}
+
 // ── Storage read (mainnet node, string key → parsed value) ───────────
 
 /**
@@ -239,6 +328,29 @@ export async function readStorage(
     const msg = String(e?.message || '')
     if (msg.includes('No data found') || msg.includes('not found')) return null
     throw e
+  }
+}
+
+/** Read the live community factory configuration from the chain. */
+export async function fetchCommunityParams(): Promise<CommunityParams> {
+  const c = (k: string) => readStorage(COMMUNITY_CONTRACT, k, 30000)
+  const [sub, abd, cfe, gfe, mgf, gdx, vxs, pz, dxa] = await Promise.all([
+    c(CG.submissionFee), c(CG.assetBudget), c(CG.curveFeeBps),
+    c(CG.graduatedFeeBps), c(CG.migrationFeeBps), c(CG.graduationDepth),
+    c(CG.virtualXel), c(CG.paused), c(CG.dexAddress),
+  ])
+  const num = (x: any, dflt: number) => (x == null ? dflt : fromAtomic(x))
+  const small = (x: any, dflt: number) => (x == null ? dflt : Number(x))
+  return {
+    submissionFee: num(sub, COMMUNITY_PARAMS.submissionFee),
+    assetBudget: num(abd, COMMUNITY_PARAMS.assetBudget),
+    curveFeeBps: small(cfe, COMMUNITY_PARAMS.curveFeeBps),
+    graduatedFeeBps: small(gfe, COMMUNITY_PARAMS.graduatedFeeBps),
+    migrationFeeBps: small(mgf, COMMUNITY_PARAMS.migrationFeeBps),
+    graduationDepth: num(gdx, COMMUNITY_PARAMS.graduationDepth),
+    virtualXel: num(vxs, COMMUNITY_PARAMS.virtualXel),
+    paused: pz === true,
+    dexAddress: dxa == null ? null : String(dxa),
   }
 }
 

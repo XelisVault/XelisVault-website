@@ -14,6 +14,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ExternalLink } from 'lucide-react'
 import { useMainnet } from '@/lib/launch/mainnet-store'
+import { useCommunity } from '@/lib/launch/community-store'
 import { useLaunchWallet } from '@/lib/launch/wallet'
 import { fetchLpInfo } from '@/lib/launch/reader'
 import { explorerAddressUrl } from '@/lib/launch/protocol'
@@ -23,6 +24,7 @@ import { ProjectLogo } from './logos'
 import { fmtXel, fmtPrice } from '@/lib/launch/math'
 import { cn } from '@/lib/utils'
 import type { AppView } from './launchpad-view'
+import type { CommunityCoin } from '@/lib/launch/types'
 
 interface LpRow {
   ticker: string
@@ -35,6 +37,7 @@ interface LpRow {
 
 export function PortfolioView({ setView }: { setView: (v: AppView, id?: string) => void }) {
   const projects = useMainnet((s) => s.projects)
+  const coins = useCommunity((s) => s.coins)
   const wallet = useLaunchWallet()
   const connected = wallet.state === 'connected' && !!wallet.address
 
@@ -82,13 +85,17 @@ export function PortfolioView({ setView }: { setView: (v: AppView, id?: string) 
   }
 
   // ── holdings ──
-  const priceOf = (asset: string | null): { price: number; project: typeof projects[number] | null } => {
-    if (!asset) return { price: 0, project: null }
+  const priceOf = (asset: string | null): { price: number; project: typeof projects[number] | null; coin: CommunityCoin | null } => {
+    if (!asset) return { price: 0, project: null, coin: null }
     const p = projects.find((x) => x.asset === asset)
-    if (!p) return { price: 0, project: null }
-    if (p.pool) return { price: p.pool.xel / p.pool.token, project: p }
-    if (p.curve) return { price: p.curve.reserves / p.curve.circulating, project: p }
-    return { price: 0, project: p }
+    if (p) {
+      if (p.pool) return { price: p.pool.xel / p.pool.token, project: p, coin: null }
+      if (p.curve) return { price: p.curve.reserves / p.curve.circulating, project: p, coin: null }
+      return { price: 0, project: p, coin: null }
+    }
+    const c = coins.find((x) => x.asset === asset)
+    if (c) return { price: c.price, project: null, coin: c }
+    return { price: 0, project: null, coin: null }
   }
 
   const holdings = [
@@ -99,19 +106,23 @@ export function PortfolioView({ setView }: { setView: (v: AppView, id?: string) 
       price: 1,
       stage: 'native',
       project: null as typeof projects[number] | null,
+      coin: null as CommunityCoin | null,
       asset: null as string | null,
     },
     ...Object.entries(wallet.assetBalances)
       .filter(([, bal]) => bal > 0.000001)
       .map(([asset, bal]) => {
-        const { price, project } = priceOf(asset)
+        const { price, project, coin } = priceOf(asset)
         return {
-          ticker: project?.ticker ?? asset.slice(0, 6).toUpperCase(),
-          name: project?.name ?? 'Unknown asset',
+          ticker: project?.ticker ?? coin?.ticker ?? asset.slice(0, 6).toUpperCase(),
+          name: project?.name ?? coin?.name ?? 'Unknown asset',
           balance: bal,
           price,
-          stage: project?.pool ? 'LaunchDEX' : project?.curve ? 'bonding curve' : 'untracked',
+          stage: coin
+            ? (coin.pool ? 'community · DEX pool' : 'community · virtual curve')
+            : project?.pool ? 'LaunchDEX' : project?.curve ? 'bonding curve' : 'untracked',
           project,
+          coin,
           asset,
         }
       }),
@@ -150,6 +161,7 @@ export function PortfolioView({ setView }: { setView: (v: AppView, id?: string) 
           <div className="flex flex-wrap gap-2">
             <BracketButton size="sm" onClick={() => setView('trading')}>curve trading</BracketButton>
             <BracketButton size="sm" variant="teal" onClick={() => setView('dex')}>launchdex</BracketButton>
+            <BracketButton size="sm" variant="vlt" onClick={() => setView('community')}>community coins</BracketButton>
             <BracketButton size="sm" variant="quiet" onClick={() => setView('launchpad')}>launchpad</BracketButton>
           </div>
         </div>
@@ -176,19 +188,27 @@ export function PortfolioView({ setView }: { setView: (v: AppView, id?: string) 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">{h.name}</span>
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{h.stage}</span>
+                  <span className={cn('font-mono text-[10px] uppercase tracking-wider', h.coin ? 'text-vlt' : 'text-muted-foreground')}>{h.stage}</span>
                   {h.project && <StatusTag status={h.project.status} />}
                 </div>
                 <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">
                   {h.asset ? `${h.asset.slice(0, 16)}…` : 'native asset'}
                 </div>
               </div>
-              {h.project && (h.project.curve || h.project.pool) && (
+              {(h.project && (h.project.curve || h.project.pool)) && (
                 <Sparkline
                   data={(h.project.curve ?? h.project.pool)!.history.slice(-45)}
                   width={84}
                   height={26}
                   color={h.project.pool ? 'var(--xusd)' : 'auto'}
+                />
+              )}
+              {h.coin && (h.coin.curve || h.coin.pool) && (
+                <Sparkline
+                  data={(h.coin.curve ?? h.coin.pool)!.history.slice(-45)}
+                  width={84}
+                  height={26}
+                  color={h.coin.pool ? 'var(--xusd)' : 'auto'}
                 />
               )}
               <div className="w-36 text-right font-mono text-xs tabular-nums">
@@ -197,16 +217,23 @@ export function PortfolioView({ setView }: { setView: (v: AppView, id?: string) 
                   {h.price > 0 ? `@ ${fmtPrice(h.price)} · ${fmtXel(h.balance * h.price)} XEL` : 'unpriced'}
                 </div>
               </div>
-              {h.project && (
-                <div className="w-16 text-right">
+              <div className="w-16 text-right">
+                {h.project ? (
                   <button
                     onClick={() => h.project!.pool ? setView('dex', h.project!.id) : setView('trading', h.project!.id)}
                     className="font-mono text-[10px] uppercase tracking-wider text-vault hover:underline"
                   >
                     {h.project.pool ? 'pool →' : 'trade →'}
                   </button>
-                </div>
-              )}
+                ) : h.coin ? (
+                  <button
+                    onClick={() => setView('community', h.coin!.id)}
+                    className="font-mono text-[10px] uppercase tracking-wider text-vlt hover:underline"
+                  >
+                    coin →
+                  </button>
+                ) : null}
+              </div>
             </motion.div>
           ))}
           {holdings.length === 1 && (

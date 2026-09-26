@@ -12,6 +12,7 @@
 import { create } from 'zustand'
 import { getLaunchXSWDClient, LAUNCH_APP_DATA, mainnetConnectError } from './xswd'
 import { useMainnet } from './mainnet-store'
+import { useCommunity } from './community-store'
 import type { XSWDState } from '@/lib/xelis/xswd'
 
 const XEL_ASSET_HEX = '0'.repeat(64)
@@ -119,10 +120,13 @@ export const useLaunchWallet = create<LaunchWalletStore>((set, get) => ({
       const bal = await client.getBalance(XEL_ASSET_HEX)
       set({ xelBalance: toXel(bal) })
     } catch { /* user may skip the balance prompt */ }
-    // launched assets the wallet tracks (or that exist in the store)
+    // launched assets the wallet tracks (or that exist in the stores)
     const assets = new Set(tracked)
     for (const p of useMainnet.getState().projects) {
       if (p.asset) assets.add(p.asset)
+    }
+    for (const c of useCommunity.getState().coins) {
+      if (c.asset) assets.add(c.asset)
     }
     const updates: Record<string, number> = { ...get().assetBalances }
     await Promise.all(
