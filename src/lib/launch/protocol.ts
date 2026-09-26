@@ -284,6 +284,8 @@ export interface CommunityParams {
   virtualXel: number         // XEL (vxs) — the virtual reserve
   paused: boolean            // launches + buys only (sells never block)
   dexAddress: string | null  // the one-way DEX pin
+  dexSwapFeeBps: number      // sfe on the pinned DEX — pool-era fee
+  dexFeeSplitBps: number     // fsl on the pinned DEX — LP share of it
 }
 
 export const COMMUNITY_PARAMS: CommunityParams = {
@@ -296,6 +298,8 @@ export const COMMUNITY_PARAMS: CommunityParams = {
   virtualXel: 100,           // XEL of virtual depth
   paused: false,
   dexAddress: DEX_CONTRACT,
+  dexSwapFeeBps: 30,         // D141 default — live value read below
+  dexFeeSplitBps: 5000,      // 50/50 default — live value read below
 }
 
 /** The launch_coin deposit: submission fee + asset budget (unused
@@ -339,6 +343,11 @@ export async function fetchCommunityParams(): Promise<CommunityParams> {
     c(CG.graduatedFeeBps), c(CG.migrationFeeBps), c(CG.graduationDepth),
     c(CG.virtualXel), c(CG.paused), c(CG.dexAddress),
   ])
+  // DEX fees follow the factory's pin: read sfe/fsl from the DEX the
+  // coins actually migrate to (dxa), falling back to the known D141.
+  const pinned = dxa == null ? DEX_CONTRACT : String(dxa)
+  const d = (k: string) => readStorage(pinned, k, 30000)
+  const [sfe, fsl] = await Promise.all([d(DG.swapFeeBps), d(DG.feeSplitBps)])
   const num = (x: any, dflt: number) => (x == null ? dflt : fromAtomic(x))
   const small = (x: any, dflt: number) => (x == null ? dflt : Number(x))
   return {
@@ -350,7 +359,9 @@ export async function fetchCommunityParams(): Promise<CommunityParams> {
     graduationDepth: num(gdx, COMMUNITY_PARAMS.graduationDepth),
     virtualXel: num(vxs, COMMUNITY_PARAMS.virtualXel),
     paused: pz === true,
-    dexAddress: dxa == null ? null : String(dxa),
+    dexAddress: pinned,
+    dexSwapFeeBps: small(sfe, COMMUNITY_PARAMS.dexSwapFeeBps),
+    dexFeeSplitBps: small(fsl, COMMUNITY_PARAMS.dexFeeSplitBps),
   }
 }
 

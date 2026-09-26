@@ -146,7 +146,7 @@ async function fastScan(topo: number, set: SetFn, get: GetFn): Promise<void> {
     }
     if (c.status === 'migrated' && c.asset) {
       const pool = await fetchPool(c.asset).catch(() => null)
-      if (pool) coins[i] = mergePool(coins[i], pool, topo, charts)
+      if (pool) coins[i] = mergePool(coins[i], pool, topo, get().cParams, charts)
     }
   }
 
@@ -289,8 +289,8 @@ function mapCoin(
       asset: pool.asset,
       xel: toHuman(pool.xelReserve),
       token: toHuman(pool.tokenReserve),
-      feeBps: 30,
-      adminSplitBps: 5000,
+      feeBps: params.dexSwapFeeBps,
+      adminSplitBps: params.dexFeeSplitBps,
       seedLocked: toHuman(pool.lpLockedDepth),
       totalParts: toHuman(pool.lpTotalDepth),
       history: series.history,
@@ -376,6 +376,7 @@ function mergePool(
   c: CommunityCoin,
   pool: NonNullable<Awaited<ReturnType<typeof fetchPool>>>,
   topo: number,
+  params: CommunityParams,
   charts: Record<string, ChartSeries>,
 ): CommunityCoin {
   if (!c.pool) {
@@ -392,8 +393,8 @@ function mergePool(
         asset: pool.asset,
         xel: toHuman(pool.xelReserve),
         token: toHuman(pool.tokenReserve),
-        feeBps: 30,
-        adminSplitBps: 5000,
+        feeBps: params.dexSwapFeeBps,
+        adminSplitBps: params.dexFeeSplitBps,
         seedLocked: toHuman(pool.lpLockedDepth),
         totalParts: toHuman(pool.lpTotalDepth),
         history: series.history,

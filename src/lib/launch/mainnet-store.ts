@@ -208,7 +208,7 @@ async function fastScan(topo: number, set: SetFn, get: GetFn): Promise<void> {
     if (p.migrated && p.pool) {
       const pool = await fetchPool(p.pool.asset).catch(() => null)
       if (pool) {
-        projects[i] = mergePool(projects[i], pool, topo, charts)
+        projects[i] = mergePool(projects[i], pool, topo, get().params, charts)
       }
     }
   }
@@ -420,6 +420,10 @@ function mergeFast(
       ...next.curve,
       reserves: toHuman(fresh.reserves),
       circulating: toHuman(fresh.curveSupply),
+      // graduation flips the curve fee to the graduated rate (tfe → gfe)
+      feeBps: next.graduated
+        ? Math.min(params.graduatedFeeBps, params.tradingFeeBps)
+        : next.curve.feeBps,
       history: series.history,
       histStart: series.histStart,
       points: series.points,
@@ -438,6 +442,7 @@ function mergePool(
   p: Project,
   pool: RawPool,
   topo: number,
+  params: ProtocolParams,
   charts: Record<string, ChartSeries>,
 ): Project {
   if (!p.pool) {
@@ -460,7 +465,7 @@ function mergePool(
         migratedAt: 0, migratedXel: pool.xelReserve, migratedTokens: pool.tokenReserve,
         dexSynced: pool.buysPaused,
       } as RawProject,
-      pool, topo, MAINNET_PARAMS, charts,
+      pool, topo, params, charts,
     )
   }
   const price = toHuman((pool.xelReserve * 100000000n) / (pool.tokenReserve || 1n))

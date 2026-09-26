@@ -36,7 +36,7 @@ import { AnimatedNumber, Bar, BracketButton, SquareDot, Sparkline } from './shar
 import { ProjectLogo } from './logos'
 import { PriceChart } from './chart'
 import { fmtXel, fmtPrice, fmtPct, shortAddr } from '@/lib/launch/math'
-import { explorerAddressUrl } from '@/lib/launch/protocol'
+import { explorerAddressUrl, type CommunityParams } from '@/lib/launch/protocol'
 import type { CommunityCoin } from '@/lib/launch/types'
 import { cn } from '@/lib/utils'
 import type { AppView } from './launchpad-view'
@@ -81,7 +81,7 @@ function coinChange(c: CommunityCoin): number {
   return first > 0 ? ((c.price - first) / first) * 100 : 0
 }
 
-function CoinCard({ c, rank, onOpen }: { c: CommunityCoin; rank: number; onOpen: () => void }) {
+function CoinCard({ c, rank, onOpen, params }: { c: CommunityCoin; rank: number; onOpen: () => void; params: CommunityParams }) {
   const chg = coinChange(c)
   const onCurve = c.status !== 'migrated'
   return (
@@ -182,7 +182,7 @@ function CoinCard({ c, rank, onOpen }: { c: CommunityCoin; rank: number; onOpen:
 
       <div className="mt-4 flex items-center justify-between border-t border-border/60 pt-3 font-mono text-[10px] uppercase tracking-[0.16em]">
         <span className="text-muted-foreground">
-          fee {((c.curve?.feeBps ?? 30) / 100).toFixed(2)}% · {c.status === 'migrated' ? 'DEX pool' : 'virtual curve'}
+          fee {((c.curve?.feeBps ?? c.pool?.feeBps ?? params.curveFeeBps) / 100).toFixed(2)}% · {c.status === 'migrated' ? 'DEX pool' : 'virtual curve'}
         </span>
         <span className="text-vlt opacity-0 transition-opacity group-hover:opacity-100">open coin →</span>
       </div>
@@ -964,7 +964,7 @@ export function CommunityView({ setView, focusId }: {
         <motion.div layout className="mt-4 grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
           <AnimatePresence mode="popLayout">
             {filtered.map((c, i) => (
-              <CoinCard key={c.id} c={c} rank={i} onOpen={() => setView('community', c.id)} />
+              <CoinCard key={c.id} c={c} rank={i} params={cParams} onOpen={() => setView('community', c.id)} />
             ))}
           </AnimatePresence>
         </motion.div>
