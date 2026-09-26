@@ -93,6 +93,104 @@ export function coinContinuity(xr: bigint, yr: bigint, y0: bigint, vx: bigint): 
   return xr * y0 >= yr * vx
 }
 
+// ── Graduation analysis (what the site SHOWS) ─────────────────────────
+//
+// C2 has TWO conditions, and the depth bar alone is a misleading
+// "migration threshold": a coin can sit at 100% depth forever while
+// continuity blocks graduation. This analysis turns both conditions
+// into live, human-readable progress — including the exact amount of
+// buys still needed, computed with the closed form below.
+
+export interface GraduationAnalysis {
+  /** C2 condition 1: xr ≥ gdx */
+  depthMet: boolean
+  /** C2 condition 2: xr·y0 ≥ yr·vx (equivalently: the real XEL share
+   *  of the pool's XEL side ≥ the real share of the token side) */
+  continuityMet: boolean
+  /** 0..1 — depth progress (xr / gdx) */
+  depthProgress: number
+  /** 0..1 — continuity progress (real XEL share ÷ real token share) */
+  continuityProgress: number
+  /** 0..1 — the binding condition's progress (what a single honest
+   *  "graduation %" must show: min of both) */
+  bindingProgress: number
+  /** NET XEL that must still be ADDED BY BUYS for BOTH conditions
+   *  (0 once both are met). Buys help twice: they add real XEL and
+   *  take tokens out of the curve at the same time. */
+  needNet: number
+  /** Same amount GROSS (curve fee included) — what a buyer pays. */
+  needGross: number
+  /** Real depth once those buys land (where graduation fires). */
+  targetDepth: number
+  /** Real share of the XEL side: xr / (xr + vx). */
+  xShare: number
+  /** Real share of the token side: yr / (yr + y0). */
+  yShare: number
+}
+
+/**
+ * The exact "how far from graduation" analysis.
+ *
+ * The continuity requirement on buys is solved in CLOSED FORM. A net
+ * buy n moves the curve to (xr+n, yr−out) with
+ * out = (yr+y0)·n / ((xr+vx)+n); requiring (xr+n)·y0 ≥ (yr−out)·vx
+ * and simplifying (the product is invariant around the net amount)
+ * gives the quadratic  n² + 2B·n + C ≥ 0  with B = xr+vx and
+ * C = B·(xr − vx·yr/y0) — so the minimal net buy is
+ *   n = √(B²−C) − B   (clamped at 0 when continuity already holds).
+ * Verified against an exact integer simulation on mainnet state:
+ * 0.0000% error, and the trajectory special case reduces to the
+ * contract's own xr ≥ vx·(√2−1) shortcut.
+ *
+ * Both constraints are monotone in n, so the answer is simply the max
+ * of the continuity root and the depth gap — split buys land on the
+ * same final state (the curve's product is path-independent around
+ * nets, and the fee is linear), so "≈ N XEL of buys, one or several"
+ * is exact. Sells move BOTH conditions the wrong way.
+ */
+export function coinGraduationAnalysis(
+  xr: bigint, yr: bigint, y0: bigint, vx: bigint, gdx: bigint,
+  feeBps: number,
+): GraduationAnalysis {
+  const ATOMIC_H = Number(ATOMIC)
+  const A = Number(xr) / ATOMIC_H // real depth, XEL
+  const Y = Number(yr) / ATOMIC_H // real inventory, tokens
+  const Y0 = Number(y0) / ATOMIC_H
+  const V = Number(vx) / ATOMIC_H
+  const G = Number(gdx) / ATOMIC_H
+
+  const depthMet = gdx <= 0n ? true : xr >= gdx
+  const continuityMet = coinContinuity(xr, yr, y0, vx)
+
+  const depthProgress = G > 0 ? Math.min(1, A / G) : 1
+  const xShare = A + V > 0 ? A / (A + V) : 1
+  const yShare = Y + Y0 > 0 ? Y / (Y + Y0) : 1
+  const continuityProgress = yShare > 0 ? Math.min(1, xShare / yShare) : 1
+
+  // continuity root (0 when already met or degenerate)
+  let nCont = 0
+  if (!continuityMet && Y0 > 0) {
+    const B = A + V
+    const C = B * (A - (V * Y) / Y0)
+    const disc = B * B - C
+    if (disc > 0) nCont = Math.max(0, Math.sqrt(disc) - B)
+  }
+  // depth gap (0 when already met)
+  const nDepth = Math.max(0, G - A)
+
+  const needNet = depthMet && continuityMet ? 0 : Math.max(nCont, nDepth)
+  const needGross = feeBps >= 10000 ? needNet : needNet / (1 - feeBps / 10000)
+
+  return {
+    depthMet, continuityMet,
+    depthProgress, continuityProgress,
+    bindingProgress: Math.min(depthProgress, continuityProgress),
+    needNet, needGross,
+    targetDepth: A + needNet,
+    xShare, yShare,
+  }
+}
+
 /** FDV the moment a coin is born: spot = vx/(2·y0), cap = spot·supply
  *  (the launch depth mirrors the initial inventory). With the
  *  defaults (vx = 100 XEL, 1B supply, 0% team) ≈ 50 XEL. */

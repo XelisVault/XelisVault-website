@@ -291,10 +291,35 @@ function ConnectModal({ open, onClose }: { open: boolean; onClose: () => void })
   const wallet = useLaunchWallet()
   const { toast } = useToast()
   const [connecting, setConnecting] = useState(false)
+  // relay (web & mobile) state
+  const [mode, setMode] = useState<'desktop' | 'relay'>('desktop')
+  const [qrUrl, setQrUrl] = useState<string | null>(null)
+  const [qrJson, setQrJson] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
 
   useEffect(() => {
     if (open && wallet.state === 'connected') onClose()
   }, [open, wallet.state, onClose])
+
+  // fresh state every time the modal opens
+  useEffect(() => {
+    if (open) {
+      setMode('desktop')
+      setQrUrl(null)
+      setQrJson(null)
+      setCopied(false)
+      setSecondsLeft(null)
+      setConnecting(false)
+    }
+  }, [open])
+
+  // QR countdown
+  useEffect(() => {
+    if (secondsLeft == null || secondsLeft <= 0) return
+    const t = setTimeout(() => setSecondsLeft((s) => (s ?? 1) - 1), 1000)
+    return () => clearTimeout(t)
+  }, [secondsLeft])
 
   const connect = async () => {
     setConnecting(true)
@@ -314,7 +339,63 @@ function ConnectModal({ open, onClose }: { open: boolean; onClose: () => void })
     }
   }
 
+  const connectRelay = async () => {
+    setConnecting(true)
+    setQrUrl(null)
+    setQrJson(null)
+    setCopied(false)
+    try {
+      await wallet.connectRelay(async (qr, info) => {
+        if (!qr) {
+          setQrUrl(null)
+          setQrJson(null)
+          setSecondsLeft(null)
+          return
+        }
+        setQrJson(qr)
+        setSecondsLeft(info?.timeoutSeconds ?? 180)
+        try {
+          const QR = (await import('qrcode')).default
+          const url = await QR.toDataURL(qr, {
+            width: 440,
+            margin: 1,
+            color: { dark: '#000000', light: '#FFFFFF' },
+          })
+          setQrUrl(url)
+        } catch {
+          // QR render failure — the copyable code below is the fallback
+        }
+      })
+      toast({
+        title: 'Wallet connected',
+        description: wallet.isMainnet === false
+          ? 'Connected — but the wallet is NOT on mainnet. Switch it to the XELIS mainnet.'
+          : 'Connected through the XSWD relay. Live on the XELIS mainnet — real funds, real transactions.',
+      })
+      onClose()
+    } catch {
+      // the store holds the error message
+    } finally {
+      setConnecting(false)
+      setQrUrl(null)
+      setQrJson(null)
+      setSecondsLeft(null)
+    }
+  }
+
+  const copyCode = async () => {
+    if (!qrJson) return
+    try {
+      await navigator.clipboard.writeText(qrJson)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    } catch { /* clipboard blocked */ }
+  }
+
   if (!open) return null
+
+  const busy = connecting || wallet.state === 'connecting' || wallet.state === 'awaiting-approval'
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
@@ -332,48 +413,139 @@ function ConnectModal({ open, onClose }: { open: boolean; onClose: () => void })
         </div>
         <h3 className="mb-4 text-lg font-semibold text-foreground">XSWD · XELIS mainnet</h3>
 
-        <div className="mb-5 border border-border bg-foreground/[0.03] p-4 text-sm leading-relaxed text-muted-foreground">
-          <p className="mb-2 text-foreground">Genesix (or xelis_wallet) on mainnet</p>
-          <ol className="list-inside list-decimal space-y-1 font-mono text-[11px]">
-            <li>Open Genesix with a mainnet daemon</li>
-            <li>Settings → XSWD → enabled (ws://127.0.0.1:44325)</li>
-            <li>Accept the VaultLaunch connection popup</li>
-          </ol>
-          <p className="mt-2 text-[11px]">
-            Every action is a real mainnet transaction signed by your wallet. The site never sees your keys.
-          </p>
+        {/* mode tabs */}
+        <div className="mb-4 grid grid-cols-2 gap-1 border border-border bg-foreground/[0.02] p-1">
+          {(['desktop', 'relay'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              className={
+                'px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors '
+                + (mode === m
+                  ? 'bg-foreground text-background'
+                  : 'text-muted-foreground hover:text-foreground')
+              }
+            >
+              {m === 'desktop' ? 'desktop wallet' : 'web & mobile'}
+            </button>
+          ))}
         </div>
 
-        {wallet.state === 'error' && wallet.message && (
-          <p className="mb-4 border border-destructive/40 bg-destructive/10 p-3 font-mono text-[11px] leading-relaxed text-destructive">
-            {wallet.message}
-          </p>
-        )}
-        {wallet.state === 'awaiting-approval' && (
-          <p className="mb-4 border border-vault/40 bg-vault/10 p-3 font-mono text-[11px] text-vault">
-            Waiting for approval in the wallet…
-          </p>
-        )}
-        {wallet.isMainnet === false && (
-          <p className="mb-4 border border-destructive/40 bg-destructive/10 p-3 font-mono text-[11px] text-destructive">
-            Your wallet daemon is on {wallet.network ?? 'an unknown network'} — VaultLaunch needs the MAINNET.
-          </p>
-        )}
+        {mode === 'desktop' ? (
+          <>
+            <div className="mb-5 border border-border bg-foreground/[0.03] p-4 text-sm leading-relaxed text-muted-foreground">
+              <p className="mb-2 text-foreground">Genesix (or xelis_wallet) on mainnet</p>
+              <ol className="list-inside list-decimal space-y-1 font-mono text-[11px]">
+                <li>Open Genesix with a mainnet daemon</li>
+                <li>Settings → XSWD → enabled (ws://127.0.0.1:44325)</li>
+                <li>Accept the VaultLaunch connection popup</li>
+              </ol>
+              <p className="mt-2 text-[11px]">
+                Every action is a real mainnet transaction signed by your wallet. The site never sees your keys.
+              </p>
+              <p className="mt-2 text-[10px] text-muted-foreground/70">
+                No desktop wallet? Use the <span className="text-foreground">web &amp; mobile</span> tab — it works with Genesix in the browser.
+              </p>
+            </div>
 
-        <div className="flex gap-2">
-          <BracketButton
-            variant="strong"
-            onClick={connect}
-            disabled={connecting || wallet.state === 'connecting' || wallet.state === 'awaiting-approval'}
-          >
-            {connecting || wallet.state === 'connecting' || wallet.state === 'awaiting-approval'
-              ? 'connecting…'
-              : 'connect genesix'}
-          </BracketButton>
-          <BracketButton variant="quiet" onClick={onClose}>
-            close
-          </BracketButton>
-        </div>
+            {wallet.state === 'error' && wallet.message && (
+              <p className="mb-4 border border-destructive/40 bg-destructive/10 p-3 font-mono text-[11px] leading-relaxed text-destructive">
+                {wallet.message}
+              </p>
+            )}
+            {wallet.state === 'awaiting-approval' && (
+              <p className="mb-4 border border-vault/40 bg-vault/10 p-3 font-mono text-[11px] text-vault">
+                Waiting for approval in the wallet…
+              </p>
+            )}
+            {wallet.isMainnet === false && (
+              <p className="mb-4 border border-destructive/40 bg-destructive/10 p-3 font-mono text-[11px] text-destructive">
+                Your wallet daemon is on {wallet.network ?? 'an unknown network'} — VaultLaunch needs the MAINNET.
+              </p>
+            )}
+
+            <div className="flex gap-2">
+              <BracketButton variant="strong" onClick={connect} disabled={busy}>
+                {busy ? 'connecting…' : 'connect genesix'}
+              </BracketButton>
+              <BracketButton variant="quiet" onClick={onClose}>
+                close
+              </BracketButton>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="mb-4 border border-border bg-foreground/[0.03] p-4 text-sm leading-relaxed text-muted-foreground">
+              <p className="mb-2 text-foreground">Genesix web (wallet.xelis.io) or mobile</p>
+              <ol className="list-inside list-decimal space-y-1 font-mono text-[11px]">
+                <li>Open your wallet on the XELIS mainnet</li>
+                <li>Show the connection code below (scan or paste)</li>
+                <li>Approve VaultLaunch in the wallet</li>
+              </ol>
+              <p className="mt-2 text-[11px]">
+                Routed through the official XSWD relay, encrypted end-to-end (AES-256-GCM) — the relay
+                only ever sees ciphertext, and the site never sees your keys.
+              </p>
+            </div>
+
+            {wallet.state === 'error' && wallet.message && (
+              <p className="mb-4 border border-destructive/40 bg-destructive/10 p-3 font-mono text-[11px] leading-relaxed text-destructive">
+                {wallet.message}
+              </p>
+            )}
+
+            {qrJson ? (
+              <div className="mb-4 flex flex-col items-center gap-2 border border-border bg-foreground/[0.03] p-4">
+                {qrUrl ? (
+                  <img
+                    src={qrUrl}
+                    alt="Wallet connection QR code"
+                    className="h-48 w-48 bg-white p-1.5"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="flex h-48 w-48 items-center justify-center font-mono text-[10px] text-muted-foreground">
+                    rendering code…
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <BracketButton variant="quiet" onClick={copyCode} disabled={copied}>
+                    {copied ? 'copied ✓' : 'copy code'}
+                  </BracketButton>
+                  {secondsLeft != null && secondsLeft > 0 && (
+                    <span className="font-mono text-[10px] text-muted-foreground">
+                      expires in {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}
+                    </span>
+                  )}
+                </div>
+                <p className="text-center font-mono text-[10px] leading-relaxed text-muted-foreground">
+                  In Genesix web / mobile: connect a dApp → scan this QR (or paste the code).
+                  Waiting for the wallet…
+                </p>
+              </div>
+            ) : busy ? (
+              <p className="mb-4 border border-vault/40 bg-vault/10 p-3 font-mono text-[11px] text-vault">
+                {wallet.message ?? 'Opening a relay channel…'}
+              </p>
+            ) : null}
+
+            {wallet.isMainnet === false && (
+              <p className="mb-4 border border-destructive/40 bg-destructive/10 p-3 font-mono text-[11px] text-destructive">
+                Your wallet daemon is on {wallet.network ?? 'an unknown network'} — VaultLaunch needs the MAINNET.
+              </p>
+            )}
+
+            <div className="flex gap-2">
+              <BracketButton variant="strong" onClick={connectRelay} disabled={busy}>
+                {busy ? 'waiting for wallet…' : 'show connection code'}
+              </BracketButton>
+              <BracketButton variant="quiet" onClick={onClose}>
+                close
+              </BracketButton>
+            </div>
+          </>
+        )}
       </motion.div>
     </div>
   )

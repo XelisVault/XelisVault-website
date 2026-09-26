@@ -506,11 +506,15 @@ function OfficialTokenBanner({ coin, setView }: {
             <div className="hidden w-44 sm:block">
               <div className="flex items-center justify-between font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
                 <span>graduation</span>
-                <span className="font-bold text-vault">{(coin.progress * 100).toFixed(0)}%</span>
+                <span className="font-bold text-vault">{((coin.graduation?.bindingProgress ?? coin.progress) * 100).toFixed(0)}%</span>
               </div>
-              <Bar value={coin.progress} className="mt-1.5" barClassName="bg-vault" />
-              <div className="mt-1 font-mono text-[9px] text-muted-foreground">
-                {fmtXel(coin.curve.reserves)} / {fmtXel(coin.curve.gradDepth)} XEL real depth
+              <Bar value={coin.graduation?.bindingProgress ?? coin.progress} className="mt-1.5" barClassName="bg-vault" />
+              <div className="mt-1 font-mono text-[9px] leading-relaxed text-muted-foreground">
+                {coin.status === 'graduated'
+                  ? `${fmtXel(coin.curve.reserves)} / ${fmtXel(coin.curve.gradDepth)} XEL · done`
+                  : coin.graduation && coin.graduation.needGross > 0
+                    ? <>two conditions · ≈ <span className="text-foreground">{fmtXel(coin.graduation.needGross)} XEL</span> of buys to fire</>
+                    : `${fmtXel(coin.curve.reserves)} / ${fmtXel(coin.curve.gradDepth)} XEL real depth`}
               </div>
             </div>
           )}

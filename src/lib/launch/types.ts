@@ -7,6 +7,8 @@
 // EXCEPT where a transaction needs exactness — quotes and min_outs go
 // through chain-math.ts in atomic bigint.
 
+import type { GraduationAnalysis } from './community-math'
+
 // ─── Lifecycle (on-chain status codes) ───────────────────────────────
 // 0 validation → 1 rejected | 2 bonding → 3 graduated → 4 trusted / 5 untrusted → 6 recovery
 export type ProjectStatus =
@@ -221,6 +223,12 @@ export interface CommunityCoin {
   progress: number
   /** The C2 price-continuity condition (xr·y0 ≥ yr·vx). */
   continuity: boolean
+  /** Live dual-condition graduation analysis (curve era) — both C2
+   *  conditions with values, progress bars and the exact amount of
+   *  buys still needed. The site shows this so nobody wonders WHY a
+   *  coin above the depth threshold hasn't graduated: the depth bar
+   *  alone is a misleading "migration threshold". */
+  graduation?: GraduationAnalysis
   tags: string[]
 }
 

@@ -195,15 +195,25 @@ function CoinCard({ c, rank, onOpen, params }: { c: CommunityCoin; rank: number;
               graduation <span className="text-foreground">{fmtXel(c.curve.reserves)} / {fmtXel(c.curve.gradDepth)} XEL</span>
             </span>
             <span className="flex items-center gap-2">
-              <span className={cn('font-mono text-[9px] uppercase tracking-[0.12em]', c.continuity ? 'text-emerald-400' : 'text-muted-foreground/60')}>
-                {c.continuity ? 'continuity ✓' : 'continuity…'}
+              <span className={cn('font-mono text-[9px] uppercase tracking-[0.12em]',
+                c.graduation?.continuityMet ? 'text-emerald-400'
+                  : c.graduation ? 'text-amber-400' : 'text-muted-foreground/60')}>
+                {c.graduation?.continuityMet
+                  ? 'continuity ✓'
+                  : c.graduation ? `continuity ${(c.graduation.continuityProgress * 100).toFixed(0)}%` : 'continuity…'}
               </span>
-              <span className="font-bold tabular-nums text-xusd">{(c.progress * 100).toFixed(1)}%</span>
+              <span className="font-bold tabular-nums text-xusd">{((c.graduation?.bindingProgress ?? c.progress) * 100).toFixed(1)}%</span>
             </span>
           </div>
-          <Bar value={c.progress} className="mt-2" barClassName="bg-xusd" />
+          <Bar value={c.graduation?.bindingProgress ?? c.progress} className="mt-2" barClassName="bg-xusd" />
           <div className="mt-2 flex items-center justify-between font-mono text-[10px]">
-            <span className="text-foreground">{fmtXel(Math.max(0, c.curve.gradDepth - c.curve.reserves))} XEL of buys to go</span>
+            <span className="text-foreground">
+              {c.graduation && (c.graduation.depthMet || c.graduation.continuityMet) && c.graduation.needGross > 0
+                ? `≈ ${fmtXel(c.graduation.needGross)} XEL of buys to fire — depth alone isn't enough`
+                : c.graduation && c.graduation.needGross > 0
+                  ? `≈ ${fmtXel(c.graduation.needGross)} XEL of buys to go`
+                  : `${fmtXel(Math.max(0, c.curve.gradDepth - c.curve.reserves))} XEL of depth to go`}
+            </span>
             <span className="text-foreground">{c.curve.trades} trades</span>
           </div>
         </div>
@@ -510,8 +520,8 @@ function CoinTradePanel({ coin }: { coin: CommunityCoin }) {
 
         <div className="border border-border/60 bg-background/40 p-3 font-mono text-[10px] leading-relaxed text-muted-foreground">
           {side === 'buy'
-            ? `out = (yr+y0)·net / ((xr+vx)+net) — the exact on-chain formula (u128, integer-exact). Your buy pays the ${(curve ? curve.feeBps / 100 : 1).toFixed(2)}% curve fee, pushes the price up the curve and counts toward the ${fmtXel(curve?.gradDepth ?? 50)} XEL graduation depth. If the trade crosses BOTH conditions, graduation fires inside your transaction.`
-            : 'Sells are NEVER blockable — no pause, no trust gate, nothing. The WHOLE attached deposit is sold and paid from the live reserves, instantly, in full.'}
+            ? `out = (yr+y0)·net / ((xr+vx)+net) — the exact on-chain formula (u128, integer-exact). Your buy pays the ${(curve ? curve.feeBps / 100 : 1).toFixed(2)}% curve fee and pushes the price up the curve. Graduation needs BOTH conditions — real depth ≥ ${fmtXel(curve?.gradDepth ?? 50)} XEL AND price continuity — and fires automatically inside the buy that crosses them.${coin.graduation && coin.graduation.needGross > 0 && !coin.graduation.depthMet && !coin.graduation.continuityMet ? ` Currently ≈ ${fmtXel(coin.graduation.needGross)} XEL of buys away.` : coin.graduation && !coin.graduation.continuityMet && coin.graduation.depthMet ? ` Depth is done — continuity still needs ≈ ${fmtXel(coin.graduation.needGross)} XEL of buys (a buy adds real XEL AND takes tokens out, which is why it's more than the depth gap).` : ''}`
+            : 'Sells are NEVER blockable — no pause, no trust gate, nothing. The WHOLE attached deposit is sold and paid from the live reserves, instantly, in full. Mind the direction: a sell removes real XEL from the curve and puts tokens back — it moves BOTH graduation conditions away.'}
         </div>
       </div>
 
@@ -1002,23 +1012,64 @@ export function CommunityView({ setView, focusId }: {
                 )}
               </div>
 
-              {/* graduation strip — the dual demand proof (curve era) */}
+              {/* graduation card — the dual demand proof (curve era) */}
               {coin.curve && coin.status !== 'migrated' && (
                 <div className="mt-4 border border-xusd/25 bg-xusd/5 p-3.5">
-                  <div className="flex items-center justify-between font-mono text-[11px]">
+                  <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[11px]">
                     <span className="text-muted-foreground">
-                      graduation at <span className="text-foreground">{fmtXel(coin.curve.gradDepth)} XEL</span> real depth
-                      <span className="text-foreground"> · {fmtXel(coin.curve.reserves)} now</span>
+                      graduation — <span className="text-foreground">two conditions</span>, both checked after every buy
                     </span>
-                    <span className="font-bold tabular-nums text-xusd">{(coin.progress * 100).toFixed(1)}%</span>
+                    {coin.status === 'graduated' || (coin.graduation?.depthMet && coin.graduation?.continuityMet) ? (
+                      <span className="font-bold uppercase tracking-[0.14em] text-emerald-400">done — migrate when ready</span>
+                    ) : coin.graduation ? (
+                      <span className="font-semibold tabular-nums text-xusd">
+                        ≈ {fmtXel(coin.graduation.needGross)} XEL of buys to auto-graduate
+                      </span>
+                    ) : null}
                   </div>
-                  <Bar value={coin.progress} className="mt-2" barClassName="bg-xusd" />
-                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 font-mono text-[10px]">
-                    <span className={cn(coin.continuity ? 'text-emerald-400' : 'text-muted-foreground')}>
-                      price continuity {coin.continuity ? '✓ met — the pool will open at or above spot' : '… pending (xr·y0 ≥ yr·vx)'}
-                    </span>
-                    <span className="text-foreground">{fmtXel(Math.max(0, coin.curve.gradDepth - coin.curve.reserves))} XEL of buys to go</span>
+
+                  {/* condition 1 — depth */}
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between font-mono text-[10px]">
+                      <span className={cn(coin.graduation?.depthMet ? 'text-emerald-400' : 'text-foreground')}>
+                        {coin.graduation?.depthMet ? '✓' : '…'} 1 · real depth
+                        <span className="text-muted-foreground"> {fmtXel(coin.curve.reserves)} / {fmtXel(coin.curve.gradDepth)} XEL</span>
+                      </span>
+                      <span className="tabular-nums text-muted-foreground">{((coin.graduation?.depthProgress ?? coin.progress) * 100).toFixed(1)}%</span>
+                    </div>
+                    <Bar value={coin.graduation?.depthProgress ?? coin.progress} className="mt-1.5" barClassName="bg-xusd" />
                   </div>
+
+                  {/* condition 2 — price continuity */}
+                  <div className="mt-2.5">
+                    <div className="flex items-center justify-between font-mono text-[10px]">
+                      <span className={cn(coin.graduation?.continuityMet ? 'text-emerald-400' : 'text-foreground')}>
+                        {coin.graduation?.continuityMet ? '✓' : '…'} 2 · price continuity
+                        <span className="text-muted-foreground">
+                          {' '}real XEL share {(coin.graduation?.xShare ?? 0) * 100 >= 1 ? `${((coin.graduation?.xShare ?? 0) * 100).toFixed(1)}%` : '< 0.1%'}
+                          {' '}vs token side {((coin.graduation?.yShare ?? 0) * 100).toFixed(1)}%
+                        </span>
+                      </span>
+                      <span className="tabular-nums text-muted-foreground">{((coin.graduation?.continuityProgress ?? 0) * 100).toFixed(1)}%</span>
+                    </div>
+                    <Bar value={coin.graduation?.continuityProgress ?? 0} className="mt-1.5" barClassName="bg-xusd" />
+                  </div>
+
+                  {/* the honest explainer */}
+                  <p className="mt-3 font-mono text-[9.5px] leading-relaxed text-muted-foreground">
+                    Condition 1 counts the real XEL inside the curve; condition 2 requires the XEL side to be
+                    at least as &quot;real&quot; as the token side — the pool will open at or above the curve&apos;s
+                    price, never below. Every buy helps <span className="text-foreground">twice</span> (adds real
+                    XEL, takes tokens out), which is why{' '}
+                    {coin.graduation && coin.graduation.needGross > 0 ? (
+                      <>the real need is ≈ <span className="text-foreground">{fmtXel(coin.graduation.needGross)} XEL</span> of buys
+                        (depth would reach {fmtXel(coin.graduation.targetDepth)} XEL, not {fmtXel(coin.curve.gradDepth)})</>
+                    ) : (
+                      <>both conditions are already met</>
+                    )}. Graduation fires <span className="text-foreground">automatically inside the buy</span> that
+                    crosses them — no button, no permission. Sells push <span className="text-foreground">both</span> conditions
+                    the wrong way. Once graduated, anyone can migrate the coin to a permanent LaunchDEX pool (permissionless, one transaction).
+                  </p>
                 </div>
               )}
 

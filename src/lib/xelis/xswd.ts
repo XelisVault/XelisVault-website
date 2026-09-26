@@ -25,6 +25,23 @@
 
 export type XSWDState = 'disconnected' | 'connecting' | 'awaiting-approval' | 'connected' | 'error'
 
+/**
+ * The socket surface XSWDClient needs. The native browser WebSocket
+ * implements it, and so does the RELAY tunnel (xswd-relay.ts) — which
+ * lets the same client run unchanged over a local wallet (Genesix
+ * desktop) or a relayed one (Genesix web / mobile, QR + AES).
+ */
+export interface XSWDSocket {
+  readonly readyState: number
+  readonly OPEN: number
+  onopen: ((e: Event) => any) | null
+  onmessage: ((e: MessageEvent) => any) | null
+  onclose: ((e: CloseEvent) => any) | null
+  onerror: ((e: Event) => any) | null
+  send(data: string | ArrayBuffer | Blob): void
+  close(code?: number, reason?: string): void
+}
+
 export interface XSWDAppData {
   id: string
   name: string
@@ -99,7 +116,7 @@ function rpcStringify(payload: unknown): string {
 }
 
 export class XSWDClient {
-  private ws: WebSocket | null = null
+  private ws: XSWDSocket | null = null
   private appId = ''
   private reqId = 0
   private pending = new Map<number, PendingRequest>()
@@ -125,16 +142,25 @@ export class XSWDClient {
     this.stateListeners.forEach((l) => l(s, msg))
   }
 
-  /** Open the WebSocket and perform the ApplicationData handshake. */
-  async connect(appData?: Partial<XSWDAppData>): Promise<void> {
+  /** Open the WebSocket and perform the ApplicationData handshake.
+   *
+   *  `externalSocket` (the RELAY tunnel): the socket is ALREADY open —
+   *  the wallet scanned the QR and joined the channel — so the local
+   *  reachability phase is skipped and the handshake runs directly on
+   *  the tunnel. When `appData.id` is a valid 64-hex id it is reused
+   *  (the relay QR already embedded it — the wallet showed that
+   *  identity when pairing). */
+  async connect(appData?: Partial<XSWDAppData>, externalSocket?: XSWDSocket): Promise<void> {
     if (this.state === 'connected' || this.state === 'connecting' || this.state === 'awaiting-approval') {
       return
     }
     this.manualClose = false
     this.setState('connecting')
 
-    // Regenerate app id on every attempt (a reused id is rejected)
-    this.appId = randomAppId()
+    // Regenerate app id on every attempt (a reused id is rejected) —
+    // unless the caller carries one (relay pairing: the QR's identity)
+    const providedId = typeof appData?.id === 'string' ? appData.id : ''
+    this.appId = /^[0-9a-fA-F]{64}$/.test(providedId) ? providedId : randomAppId()
 
     const data: XSWDAppData = {
       id: this.appId,
@@ -147,31 +173,34 @@ export class XSWDClient {
 
     await new Promise<void>((resolve, reject) => {
       let settled = false
-      const ws = new WebSocket(XSWD_URL)
+      const ws = externalSocket ?? new WebSocket(XSWD_URL)
       this.ws = ws
 
       // Phase 1: the socket itself — short timeout, wallet not running?
-      const openTimer = setTimeout(() => {
-        if (!settled) {
-          settled = true
-          this.cleanupSocket()
-          this.setState('error', 'Wallet not detected')
-          reject(new Error(
-            'Cannot reach the wallet on ws://127.0.0.1:44325. Is Genesix (or xelis_wallet) running with XSWD enabled?'
-          ))
-        }
-      }, OPEN_TIMEOUT_MS)
+      // (skipped for an external tunnel: it is already open)
+      const openTimer = externalSocket
+        ? null
+        : setTimeout(() => {
+            if (!settled) {
+              settled = true
+              this.cleanupSocket()
+              this.setState('error', 'Wallet not detected')
+              reject(new Error(
+                'Cannot reach the wallet on ws://127.0.0.1:44325. Is Genesix (or xelis_wallet) running with XSWD enabled?'
+              ))
+            }
+          }, OPEN_TIMEOUT_MS)
 
       // Phase 2: armed once the socket is open — generous window for the user
       // to read and accept the approval popup in the wallet.
       let approvalTimer: ReturnType<typeof setTimeout> | null = null
       const clearTimers = () => {
-        clearTimeout(openTimer)
+        if (openTimer) clearTimeout(openTimer)
         if (approvalTimer) clearTimeout(approvalTimer)
       }
 
-      ws.onopen = () => {
-        clearTimeout(openTimer)
+      const startHandshake = () => {
+        if (openTimer) clearTimeout(openTimer)
         this.setState('awaiting-approval', 'Waiting for wallet approval…')
         // First message: ApplicationData (plain JSON)
         ws.send(JSON.stringify(data))
@@ -188,6 +217,12 @@ export class XSWDClient {
         }, APPROVAL_TIMEOUT_MS)
       }
 
+      if (externalSocket) {
+        startHandshake()
+      } else {
+        ws.onopen = startHandshake
+      }
+
       ws.onerror = () => {
         if (!settled) {
           settled = true
@@ -195,7 +230,9 @@ export class XSWDClient {
           this.cleanupSocket()
           this.setState('error', 'Wallet not detected')
           reject(new Error(
-            'Cannot reach the wallet on ws://127.0.0.1:44325. Is Genesix (or xelis_wallet) running with XSWD enabled?'
+            externalSocket
+              ? 'The relay connection failed. Try again or use the desktop wallet.'
+              : 'Cannot reach the wallet on ws://127.0.0.1:44325. Is Genesix (or xelis_wallet) running with XSWD enabled?'
           ))
         }
       }
@@ -323,7 +360,7 @@ export class XSWDClient {
 
   /** Generic JSON-RPC call through XSWD (wallet.* / node.* / xswd.*). */
   call(method: string, params?: Record<string, any> | any[]): Promise<any> {
-    if (this.state !== 'connected' || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+    if (this.state !== 'connected' || !this.ws || this.ws.readyState !== this.ws.OPEN) {
       return Promise.reject(new Error('XSWD not connected'))
     }
     const id = ++this.reqId

@@ -31,7 +31,7 @@ import {
 import { fetchPool } from './reader'
 import { loadSeries, saveSeries, appendPoint, emptySeries, seriesPointSeconds, type ChartSeries } from './persist'
 import { toHuman } from './chain-math'
-import { coinSpotPrice, coinMarketCap, coinContinuity } from './community-math'
+import { coinSpotPrice, coinMarketCap, coinContinuity, coinGraduationAnalysis } from './community-math'
 import {
   backfillCoinCurveSeries, fetchWindowTrades, replayFromState, closeEnough,
   type BackfillTrade,
@@ -488,6 +488,10 @@ function mapCoin(
       ? Math.min(1, Number((raw.xr * 100000000n) / raw.gdx) / 100000000)
       : 0
     c.continuity = coinContinuity(raw.xr, raw.yr, raw.y0, raw.vx)
+    c.graduation = coinGraduationAnalysis(
+      raw.xr, raw.yr, raw.y0, raw.vx, raw.gdx,
+      raw.graduated ? Math.min(params.graduatedFeeBps, params.curveFeeBps) : params.curveFeeBps,
+    )
   }
 
   // pool era (migrated) — the price lives on the LaunchDEX pool
@@ -577,6 +581,12 @@ function mergeFast(
       ? Math.min(1, Number((fresh.xr * 100000000n) / gdx) / 100000000)
       : 0
     next.continuity = coinContinuity(fresh.xr, fresh.yr, y0, vx)
+    next.graduation = coinGraduationAnalysis(
+      fresh.xr, fresh.yr, y0, vx, gdx,
+      fresh.graduated
+        ? Math.min(params.graduatedFeeBps, params.curveFeeBps)
+        : next.curve.feeBps,
+    )
   }
   return next
 }
@@ -643,7 +653,7 @@ function mergePool(
 function buildTags(raw: RawCoin, status: CoinStatus, params: CommunityParams): string[] {
   const tags: string[] = []
   if (raw.creatorBps === 0) tags.push('no creator alloc')
-  if (status === 'live') tags.push(`graduates at ${params.graduationDepth} XEL depth`)
+  if (status === 'live') tags.push(`graduates at ${params.graduationDepth} XEL depth + continuity`)
   if (status === 'graduated') tags.push('ready to migrate')
   if (status === 'migrated') tags.push('DEX pool')
   return tags.slice(0, 3)

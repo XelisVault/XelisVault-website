@@ -10,7 +10,10 @@
 'use client'
 
 import { create } from 'zustand'
-import { getLaunchXSWDClient, LAUNCH_APP_DATA, mainnetConnectError } from './xswd'
+import {
+  getLaunchXSWDClient, LAUNCH_APP_DATA, mainnetConnectError,
+  startLaunchRelaySession, type LaunchRelaySession,
+} from './xswd'
 import { useMainnet } from './mainnet-store'
 import { useCommunity } from './community-store'
 import type { XSWDState } from '@/lib/xelis/xswd'
@@ -30,8 +33,17 @@ interface LaunchWalletStore {
   assetBalances: Record<string, number>
   /** assets the wallet was asked to track */
   tracked: Set<string>
+  /** the relay session (QR / web-mobile path), when connected that way */
+  relayActive: boolean
 
   connect: () => Promise<void>
+  /** Connect a WEB/MOBILE wallet (Genesix web at wallet.xelis.io or the
+   *  mobile app) through the official XSWD relay: the site shows a QR,
+   * the wallet scans it, frames are AES-256-GCM encrypted end-to-end.
+   *  `onQR` receives the QR payload (JSON string) the moment the
+   *  channel is open — show it immediately, the wallet joining is
+   *  awaited inside. */
+  connectRelay: (onQR: (qr: string | null, info?: { timeoutSeconds?: number }) => void) => Promise<void>
   disconnect: () => void
   refreshBalances: () => Promise<void>
   /** best-effort address fetch + background retries when the wallet is
@@ -52,6 +64,42 @@ function toXel(v: any): number | null {
   }
 }
 
+type SetFn = (partial: Partial<LaunchWalletStore>) => void
+type GetFn = () => LaunchWalletStore
+
+/** Shared post-approval flow (local & relay paths identical from here). */
+async function afterConnect(client: ReturnType<typeof getLaunchXSWDClient>, set: SetFn, get: GetFn): Promise<void> {
+  // The application is APPROVED — the session is live. From this
+  // point NOTHING below may flip the state back: a dismissed
+  // address/balance popup is not a disconnection, and trading
+  // (signing) works through the wallet regardless of the address.
+  set({ state: 'connected', message: null })
+
+  // ONE grouped permission popup instead of one per method
+  client.prefetchPermissions().catch(() => {})
+
+  // best-effort enrichment — each step self-heals in the background
+  void get().ensureAddress()
+  try {
+    const info = await client.getNodeInfo()
+    const network = String(info?.network ?? info?.chain ?? '')
+    set({ network: network || null, isMainnet: network === 'mainnet' })
+  } catch {
+    set({ network: null, isMainnet: null })
+  }
+
+  // balances + live updates — non-blocking: the balance prompts may
+  // still be on screen, the chip fills in when they're answered
+  try {
+    await client.subscribe('balance_changed')
+  } catch { /* older wallets */ }
+  client.onNotification(() => {
+    void get().refreshBalances()
+  })
+
+  void get().refreshBalances()
+}
+
 export const useLaunchWallet = create<LaunchWalletStore>((set, get) => ({
   state: 'disconnected',
   message: null,
@@ -61,45 +109,46 @@ export const useLaunchWallet = create<LaunchWalletStore>((set, get) => ({
   xelBalance: null,
   assetBalances: {},
   tracked: new Set<string>(),
+  relayActive: false,
 
   connect: async () => {
     const client = getLaunchXSWDClient()
     try {
       set({ state: 'connecting', message: null })
       await client.connect(LAUNCH_APP_DATA)
-      // The application is APPROVED — the session is live. From this
-      // point NOTHING below may flip the state back: a dismissed
-      // address/balance popup is not a disconnection, and trading
-      // (signing) works through the wallet regardless of the address.
-      set({ state: 'connected' })
-
-      // ONE grouped permission popup instead of one per method
-      client.prefetchPermissions().catch(() => {})
-
-      // best-effort enrichment — each step self-heals in the background
-      void get().ensureAddress()
-      try {
-        const info = await client.getNodeInfo()
-        const network = String(info?.network ?? info?.chain ?? '')
-        set({ network: network || null, isMainnet: network === 'mainnet' })
-      } catch {
-        set({ network: null, isMainnet: null })
-      }
-
-      // balances + live updates — non-blocking: the balance prompts may
-      // still be on screen, the chip fills in when they're answered
-      try {
-        await client.subscribe('balance_changed')
-      } catch { /* older wallets */ }
-      client.onNotification(() => {
-        void get().refreshBalances()
-      })
-
-      void get().refreshBalances()
+      await afterConnect(client, set, get)
     } catch (err) {
       set({
         state: 'error',
         message: mainnetConnectError(err),
+        relayActive: false,
+      })
+      throw err
+    }
+  },
+
+  connectRelay: async (onQR) => {
+    const client = getLaunchXSWDClient()
+    let session: LaunchRelaySession | null = null
+    try {
+      set({ state: 'connecting', message: 'Waiting for the wallet to scan the code…' })
+      session = await startLaunchRelaySession({
+        onQRReady: (qr) => onQR(JSON.stringify(qr)),
+        onError: () => onQR(null),
+      })
+      // the wallet joined the channel — run the standard XSWD handshake
+      // on the tunnel (approval popup in the wallet), then the usual flow
+      onQR(null) // hide the QR — the next step is the approval
+      set({ state: 'connecting', message: 'Approve the connection in your wallet…' })
+      await client.connect(session.appData, session.connection.socket)
+      set({ relayActive: true })
+      await afterConnect(client, set, get)
+    } catch (err) {
+      try { session?.connection.close() } catch { /* already closed */ }
+      set({
+        state: 'error',
+        message: mainnetConnectError(err),
+        relayActive: false,
       })
       throw err
     }
@@ -117,6 +166,7 @@ export const useLaunchWallet = create<LaunchWalletStore>((set, get) => ({
       xelBalance: null,
       assetBalances: {},
       tracked: new Set<string>(),
+      relayActive: false,
     })
     void useMainnet.getState().refreshUserVotes(null)
   },
