@@ -6,7 +6,7 @@
 //     community track is marked loudly (bordeaux) and separated from
 //     the project track: NO validation happens here.
 //   • COIN (focus): ONE coin — big chart, buy/sell with EXACT integer
-//     quotes on the virtual-reserve curve (or against the pool once
+//     quotes on the bonding curve (or against the pool once
 //     migrated), the dual-condition graduation strip, the permissionless
 //     migrate button, and the creator's post-migration claim.
 //
@@ -48,7 +48,7 @@ import type { AppView } from './launchpad-view'
 // ─────────────────────────────────────────────────────────────────
 
 const COIN_STATUS: Record<string, { cls: string; label: string; live?: boolean }> = {
-  live: { cls: 'border-vlt/60 text-vlt', label: 'LIVE · VIRTUAL CURVE', live: true },
+  live: { cls: 'border-vlt/60 text-vlt', label: 'LIVE · BONDING CURVE', live: true },
   graduated: { cls: 'border-xusd/50 text-xusd', label: 'GRADUATED · READY TO MIGRATE', live: true },
   migrated: { cls: 'border-emerald-400/50 text-emerald-400', label: 'MIGRATED · DEX POOL' },
 }
@@ -234,7 +234,7 @@ function CoinCard({ c, rank, onOpen, params }: { c: CommunityCoin; rank: number;
 
       <div className="mt-4 flex items-center justify-between border-t border-border/60 pt-3 font-mono text-[10px] uppercase tracking-[0.16em]">
         <span className="text-muted-foreground">
-          fee {((c.curve?.feeBps ?? c.pool?.feeBps ?? params.curveFeeBps) / 100).toFixed(2)}% · {c.status === 'migrated' ? 'DEX pool' : 'virtual curve'}
+          fee {((c.curve?.feeBps ?? c.pool?.feeBps ?? params.curveFeeBps) / 100).toFixed(2)}% · {c.status === 'migrated' ? 'DEX pool' : 'bonding curve'}
         </span>
         <span className="text-vlt opacity-0 transition-opacity group-hover:opacity-100">open coin →</span>
       </div>
@@ -277,7 +277,7 @@ function SideSwitch({ side, onChange }: { side: 'buy' | 'sell'; onChange: (s: 'b
 
 const SLIPPAGE_CHOICES = [0.5, 1, 2, 5]
 
-/** Curve-era trade panel: exact integer quotes on the virtual pair. */
+/** Curve-era trade panel: exact integer quotes on the curve. */
 function CoinTradePanel({ coin }: { coin: CommunityCoin }) {
   const { toast } = useToast()
   const wallet = useLaunchWallet()
@@ -300,7 +300,7 @@ function CoinTradePanel({ coin }: { coin: CommunityCoin }) {
   const sellAmt = Math.max(0, Number(sellAmount) || 0)
 
   // EXACT integer quotes — the same formulas the contract runs, on the
-  // VIRTUAL pair (x = xr + vx, y = yr + y0; only the real sides move)
+  // curve pair (x = xr + vx, y = yr + y0)
   const xr = curve ? toAtomic(curve.reserves) : 0n
   const yr = curve ? toAtomic(curve.inventory) : 0n
   const y0 = curve ? toAtomic(curve.initialInventory) : 0n
@@ -498,8 +498,8 @@ function CoinTradePanel({ coin }: { coin: CommunityCoin }) {
 
         <div className="border border-border/60 bg-background/40 p-3 font-mono text-[10px] leading-relaxed text-muted-foreground">
           {side === 'buy'
-            ? `out = (yr+y0)·net / ((xr+vx)+net) — the exact on-chain formula on the VIRTUAL pair (u128, integer-exact). Your buy pays the ${(curve ? curve.feeBps / 100 : 1).toFixed(2)}% curve fee, pushes the price up the curve and counts toward the ${fmtXel(curve?.gradDepth ?? 50)} XEL graduation depth. If the trade crosses BOTH conditions, graduation fires inside your transaction.`
-            : 'Sells are NEVER blockable — no pause, no trust gate, nothing. The WHOLE attached deposit is sold and paid from the REAL reserves; the virtual side never moves.'}
+            ? `out = (yr+y0)·net / ((xr+vx)+net) — the exact on-chain formula (u128, integer-exact). Your buy pays the ${(curve ? curve.feeBps / 100 : 1).toFixed(2)}% curve fee, pushes the price up the curve and counts toward the ${fmtXel(curve?.gradDepth ?? 50)} XEL graduation depth. If the trade crosses BOTH conditions, graduation fires inside your transaction.`
+            : 'Sells are NEVER blockable — no pause, no trust gate, nothing. The WHOLE attached deposit is sold and paid from the live reserves, instantly, in full.'}
         </div>
       </div>
 

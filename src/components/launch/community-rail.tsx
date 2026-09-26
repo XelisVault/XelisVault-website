@@ -203,7 +203,7 @@ export function CommunityRail({ setView }: { setView: (v: AppView, id?: string) 
         <div className="mt-3.5 flex flex-wrap items-center justify-between gap-3 border border-dashed border-vlt/25 p-4">
           <p className="text-[13px] leading-relaxed text-muted-foreground">
             The community board is open and no one has launched yet — be the first: a real XELIS
-            asset, born on a virtual-reserve curve, in one transaction.
+            asset, born on a bonding curve, in one transaction.
           </p>
           <BracketButton variant="vlt" size="sm" onClick={() => setView('coin-launch')}>
             launch the first coin · ≈ 2 XEL

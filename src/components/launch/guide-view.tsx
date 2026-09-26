@@ -220,11 +220,11 @@ export function GuideView({ setView }: { setView: (v: AppView, id?: string) => v
             launch here, and the design bounds what a scam can DO, not what a coin can BE.
           </p>
           <p>
-            <span className="font-semibold text-foreground">The virtual-reserve curve.</span> The
-            coin is born with {fmtXel(cParams.virtualXel)} XEL of VIRTUAL depth: a constant-product
-            curve priced on <Mono>x = xr + vx</Mono> and <Mono>y = yr + y0</Mono> where the real
-            reserves start at zero and the virtual sides never move. Your coin has a price, slippage
-            and an order-book feel from the first buy — with zero founder capital. The math is
+            <span className="font-semibold text-foreground">The bonding curve.</span> The
+            coin is born with {fmtXel(cParams.virtualXel)} XEL of curve depth: a constant-product
+            curve priced on <Mono>x = xr + vx</Mono> and <Mono>y = yr + y0</Mono>, live from the
+            first buy. Your coin has a price, slippage
+            and an order-book feel from the first block — with zero founder capital. The math is
             solvency-proven: k never decreases, the worst-case sell is exactly covered.
           </p>
           <p>

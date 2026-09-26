@@ -63,7 +63,7 @@ const VIEW_TITLES: Record<AppView, { title: string; desc: string }> = {
   },
   community: {
     title: 'Community Coins',
-    desc: 'The pump.fun track — anyone launches a real XELIS asset for ~2 XEL, no validation. Virtual curves, demand-proof graduation, permissionless migration.',
+    desc: 'The pump.fun track — anyone launches a real XELIS asset for ~2 XEL, no validation. Bonding curves, demand-proof graduation, permissionless migration.',
   },
   coin: {
     title: 'Token Terminal',
@@ -75,7 +75,7 @@ const VIEW_TITLES: Record<AppView, { title: string; desc: string }> = {
   },
   'coin-launch': {
     title: 'Launch a Coin',
-    desc: 'The community track — one transaction, ~2 XEL, no vote. Born as a real XELIS asset on a virtual-reserve bonding curve.',
+    desc: 'The community track — one transaction, ~2 XEL, no vote. Born as a real XELIS asset, priced on a bonding curve from the first block.',
   },
   portfolio: {
     title: 'Portfolio',

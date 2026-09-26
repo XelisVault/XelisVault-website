@@ -119,7 +119,7 @@ export function PortfolioView({ setView }: { setView: (v: AppView, id?: string) 
           balance: bal,
           price,
           stage: coin
-            ? (coin.pool ? 'community · DEX pool' : 'community · virtual curve')
+            ? (coin.pool ? 'community · DEX pool' : 'community · bonding curve')
             : project?.pool ? 'LaunchDEX' : project?.curve ? 'bonding curve' : 'untracked',
           project,
           coin,

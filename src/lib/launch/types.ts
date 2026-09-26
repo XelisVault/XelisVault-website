@@ -150,16 +150,16 @@ export interface Project {
 // 0 live → 1 graduated → 2 migrated (terminal; the pool owns the market)
 export type CoinStatus = 'live' | 'graduated' | 'migrated'
 
-/** The virtual-reserve bonding curve of one community coin. */
+/** The bonding curve of one community coin. */
 export interface CoinCurve {
   /** Real XEL in the curve (human XEL) — starts at 0, grows with buys. */
   reserves: number
   /** Real token inventory still on the curve (human tokens). */
   inventory: number
-  /** Initial inventory snapshot (human tokens) — the virtual token
-   *  reserve mirrors it; together with vx it prices the coin at birth. */
+  /** Initial inventory snapshot (human tokens) — together with vx it
+   *  prices the coin at birth. */
   initialInventory: number
-  /** Virtual XEL snapshot (human XEL) — the simulated book depth. */
+  /** Launch-depth snapshot (human XEL) — the curve's pricing depth. */
   virtualXel: number
   /** Graduation depth snapshot (human XEL) — the demand proof. */
   gradDepth: number

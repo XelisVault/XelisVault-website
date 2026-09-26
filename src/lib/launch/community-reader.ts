@@ -30,8 +30,8 @@ export interface RawCoin {
   creatorBps: number
   xr: bigint // real XEL reserves
   yr: bigint // real token inventory
-  y0: bigint // initial inventory (virtual token reserve mirrors it)
-  vx: bigint // virtual XEL (snapshot)
+  y0: bigint // initial inventory snapshot
+  vx: bigint // launch depth (snapshot)
   gdx: bigint // graduation depth (snapshot)
   createdTopo: number
   graduated: boolean

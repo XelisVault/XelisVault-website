@@ -393,7 +393,7 @@ export function VaultLaunchSection() {
               graduation migrates everything into a pool whose seed is locked for life.
               And since <span className="text-foreground">25.09.2026</span>, the{' '}
               <span className="text-vlt">community track</span>: anyone launches a real XELIS
-              asset for ≈ 2 XEL on a virtual-reserve curve — no vote, no founder liquidity,
+              asset for ≈ 2 XEL on a bonding curve — no vote, no founder liquidity,
               the same locked-seed graduation. No pre-mines, no hidden team allocations,
               no rug geometry: the anti-rug floor is math, not a promise.
             </p>

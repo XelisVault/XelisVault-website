@@ -4,7 +4,7 @@
 // the ~2 XEL deposit (submission fee + asset budget — the unused part
 // of the budget is refunded in the same transaction). No vote, no
 // founder liquidity: the coin is born as a REAL XELIS confidential
-// asset and the virtual-reserve curve prices it from the first second.
+// asset and the bonding curve prices it from the first second.
 //
 // Everything the contract enforces is validated client-side first with
 // the exact on-chain rules (name/symbol/description caps, the ticker
@@ -104,7 +104,7 @@ export function CoinLaunchView({ setView }: { setView: (v: AppView, id?: string)
   const teamBps = Math.max(0, Math.round((Number(form.teamPct) || 0) * 100))
   const depositXel = launchCoinDeposit(cParams)
 
-  // the virtual curve's birth numbers (same math as the contract)
+  // the curve's birth numbers (same math as the contract)
   const birthFdv = useMemo(() => {
     const supplyA = toAtomic(supply)
     const vx = toAtomic(cParams.virtualXel)
@@ -191,8 +191,8 @@ export function CoinLaunchView({ setView }: { setView: (v: AppView, id?: string)
               One transaction. No vote, no validation, no founder liquidity. Your coin is born
               as a <span className="text-foreground">real confidential XELIS asset</span> —
               fixed supply enforced by the protocol itself — priced from its first second on
-              a <span className="text-foreground">virtual-reserve bonding curve</span> that
-              simulates book depth with zero capital.
+              a <span className="text-foreground">bonding curve</span> that gives it depth
+              and slippage with zero capital at risk.
             </p>
           </div>
           <div className="border border-vlt/40 bg-vlt/5 px-4 py-3 text-center">
@@ -358,7 +358,7 @@ export function CoinLaunchView({ setView }: { setView: (v: AppView, id?: string)
                 <span className="tabular-nums text-foreground">≈ {fmtAtomic(birthFdv, 2)} XEL</span>
               </div>
               <div className="flex justify-between text-muted-foreground">
-                <span>virtual depth</span>
+                <span>curve depth</span>
                 <span className="tabular-nums text-foreground">{fmtXel(cParams.virtualXel)} XEL</span>
               </div>
               <div className="flex justify-between text-muted-foreground">
@@ -373,7 +373,7 @@ export function CoinLaunchView({ setView }: { setView: (v: AppView, id?: string)
               </div>
             </div>
             <p className="mt-3 font-mono text-[10px] leading-relaxed text-muted-foreground">
-              The curve is born with {fmtXel(cParams.virtualXel)} XEL of VIRTUAL depth: your coin has
+              The curve is born with {fmtXel(cParams.virtualXel)} XEL of depth: your coin has
               a price, an order book feel and slippage from the first buy — with zero founder capital.
             </p>
           </div>
@@ -383,7 +383,7 @@ export function CoinLaunchView({ setView }: { setView: (v: AppView, id?: string)
             <ol className="mt-3 space-y-2.5 font-mono text-[10px] leading-relaxed text-muted-foreground">
               <li>
                 <span className="text-foreground">01 · born live</span> — the asset is created and the
-                virtual curve opens in the same transaction. Buys and sells at{' '}
+                curve opens in the same transaction. Buys and sells at{' '}
                 {(cParams.curveFeeBps / 100).toFixed(2)}% from the first block.
               </li>
               <li>

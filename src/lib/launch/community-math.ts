@@ -2,9 +2,9 @@
 //
 // Byte-identical port of the reference implementation
 // (sdk/xvault/xvault/community.py, itself CI-asserted against the
-// contract): the VIRTUAL-RESERVE bonding curve. Every trade prices
-// against the totals x = xr + vx and y = yr + y0 — the real reserves
-// plus the virtual book — while only the REAL sides ever move:
+// contract): the bonding curve. Every trade prices
+// against the totals x = xr + vx and y = yr + y0 — the live reserves
+// plus the launch depth:
 //   • xr starts at 0 (the founder provides nothing), yr starts at the
 //     initial inventory (net of the creator allocation)
 //   • vx / y0 are snapshotted at launch and never change
@@ -17,7 +17,7 @@
 
 import { ATOMIC, feeTake } from './chain-math'
 
-// ── The virtual-reserve curve (CommunityLaunch C1) ───────────────────
+// ── The bonding curve (CommunityLaunch C1) ──────────────
 
 /** tokens_out = (yr+y0)·net / ((xr+vx)+net), floored. The trade also
  *  enforces out ≤ yr (the whale guard — only REAL inventory is paid). */
@@ -94,7 +94,7 @@ export function coinContinuity(xr: bigint, yr: bigint, y0: bigint, vx: bigint): 
 }
 
 /** FDV the moment a coin is born: spot = vx/(2·y0), cap = spot·supply
- *  (the virtual token reserve mirrors the initial inventory). With the
+ *  (the launch depth mirrors the initial inventory). With the
  *  defaults (vx = 100 XEL, 1B supply, 0% team) ≈ 50 XEL. */
 export function coinLaunchFdv(vx: bigint, y0: bigint, totalSupply: bigint): bigint {
   if (y0 <= 0n) return 0n

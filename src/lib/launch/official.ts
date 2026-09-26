@@ -1,8 +1,9 @@
 // The official-coin registry — the platform's OWN tokens.
 //
 // These were launched through the CommunityLaunch factory (the cheap,
-// permissionless track) but they are NOT community coins: they are the
-// platform's official assets. The registry upgrades them everywhere:
+// permissionless track), with the team seeding real liquidity on top —
+// but they are NOT community coins: they are the platform's official
+// assets. The registry upgrades them everywhere:
 //   • official logo + official name/description/links (overriding the
 //     on-chain metadata, which may be sparse)
 //   • OFFICIAL · TRUSTED presentation instead of "community · no
@@ -29,7 +30,7 @@ export const OFFICIAL_COINS: Record<string, OfficialCoinInfo> = {
   XVLT: {
     name: 'XelisVault',
     description:
-      'XVLT is the official token of XelisVault — the confidential finance platform built on XELIS. Fixed supply forever, no founder liquidity to pull: born on a virtual-reserve bonding curve, graduating into a permanent-liquidity LaunchDEX pool with a protocol-locked seed. Launched by the XelisVault team, verifiable on the XELIS mainnet.',
+      'XVLT is the official token of XelisVault — the confidential finance platform built on XELIS. Fixed supply forever, no founder liquidity to pull: launched on the community track with 500 XEL of team-funded liquidity, graduating into a permanent-liquidity LaunchDEX pool with a protocol-locked seed. Launched by the XelisVault team, verifiable on the XELIS mainnet.',
     website: 'https://xelisvault.xyz',
     twitter: 'https://x.com/xelisvault',
     discord: 'https://discord.gg/UHpYAWbG',

@@ -338,7 +338,7 @@ export interface LaunchCoinInput {
 
 /** launch_coin (15) — the coin is born: ONE transaction, ~2 XEL.
  *  A REAL XELIS confidential asset is created (fixed supply, the whole
- *  balance held by the factory) and the virtual curve opens at once. */
+ *  balance held by the factory) and the bonding curve opens at once. */
 export function launchCoinTx(input: LaunchCoinInput): Promise<TxResult> {
   return sendInvoke({
     contract: COMMUNITY_CONTRACT,
@@ -360,7 +360,7 @@ export function launchCoinTx(input: LaunchCoinInput): Promise<TxResult> {
   })
 }
 
-/** buy (16) — buy REAL tokens on the virtual curve, attaching XEL.
+/** buy (16) — buy REAL tokens on the bonding curve, attaching XEL.
  *  Graduation fires inside this entry when the trade crosses BOTH
  *  conditions (depth ≥ gdx AND price continuity). */
 export function buyCoinTx(cid: number, xelAtomic: bigint, minTokensOut: bigint): Promise<TxResult> {

@@ -15,7 +15,7 @@ import { LaunchPageClient } from '@/components/launch/page-client'
 export const metadata: Metadata = {
   title: 'VaultLaunch · XVLT — the official XelisVault Token',
   description:
-    'Trade XVLT, the official token of XelisVault: fixed supply forever, virtual-reserve bonding curve, graduation into a permanent-liquidity pool with a protocol-locked seed. Live on the XELIS mainnet since 23.09.2026.',
+    'Trade XVLT, the official token of XelisVault: fixed supply forever, launched on the community track with 500 XEL of team-funded liquidity, graduation into a permanent-liquidity pool with a protocol-locked seed. Live on the XELIS mainnet since 23.09.2026.',
   robots: {
     index: true,
     follow: true,
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'XVLT · The Official XelisVault Token',
     description:
-      'Fixed supply forever. Virtual-reserve bonding curve, graduation into a permanent-liquidity pool with a protocol-locked seed. Trade it on VaultLaunch — XELIS mainnet.',
+      'Fixed supply forever. Launched on the community track with 500 XEL of team-funded liquidity, graduation into a permanent-liquidity pool with a protocol-locked seed. Trade it on VaultLaunch — XELIS mainnet.',
     url: '/launch',
     siteName: 'XELIS Vault',
     type: 'website',

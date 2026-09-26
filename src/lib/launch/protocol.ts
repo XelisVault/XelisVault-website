@@ -281,7 +281,7 @@ export interface CommunityParams {
   graduatedFeeBps: number    // gfe — post-graduation curve fee (≤ cfe)
   migrationFeeBps: number    // mgf — carved from the SEED at migration
   graduationDepth: number    // XEL (gdx) — demand-proof depth
-  virtualXel: number         // XEL (vxs) — the virtual reserve
+  virtualXel: number         // XEL (vxs) — the curve's launch depth
   paused: boolean            // launches + buys only (sells never block)
   dexAddress: string | null  // the one-way DEX pin
   dexSwapFeeBps: number      // sfe on the pinned DEX — pool-era fee
@@ -295,7 +295,7 @@ export const COMMUNITY_PARAMS: CommunityParams = {
   graduatedFeeBps: 50,       // 0.5% graduated
   migrationFeeBps: 50,       // 0.5% from the seed
   graduationDepth: 50,       // XEL of real depth to graduate
-  virtualXel: 100,           // XEL of virtual depth
+  virtualXel: 100,           // XEL of launch depth
   paused: false,
   dexAddress: DEX_CONTRACT,
   dexSwapFeeBps: 30,         // D141 default — live value read below
