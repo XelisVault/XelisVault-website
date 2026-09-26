@@ -16,9 +16,10 @@
 //   • DRAG (mouse or touch) pans back through history
 //   • WHEEL / TRACKPAD / PINCH zooms, anchored under the cursor
 //   • a LIVE button snaps back to the present; double-click does too
-//   • a bottom time axis labels the visible window relative to "now"
-//     (1 point = `pointSeconds` of mainnet time — the series itself
-//     defines the spacing, and survives page refreshes via persist.ts)
+//   • a bottom time axis labels the visible window in REAL wall-clock
+//     time (HH:MM today, DD.MM on past days) — 1 point = `pointSeconds`
+//     of mainnet time, the live edge is "now" (the series survives
+//     page refreshes via persist.ts)
 // Closed candles keep their frozen guarantee: navigation only changes
 // WHICH immutable candles are on screen, never their values.
 //
@@ -126,19 +127,31 @@ function fmtAxis(v: number): string {
   return v.toFixed(4)
 }
 
-/** Relative-time label for the bottom axis — `dt` in simulated seconds. */
-function fmtRel(dt: number): string {
-  const t = Math.abs(dt)
-  if (t < 1) return 'now'
-  if (t < 60) return `-${Math.round(t)}s`
-  if (t < 3600) {
-    const m = Math.floor(t / 60)
-    const s = Math.round(t % 60)
-    return `-${m}:${String(s).padStart(2, '0')}`
+/** Wall-clock timestamp (ms) of an absolute point index — the live
+ *  edge is "now" and each point is `pointSeconds` of mainnet time
+ *  apart, so absIndex → now + (absIndex − lastAbs)·pointSeconds. */
+function absTimeMs(absIndex: number, lastAbs: number, pointSeconds: number): number {
+  return Date.now() + (absIndex - lastAbs) * pointSeconds * 1000
+}
+
+const p2 = (x: number) => String(x).padStart(2, '0')
+
+/** Axis label — exchange style: HH:MM for today, DD.MM on past days. */
+function fmtClock(ms: number): string {
+  const d = new Date(ms)
+  const now = new Date()
+  if (d.getFullYear() === now.getFullYear()
+    && d.getMonth() === now.getMonth()
+    && d.getDate() === now.getDate()) {
+    return `${p2(d.getHours())}:${p2(d.getMinutes())}`
   }
-  const h = Math.floor(t / 3600)
-  const m = Math.round((t % 3600) / 60)
-  return `-${h}h${String(m).padStart(2, '0')}`
+  return `${p2(d.getDate())}.${p2(d.getMonth() + 1)}`
+}
+
+/** Full date + time for the hover legend. */
+function fmtFull(ms: number): string {
+  const d = new Date(ms)
+  return `${p2(d.getDate())}.${p2(d.getMonth() + 1)} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`
 }
 
 function smoothPath(pts: { x: number; y: number }[]): string {
@@ -448,9 +461,9 @@ export function PriceChart({
       if (mode === 'candles') {
         const idx = idToIdx?.get(u)
         if (idx == null) continue
-        timeTicks.push({ x: xOf(idx), label: fmtRel((u * chunk - lastAbs) * pointSeconds) })
+        timeTicks.push({ x: xOf(idx), label: fmtClock(absTimeMs(u * chunk, lastAbs, pointSeconds)) })
       } else {
-        timeTicks.push({ x: xOf(u - histStart), label: fmtRel((u - lastAbs) * pointSeconds) })
+        timeTicks.push({ x: xOf(u - histStart), label: fmtClock(absTimeMs(u, lastAbs, pointSeconds)) })
       }
     }
   }
@@ -831,6 +844,9 @@ export function PriceChart({
       {/* OHLC legend (candles) / price legend (line) */}
       {mode === 'candles' && legendCandle ? (
         <div className="pointer-events-none absolute left-1.5 top-1 z-10 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 border border-border bg-background/90 px-2 py-1 font-mono text-[9.5px] tabular-nums">
+          <span className="text-muted-foreground">
+            {fmtFull(absTimeMs(legendCandle.id * chunk, lastAbs, pointSeconds))}
+          </span>
           {[
             ['O', legendCandle.o], ['H', legendCandle.h], ['L', legendCandle.l], ['C', legendCandle.c],
           ].map(([k, v]) => (
@@ -849,6 +865,10 @@ export function PriceChart({
         </div>
       ) : mode === 'line' && hoverIdx != null && data[hoverIdx] != null ? (
         <div className="pointer-events-none absolute left-1.5 top-1 z-10 border border-border bg-background/90 px-2 py-1 font-mono text-[10px] tabular-nums text-foreground">
+          <span className="text-muted-foreground">
+            {fmtFull(absTimeMs(histStart + hoverIdx, lastAbs, pointSeconds))}
+          </span>
+          {' '}
           {data[hoverIdx] < 1 ? data[hoverIdx].toFixed(5) : data[hoverIdx].toFixed(3)}
           <span className="ml-1.5 text-muted-foreground">{unit}</span>
         </div>
