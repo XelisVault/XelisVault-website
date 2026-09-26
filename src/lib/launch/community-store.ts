@@ -52,6 +52,20 @@ function hueOf(ticker: string): number {
 
 export type CommunityNodeStatus = 'connecting' | 'live' | 'offline'
 
+/** Live state of a coin's chain-history rebuild — drives the chart's
+ *  loading panel so the user SEES the scan happening (it can take up
+ *  to a minute on a first visit) instead of a blank chart. */
+export interface CoinBackfillState {
+  phase: 'starting' | 'scanning' | 'rebuilding' | 'done' | 'error'
+  /** walk pages fetched so far (phase 'scanning') */
+  pages: number
+  maxPages: number
+  foundTrades: number
+  totalTrades: number
+  startedAt: number
+  finishedAt: number | null
+}
+
 interface CommunityStore {
   status: CommunityNodeStatus
   statusMessage: string | null
@@ -61,6 +75,8 @@ interface CommunityStore {
   charts: Record<string, ChartSeries>
   lastSyncMs: number
   syncing: boolean
+  /** per-cid chain-history rebuild state (the chart loading panel) */
+  backfills: Record<number, CoinBackfillState>
 
   start: () => void
   refresh: (deep?: boolean) => Promise<void>
@@ -92,6 +108,25 @@ const internal: { fast: ReturnType<typeof setInterval> | null; deep: ReturnType<
  *  retried by the next deep scan or navigation. */
 const backfillTried = new Set<number>()
 
+/** Patch one coin's backfill state (shallow, immutable replace). */
+function patchBackfill(
+  cid: number,
+  partial: Partial<CoinBackfillState>,
+  set: (p: Partial<CommunityStore>) => void,
+  get: () => CommunityStore,
+): void {
+  const prev = get().backfills[cid] ?? {
+    phase: 'starting',
+    pages: 0,
+    maxPages: 0,
+    foundTrades: 0,
+    totalTrades: 0,
+    startedAt: Date.now(),
+    finishedAt: null,
+  }
+  set({ backfills: { ...get().backfills, [cid]: { ...prev, ...partial } } })
+}
+
 /** float human → atomic bigint without float-drift (via string). */
 function toAtomicSafe(human: number): bigint {
   const s = human.toFixed(8)
@@ -108,6 +143,7 @@ export const useCommunity = create<CommunityStore>((set, get) => ({
   charts: {},
   lastSyncMs: 0,
   syncing: false,
+  backfills: {},
 
   seriesFor: (kind, id) => {
     const key = `${kind}:${id}`
@@ -170,8 +206,13 @@ export const useCommunity = create<CommunityStore>((set, get) => ({
       existing.histStart * existing.intervalTopo > coin.createdTopo + 2 * existing.intervalTopo
     ) {
       backfillTried.add(cid)
+      patchBackfill(cid, { phase: 'starting', startedAt: Date.now(), finishedAt: null }, set, get)
       const fresh = await fetchCoinFast(cid).catch(() => null)
-      if (!fresh || fresh.xr == null || fresh.yr == null || fresh.migrated) return
+      if (!fresh || fresh.xr == null || fresh.yr == null || fresh.migrated) {
+        backfillTried.delete(cid)
+        patchBackfill(cid, { phase: 'error', finishedAt: Date.now() }, set, get)
+        return
+      }
       const series = await backfillCoinCurveSeries({
         cid,
         currentTopo: topo,
@@ -185,9 +226,32 @@ export const useCommunity = create<CommunityStore>((set, get) => ({
         totalTrades: fresh.trades ?? 0,
         liveXr: fresh.xr,
         liveYr: fresh.yr,
+        onProgress: (p) => patchBackfill(cid, {
+          phase: p.phase === 'walk' ? 'scanning' : 'rebuilding',
+          pages: p.pages,
+          maxPages: p.maxPages,
+          foundTrades: p.foundTrades,
+          totalTrades: p.totalTrades,
+        }, set, get),
       })
-      if (series && series.history.length >= 2) commitCoinSeries(coin.id, series, set, get)
-      else backfillTried.delete(cid) // node hiccup — allow a retry
+      if (series && series.history.length >= 2) {
+        patchBackfill(cid, {
+          phase: 'done',
+          foundTrades: fresh.trades ?? 0,
+          totalTrades: fresh.trades ?? 0,
+          finishedAt: Date.now(),
+        }, set, get)
+        commitCoinSeries(coin.id, series, set, get)
+      } else if (series) {
+        // a flat birth series with a single slot — the coin is BRAND
+        // NEW: nothing went wrong, the chart starts with the trades
+        patchBackfill(cid, {
+          phase: 'done', totalTrades: fresh.trades ?? 0, finishedAt: Date.now(),
+        }, set, get)
+      } else {
+        backfillTried.delete(cid) // node hiccup — allow a retry
+        patchBackfill(cid, { phase: 'error', finishedAt: Date.now() }, set, get)
+      }
       return
     }
 
@@ -357,13 +421,15 @@ async function deepScan(topo: number, set: SetFn, get: GetFn): Promise<void> {
 
   // re-arm the catch-up for coins whose series went stale while the
   // tab was closed (the sampler freezes those instead of flat-filling
-  // over unseen trades) — ensureCoinHistory no-ops once reconciled
+  // over unseen trades) — ensureCoinHistory no-ops once reconciled.
+  // Coins whose backfill FAILED this session get a retry (once per
+  // deep cycle) — never a mass backfill of every coin.
   for (const c of coins) {
     if (!c.curve) continue
     const s = charts[`coin:${c.id}`] ?? loadSeries('coin', c.id)
-    if (s && s.history.length > 0 && topo - s.lastTopo > COIN_STALE_TOPOS) {
-      void get().ensureCoinHistory(c.cid)
-    }
+    const stale = s && s.history.length > 0 && topo - s.lastTopo > COIN_STALE_TOPOS
+    const failed = get().backfills[c.cid]?.phase === 'error'
+    if (stale || failed) void get().ensureCoinHistory(c.cid)
   }
 }
 

@@ -366,7 +366,10 @@ export function createRelayedConnection(options: RelayConnectOptions): Promise<R
     relayerWs = new WebSocket(relayerUrl)
 
     relayerWs.addEventListener('error', () => {
-      handleError(new Error('Cannot reach the XSWD relay (relay.xelis.io). Try again or use the desktop wallet.'))
+      handleError(new Error(
+        'Cannot reach the XSWD relay (relay.xelis.io). Check your connection or any '
+        + 'blocking browser extension, then try again — or use the desktop wallet.',
+      ))
     })
 
     relayerWs.addEventListener('close', (event) => {

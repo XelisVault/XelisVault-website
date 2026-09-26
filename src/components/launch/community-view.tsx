@@ -866,6 +866,168 @@ function CoinHistoryEnsurer({ cid }: { cid: number }) {
   return null
 }
 
+// ─────────────────────────────────────────────────────────────────
+// Chart loading panel — the honest "it's rebuilding from the chain"
+// state: animated candles, live progress, and the time warning
+// ─────────────────────────────────────────────────────────────────
+
+/** Staggered candle bars — a chart "warming up" while the chain is
+ *  walked. Purely decorative (aria-hidden), gold with red accents,
+ *  like the real candles. */
+function LoadingCandles() {
+  const bars = [22, 34, 28, 46, 38, 56, 48, 64, 58, 70, 62, 78]
+  return (
+    <div className="flex h-16 items-end gap-[5px]" aria-hidden>
+      {bars.map((h, i) => (
+        <motion.span
+          key={i}
+          className={cn('w-[7px]', i % 3 === 2 ? 'bg-destructive/50' : 'bg-vault/70')}
+          initial={{ height: h * 0.4 }}
+          animate={{ height: [h * 0.4, h, h * 0.5, h * 0.85, h * 0.4] }}
+          transition={{ duration: 2.6, repeat: Infinity, delay: i * 0.13, ease: 'easeInOut' }}
+        />
+      ))}
+    </div>
+  )
+}
+
+/** Ticking elapsed-seconds counter — the "it can take time" made
+ *  visible: the user SEES seconds pass while the scan works. */
+function Elapsed({ startedAt }: { startedAt: number }) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  const s = Math.max(0, Math.floor((now - startedAt) / 1000))
+  return <span className="tabular-nums">{s}s</span>
+}
+
+/** The panel shown INSTEAD of the chart while the price history is
+ *  being rebuilt from the chain (and never a blank chart without
+ *  explanation). Same height as the chart — no layout jump when it
+ *  lands. */
+function ChartLoadingPanel({ coin }: { coin: CommunityCoin }) {
+  const bf = useCommunity((s) => s.backfills[coin.cid])
+
+  // pool era (migrated coin): the price lives on the DEX pool and is
+  // sampled live — no chain walk, the first candles arrive on their own
+  if (coin.migratedTopo > 0 || !coin.curve) {
+    return (
+      <div className="flex h-[360px] flex-col items-center justify-center gap-4 border border-dashed border-border bg-foreground/[0.015] px-6 text-center">
+        <LoadingCandles />
+        <div className="font-mono text-xs text-muted-foreground">
+          collecting live pool prices — the first candles arrive within a minute
+        </div>
+        <div className="max-w-md font-mono text-[10px] leading-relaxed text-muted-foreground/70">
+          this token trades on its LaunchDEX pool; the chart draws itself from the live
+          reserves as the poller observes them.
+        </div>
+      </div>
+    )
+  }
+
+  // no backfill state yet — the store is still resolving the coin
+  // (topoheight fetch) before the walk starts
+  if (!bf || bf.phase === 'starting') {
+    return (
+      <div className="flex h-[360px] flex-col items-center justify-center gap-4 border border-dashed border-border bg-foreground/[0.015] px-6 text-center">
+        <LoadingCandles />
+        <div className="font-mono text-xs text-muted-foreground">
+          opening the on-chain history…
+        </div>
+        <p className="max-w-md font-mono text-[10px] leading-relaxed text-muted-foreground/70">
+          the full price history is rebuilt from the XELIS chain — it can take up to a
+          minute on a first visit. The chart appears on its own, identical on every computer.
+        </p>
+      </div>
+    )
+  }
+
+  // the walk or the replay is running — live progress
+  if (bf.phase === 'scanning' || bf.phase === 'rebuilding') {
+    const pct = bf.totalTrades > 0 && bf.foundTrades > 0
+      ? Math.min(1, bf.foundTrades / bf.totalTrades)
+      : bf.phase === 'rebuilding' ? 1 : 0
+    return (
+      <div className="flex h-[360px] flex-col items-center justify-center gap-4 border border-dashed border-border bg-foreground/[0.015] px-6 text-center">
+        <LoadingCandles />
+        <div className="font-mono text-xs text-muted-foreground">
+          {bf.phase === 'scanning' ? (
+            <>
+              scanning the chain — page <span className="text-foreground">{bf.pages}</span>
+              {bf.totalTrades > 0 && (
+                <>
+                  {' '}· <span className="text-foreground">{bf.foundTrades}/{bf.totalTrades}</span> trades found
+                </>
+              )}
+            </>
+          ) : (
+            <>replaying every trade on the curve…</>
+          )}
+          {' '}· <Elapsed startedAt={bf.startedAt} />
+        </div>
+        {/* progress: trades found / on-chain counter (the completeness
+            target) — shimmer while nothing is found yet */}
+        <div className="w-64">
+          {pct > 0 ? (
+            <Bar value={pct} barClassName="bg-vault" />
+          ) : (
+            <div className="relative h-[3px] w-full overflow-hidden bg-foreground/10">
+              <motion.div
+                className="absolute inset-y-0 w-1/3 bg-vault/80"
+                initial={{ x: '-100%' }}
+                animate={{ x: '400%' }}
+                transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+              />
+            </div>
+          )}
+          <div className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground/70">
+            {pct > 0
+              ? `${Math.round(pct * 100)}% of the coin's trades recovered`
+              : "walking the blocks down to this coin's birth"}
+          </div>
+        </div>
+        <p className="max-w-md font-mono text-[10px] leading-relaxed text-muted-foreground/70">
+          first visit on this device: every trade, in every block, is read from the XELIS
+          chain — this can take up to a minute. The chart appears on its own and is then
+          kept locally.
+        </p>
+      </div>
+    )
+  }
+
+  // done but still nothing to draw — the coin is BRAND NEW
+  if (bf.phase === 'done') {
+    return (
+      <div className="flex h-[360px] flex-col items-center justify-center gap-4 border border-dashed border-border bg-foreground/[0.015] px-6 text-center">
+        <LoadingCandles />
+        <div className="font-mono text-xs text-muted-foreground">
+          this coin is brand new — the chart starts with the first trades
+        </div>
+        <div className="max-w-md font-mono text-[10px] leading-relaxed text-muted-foreground/70">
+          the bonding curve price exists the moment trading begins; the candles will
+          draw here as soon as the first buys land on-chain.
+        </div>
+      </div>
+    )
+  }
+
+  // error — the node was unreachable; a retry fires on the next scan
+  return (
+    <div className="flex h-[360px] flex-col items-center justify-center gap-4 border border-dashed border-destructive/40 bg-foreground/[0.015] px-6 text-center">
+      <LoadingCandles />
+      <div className="font-mono text-xs text-muted-foreground">
+        couldn&apos;t reach the chain to rebuild the history
+      </div>
+      <div className="max-w-md font-mono text-[10px] leading-relaxed text-muted-foreground/70">
+        the mainnet node was busy — the rebuild retries automatically on the next scan
+        (~1 minute). Nothing is lost: the chart rebuilds the same on every computer.
+      </div>
+    </div>
+  )
+}
+
 export function CommunityView({ setView, focusId }: {
   setView: (v: AppView, id?: string) => void
   focusId?: string | null
@@ -1006,9 +1168,7 @@ export function CommunityView({ setView, focusId }: {
                     pointSeconds={series?.pointSeconds ?? 30}
                   />
                 ) : (
-                  <div className="flex h-[360px] items-center justify-center border border-dashed border-border font-mono text-xs text-muted-foreground">
-                    loading price history — rebuilding it from the chain…
-                  </div>
+                  <ChartLoadingPanel coin={coin} />
                 )}
               </div>
 

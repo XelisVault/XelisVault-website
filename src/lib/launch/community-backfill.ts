@@ -115,6 +115,22 @@ export interface BackfillInput {
   /** live atomic reserves — the calibration targets */
   liveXr: bigint
   liveYr: bigint
+  /** live progress report — drives the chart's loading panel */
+  onProgress?: (p: BackfillProgress) => void
+}
+
+/** Live progress of a chain backfill, for the UI loading panel. */
+export interface BackfillProgress {
+  /** 'walk' — walking blocks; 'replay' — replaying/calibrating trades */
+  phase: 'walk' | 'replay'
+  /** pages of 20 heights fetched so far */
+  pages: number
+  /** page budget for the whole walk (WALK_MAX_PAGES) */
+  maxPages: number
+  /** deduped trades of THIS coin found so far */
+  foundTrades: number
+  /** on-chain trade counter — the completeness target */
+  totalTrades: number
 }
 
 /** One trade, resolved from its executed block (hash = dedup key). */
@@ -289,6 +305,7 @@ async function walkTrades(
   currentTopo: number,
   createdTopo: number,
   totalTrades: number,
+  onProgress?: (p: BackfillProgress) => void,
 ): Promise<BackfillTrade[]> {
   if (totalTrades <= 0) return []
   const [tipRes, birthRes] = await Promise.all([
@@ -336,6 +353,14 @@ async function walkTrades(
         if (trade && trade.topo >= createdTopo) found.set(trade.hash, trade)
       }
     }
+
+    onProgress?.({
+      phase: 'walk',
+      pages,
+      maxPages: WALK_MAX_PAGES,
+      foundTrades: found.size,
+      totalTrades,
+    })
 
     hi = lo - 1
   }
@@ -539,11 +564,20 @@ export async function backfillCoinCurveSeries(
     }
 
     // 1 — the walk (bulk of the history; early-exits at the counter)
-    const walked = await walkTrades(coin.cid, coin.currentTopo, coin.createdTopo, coin.totalTrades)
+    const walked = await walkTrades(
+      coin.cid, coin.currentTopo, coin.createdTopo, coin.totalTrades, coin.onProgress,
+    )
 
     // 2 — the registry window AFTER the walk: catches trades that
     //     landed while the walk was running (the window always holds
     //     the newest ones)
+    coin.onProgress?.({
+      phase: 'replay',
+      pages: WALK_MAX_PAGES,
+      maxPages: WALK_MAX_PAGES,
+      foundTrades: walked.length,
+      totalTrades: coin.totalTrades,
+    })
     const windowTrades = await fetchWindowTrades(coin.cid).catch(() => [] as BackfillTrade[])
 
     // 3 — union, dedup by tx hash, oldest → newest

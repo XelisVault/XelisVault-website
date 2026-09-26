@@ -23,9 +23,11 @@ const CSP = [
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
   // The browser talks directly to: XELIS public nodes (mainnet + testnet,
-  // HTTP and WS), the NERVA explorer API, and the user's local XSWD wallet
-  // (Genesix / xelis_wallet on 127.0.0.1:44325). No other egress allowed.
-  "connect-src 'self' https://node.xelis.io wss://node.xelis.io https://testnet-node.xelis.io wss://testnet-node.xelis.io https://api.nerva.one https://explorer.nerva.one ws://127.0.0.1:44325 ws://localhost:44325",
+  // HTTP and WS), the NERVA explorer API, the user's local XSWD wallet
+  // (Genesix / xelis_wallet on 127.0.0.1:44325), and the OFFICIAL XSWD
+  // relay (wss://relay.xelis.io — the web & mobile wallet QR path).
+  // No other egress allowed.
+  "connect-src 'self' https://node.xelis.io wss://node.xelis.io https://testnet-node.xelis.io wss://testnet-node.xelis.io https://api.nerva.one https://explorer.nerva.one ws://127.0.0.1:44325 ws://localhost:44325 wss://relay.xelis.io",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   "object-src 'none'",
