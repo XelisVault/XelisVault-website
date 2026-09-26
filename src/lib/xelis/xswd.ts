@@ -81,6 +81,23 @@ function randomAppId(): string {
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
+// JSON.stringify with BigInt support: big integers are emitted as RAW
+// JSON numbers (unquoted). The wallet (Rust, serde_json) parses numeric
+// literals into u64/u128 without ANY precision loss — the 2^53 limit is
+// a JavaScript Number problem, not a JSON one. Raw literals sidestep it.
+//
+// Why this matters: bare u64 fields (deposits[].amount, transfers[].amount,
+// max_gas…) MUST arrive as JSON numbers — serde rejects strings there with
+// 'invalid type: string "…", expected u64'. ValueCell parameters are the
+// OPPOSITE (u64/u128 as strings, see types.ts) — both rules are enforced
+// by scripts/mock-xswd-wallet.mjs to match the real wallet.
+function rpcStringify(payload: unknown): string {
+  return JSON.stringify(payload, (_k, v) => {
+    if (typeof v === 'bigint') return { __raw_bigint: v.toString() }
+    return v
+  }).replace(/\{"__raw_bigint":"(-?\d+)"\}/g, '$1')
+}
+
 export class XSWDClient {
   private ws: WebSocket | null = null
   private appId = ''
@@ -318,7 +335,7 @@ export class XSWDClient {
         reject(new Error(`${method}: timeout (${REQUEST_TIMEOUT_MS / 1000}s — was the wallet popup answered?)`))
       }, REQUEST_TIMEOUT_MS)
       this.pending.set(id, { resolve, reject, timer })
-      this.ws!.send(JSON.stringify(payload))
+      this.ws!.send(rpcStringify(payload))
     })
   }
 
@@ -356,10 +373,13 @@ export class XSWDClient {
     fee?: number
     permission?: 'none' | 'all'
   }): Promise<string> {
-    const deposits: Record<string, { amount: string; private: boolean }> = {}
+    const deposits: Record<string, { amount: bigint; private: boolean }> = {}
     for (const [asset, d] of Object.entries(args.deposits ?? {})) {
       deposits[asset] = {
-        amount: BigInt(d.amount).toString(),
+        // ⚠ bare u64 — MUST be a JSON NUMBER (ContractDepositBuilder
+        // in xelis_common has no string serde). Kept as bigint and
+        // emitted as a raw literal by rpcStringify (no 2^53 loss).
+        amount: BigInt(d.amount),
         private: d.private ?? false,
       }
     }
@@ -390,7 +410,9 @@ export class XSWDClient {
     const params: Record<string, any> = {
       transfers: [{
         destination: args.destination,
-        amount: BigInt(args.amount).toString(),
+        // ⚠ bare u64 — MUST be a JSON NUMBER (TransferBuilder). bigint +
+        // rpcStringify keeps full precision.
+        amount: BigInt(args.amount),
         asset: args.asset ?? '0'.repeat(64),
       }],
       broadcast: true,

@@ -116,6 +116,46 @@ wss.on('connection', (ws, req) => {
         case 'subscribe':
           ws.send(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: true }))
           break
+        case 'build_transaction': {
+          // STRICT type validation — mirrors the REAL wallet's serde rules
+          // (xelis_common/transaction/builder/payload/mod.rs + xelis_vm values/mod.rs):
+          //   • bare u64 fields (deposits[].amount, transfers[].amount, max_gas,
+          //     entry_id, fee.fixed) MUST be JSON numbers — a string is rejected
+          //     with the exact serde error the real wallet returns.
+          //   • ValueCell parameters are the OPPOSITE: u64/u128/u256 MUST be
+          //     strings (custom serde in xelis-vm: deserialize_u64_from_string).
+          const tx = msg.params ?? {}
+          const errors = []
+          const inv = tx.invoke_contract
+          if (inv) {
+            if (typeof inv.max_gas !== 'number') errors.push(`invalid type ${JSON.stringify(inv.max_gas)}, expected u64 (max_gas)`)
+            if (typeof inv.entry_id !== 'number') errors.push(`invalid type ${JSON.stringify(inv.entry_id)}, expected u16 (entry_id)`)
+            for (const [asset, dep] of Object.entries(inv.deposits ?? {})) {
+              if (typeof dep?.amount !== 'number')
+                errors.push(`invalid type string "${dep?.amount}", expected u64 (deposit ${String(asset).slice(0, 8)}…, ContractDepositBuilder.amount)`)
+            }
+            for (let i = 0; i < (inv.parameters ?? []).length; i++) {
+              const p = inv.parameters[i]
+              if (p?.type === 'primitive' && ['u64', 'u128', 'u256'].includes(p.value?.type) && typeof p.value?.value !== 'string')
+                errors.push(`invalid type ${typeof p.value?.value}, expected a string (parameter #${i}: ValueCell ${p.value?.type} uses string serde)`)
+            }
+          }
+          for (let i = 0; i < (tx.transfers ?? []).length; i++) {
+            const t = tx.transfers[i]
+            if (typeof t?.amount !== 'number')
+              errors.push(`invalid type string "${t?.amount}", expected u64 (transfer #${i}, TransferBuilder.amount)`)
+          }
+          if (tx.fee?.fixed != null && typeof tx.fee.fixed !== 'number')
+            errors.push(`invalid type string "${tx.fee.fixed}", expected u64 (fee.fixed)`)
+
+          if (errors.length) {
+            log('REFUSED build_transaction (real wallet would reject):', errors[0])
+            return ws.send(JSON.stringify({ jsonrpc: '2.0', id: msg.id, error: { code: -32000, message: `Invalid params: ${errors[0]}` } }))
+          }
+          log('build_transaction ACCEPTED (types match the real wallet) ✓')
+          ws.send(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { hash: '6' + '0'.repeat(63) } }))
+          break
+        }
         default:
           ws.send(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: true }))
       }
