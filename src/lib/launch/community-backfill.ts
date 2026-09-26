@@ -45,7 +45,9 @@
 // (14 req/s), tx-bearing blocks are cached per hash, tx parses are
 // cached per hash and shared across coins in-session, and the walk is
 // bounded (WALK_MAX_PAGES) with an early exit as soon as the on-chain
-// trade counter is satisfied.
+// trade counter is satisfied. Pages are fetched in CONCURRENT WAVES of
+// 4 — the limiter paces the requests, the latency stops serializing
+// them (first visit measured ~60 s sequential → ~30 s waved).
 
 import { rpcCall } from '@/lib/xelis/rpc'
 import { COMMUNITY_CONTRACT, XEL_ASSET } from './protocol'
@@ -299,7 +301,15 @@ export async function fetchWindowTrades(cid: number): Promise<BackfillTrade[]> {
  * `cid`. Stops as soon as the deduped found-count reaches the on-chain
  * trade counter (we then provably have them all), at the coin's
  * creation (minus the DAG margin), or at the page budget.
+ *
+ * Pages are fetched in CONCURRENT WAVES: the walk is latency-bound (one
+ * page at a time measured ~2 pages/s ≈ 60 s for a young coin, while the
+ * shared limiter allows 14 req/s) — waves of WALK_CONCURRENCY pages cut
+ * the first-visit rebuild to roughly half. The limiter paces every
+ * request, so the node never sees more than it already accepts.
  */
+const WALK_CONCURRENCY = 4
+
 async function walkTrades(
   cid: number,
   currentTopo: number,
@@ -320,17 +330,20 @@ async function walkTrades(
 
   const bottomH = Math.max(1, birthH - WALK_BOTTOM_MARGIN)
   const found = new Map<string, BackfillTrade>()
-  let pages = 0
-  let hi = tipH
+  let pages = 0 // completed pages — monotonic, drives the loading panel
+  let launched = 0 // pages launched — the budget gate
+  let nextHi = tipH // top height of the next page to launch
+  // A FULL wave of failures = the node is gone (single transient page
+  // failures don't kill the walk — the calibration proof catches any
+  // hole, exactly as a mid-walk break did before).
+  let failedWave = 0
 
-  while (hi >= bottomH && pages < WALK_MAX_PAGES && found.size < totalTrades) {
-    const lo = Math.max(bottomH, hi - WALK_PAGE_HEIGHTS + 1)
+  async function fetchPage(lo: number, hi: number): Promise<boolean> {
     const blocks = await rpcCall<RawBlock[]>(
       'get_blocks_range_by_height', [lo, hi],
       { retries: 2, network: 'mainnet' },
     ).catch(() => null)
-    if (!Array.isArray(blocks) || blocks.length === 0) break
-    pages++
+    if (!Array.isArray(blocks) || blocks.length === 0) return false
 
     // seed the block cache with this page's tx-bearing blocks (most
     // trades' executed block is right here — no extra RPC needed)
@@ -354,6 +367,7 @@ async function walkTrades(
       }
     }
 
+    pages++
     onProgress?.({
       phase: 'walk',
       pages,
@@ -361,8 +375,28 @@ async function walkTrades(
       foundTrades: found.size,
       totalTrades,
     })
+    return true
+  }
 
-    hi = lo - 1
+  while (
+    nextHi >= bottomH && launched < WALK_MAX_PAGES &&
+    found.size < totalTrades && failedWave < WALK_CONCURRENCY
+  ) {
+    // launch a wave of up to WALK_CONCURRENCY pages (the early exit is
+    // re-checked between waves — at most a wave's worth of overshoot)
+    const wave: Promise<boolean>[] = []
+    while (
+      wave.length < WALK_CONCURRENCY && nextHi >= bottomH &&
+      launched < WALK_MAX_PAGES && found.size < totalTrades
+    ) {
+      const lo = Math.max(bottomH, nextHi - WALK_PAGE_HEIGHTS + 1)
+      wave.push(fetchPage(lo, nextHi))
+      nextHi = lo - 1
+      launched++
+    }
+    if (wave.length === 0) break
+    const results = await Promise.all(wave)
+    failedWave = results.every((ok) => !ok) ? failedWave + results.length : 0
   }
 
   const out = [...found.values()]

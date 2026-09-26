@@ -19,10 +19,13 @@
 //   • toCandles: buckets starting before data[0] open at the FIRST
 //     KNOWN point (like an exchange's first candle of a new listing);
 //     the live bucket always renders → never 0 candles again.
+//   • DEAD-TIME COMPRESSION: consecutive zero-range buckets at the same
+//     price merge into ONE candle (span) — the chart shows a candle per
+//     activity burst, not a wall of flat dojis on a quiet pair.
 //   • isBackfillActive/isCurveChartReady: the sampler is HELD while a
 //     rebuild runs, and the chart gate requires the rebuild to be
 //     settled AND the series to cover the coin's birth — the loading
-//     panel now covers the WHOLE walk (~1 min), as designed.
+//     panel now covers the WHOLE walk, as designed.
 //
 // Run: bun scripts/test-chart-gate.ts
 
@@ -227,6 +230,112 @@ console.log('\n── 5 · the first-visit timeline (real functions, simulated) 
   // t=75 — the next fast cycle samples live on TOP of the committed series
   series = appendPoint(series, 0.55, 1234635)
   ok(isCurveChartReady(coinView(), bfState), 't=75: live sampling continues on the full series → chart stays')
+}
+
+console.log('\n── 6 · dead-time compression — merged flat runs ────────────────')
+
+// A coin nobody traded for 2 h (240 points flat at 0.5, chunk 4 = 60
+// buckets): the OLD code rendered 60 identical flat dojis ("un truc
+// tout plat pas beau") — the fix collapses the whole quiet run into
+// ONE candle.
+{
+  const data = new Array(240).fill(0.5)
+  const c = toCandles(data, 1000, 4)
+  ok(c.length === 1, `240 flat points collapse to 1 candle (got ${c.length}, was 60)`)
+  ok(c[0].span === 60, `the merged candle spans all 60 buckets (got ${c[0].span})`)
+  ok(c[0].o === 0.5 && c[0].h === 0.5 && c[0].l === 0.5 && c[0].c === 0.5,
+    'merged OHLC = the flat price')
+  ok(c[0].closed === false, 'the run contains the live bucket → live')
+  ok(c[0].id === Math.floor(1000 / 4), 'the run keeps its FIRST bucket id (stable identity)')
+}
+
+// Activity is preserved and stays distinct: flat · trade · flat · trade · flat
+{
+  const data = [
+    ...Array(4).fill(0.5),        // flat 0.5
+    0.5, 0.6, 0.7, 0.8,           // TRADE bucket (moves inside)
+    ...Array(4).fill(0.8),        // flat 0.8
+    0.8, 0.7, 0.65, 0.6,          // TRADE bucket (moves inside)
+    ...Array(4).fill(0.6),        // flat 0.6 (live)
+  ]
+  const c = toCandles(data, 0, 4)
+  ok(c.length === 5, `flat·trade·flat·trade·flat stays 5 distinct candles (got ${c.length})`)
+  ok(c[0].h === c[0].l && c[0].o === 0.5, 'the pre-trade quiet run is its own candle')
+  ok(c[1].h === 0.8 && c[1].l === 0.5 && c[1].span === 1, 'the trade candle keeps its full range')
+  ok(c[1].h > c[1].l, 'a trade candle is NEVER merged (it has range)')
+  ok(c[4].o === 0.6 && c[4].closed === false, 'the post-trade quiet run is the live candle')
+}
+
+// Two quiet runs at DIFFERENT prices never merge — the step between
+// them IS information (a trade happened there).
+{
+  const data = [...Array(8).fill(0.5), ...Array(8).fill(0.7)]
+  const c = toCandles(data, 0, 4)
+  ok(c.length === 2, `flat 0.5 then flat 0.7 = 2 candles, never merged (got ${c.length})`)
+  ok(c[0].c === 0.5 && c[0].span === 2, 'run 1 = 2 buckets at 0.5')
+  ok(c[1].o === 0.7 && c[1].span === 2 && c[1].closed === false, 'run 2 = 2 buckets at 0.7, live')
+}
+
+// Span accounting: the merged candles cover EXACTLY the raw buckets.
+{
+  const data = [
+    ...Array(10).fill(0.5), 0.9, 0.9, ...Array(11).fill(0.9),
+    0.4, ...Array(9).fill(0.4),
+  ]
+  const c = toCandles(data, 400, 4)
+  const rawBuckets = Math.floor((400 + data.length - 1) / 4) - Math.floor(400 / 4) + 1
+  const covered = c.reduce((s, k) => s + k.span, 0)
+  ok(covered === rawBuckets, `spans sum to the raw bucket count (${covered} === ${rawBuckets})`)
+  ok(c.every((k) => k.span >= 1), 'every candle has span ≥ 1')
+}
+
+// Frozen VALUES while a quiet run GROWS (the live flat bucket joins):
+// only span increments — o/h/l/c never move.
+{
+  const data = new Array(41).fill(0.5)
+  const before = toCandles(data, 1000, 4)
+  // 4 more flat points → crosses into the NEXT bucket → the run grows
+  const after = toCandles([...data, 0.5, 0.5, 0.5, 0.5], 1000, 4)
+  const b = before[0], a = after[0]
+  ok(a.span > b.span, `the live quiet run grows (span ${b.span} → ${a.span})`)
+  ok(a.o === b.o && a.h === b.h && a.l === b.l && a.c === b.c, 'values FROZEN while the run grows')
+  ok(a.id === b.id, 'identity (first bucket) stable while the run grows')
+}
+
+// A trade SPLIT the live run: the closed part keeps its values, the
+// new live candle carries the traded price — exactly like a new candle
+// opening on an exchange.
+{
+  const base = new Array(40).fill(0.5)
+  const flat = toCandles(base, 1000, 4)
+  ok(flat.length === 1 && flat[0].closed === false, 'all-flat: one merged live candle')
+  const traded = toCandles([...base, 0.9, 0.9], 1000, 4) // trade lands in a NEW bucket
+  ok(traded.length === 2, `the trade splits the run (${traded.length} candles)`)
+  ok(traded[0].o === 0.5 && traded[0].h === 0.5 && traded[0].closed === true,
+    'the closed part keeps the flat values')
+  ok(traded[0].id === flat[0].id, 'the closed part keeps the run identity')
+  ok(traded[1].o === 0.9 && traded[1].closed === false, 'the new live candle carries the trade')
+}
+
+// A REALISTIC quiet pair: 900 buckets, 4 price steps landing mid-bucket
+// — the wall of dojis collapses to a handful of readable candles
+// (XVLT-like shape), each step visible as a candle with range.
+{
+  const data: number[] = []
+  for (let i = 0; i < 3600; i++) {
+    let p = 0.42
+    if (i >= 3501) p = 0.52
+    else if (i >= 2401) p = 0.48
+    else if (i >= 1201) p = 0.61
+    else if (i >= 301) p = 0.55
+    data.push(p)
+  }
+  const c = toCandles(data, 0, 4)
+  ok(c.length <= 10, `3600 pts / 900 buckets / 4 steps → ≤10 candles (got ${c.length}, was 900)`)
+  ok(c.filter((k) => k.h > k.l).length === 4,
+    `each of the 4 steps is a candle with range (got ${c.filter((k) => k.h > k.l).length})`)
+  ok(c[0].span > 50, `the first quiet run keeps its full span (${c[0].span} buckets)`)
+  ok(c[c.length - 1].closed === false, 'the newest candle is live')
 }
 
 console.log(`\n${failed === 0 ? 'ALL PASS' : 'FAILURES'} — ${passed} passed, ${failed} failed\n`)

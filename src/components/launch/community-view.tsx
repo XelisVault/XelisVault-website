@@ -937,8 +937,8 @@ function ChartLoadingPanel({ coin }: { coin: CommunityCoin }) {
           opening the on-chain history…
         </div>
         <p className="max-w-md font-mono text-[10px] leading-relaxed text-muted-foreground/70">
-          the full price history is rebuilt from the XELIS chain — it can take up to a
-          minute on a first visit. The chart appears on its own, identical on every computer.
+          the full price history is rebuilt from the XELIS chain — it can take up to
+          half a minute on a first visit. The chart appears on its own, identical on every computer.
         </p>
       </div>
     )
@@ -990,8 +990,8 @@ function ChartLoadingPanel({ coin }: { coin: CommunityCoin }) {
         </div>
         <p className="max-w-md font-mono text-[10px] leading-relaxed text-muted-foreground/70">
           first visit on this device: every trade, in every block, is read from the XELIS
-          chain — this can take up to a minute. The chart appears on its own and is then
-          kept locally.
+          chain — usually about half a minute (a bit more for older coins). The chart
+          appears on its own and is then kept locally.
         </p>
       </div>
     )

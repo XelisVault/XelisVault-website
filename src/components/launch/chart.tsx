@@ -6,6 +6,10 @@
 //   • CANDLES classic OHLC candlesticks with true exchange semantics:
 //             buckets are anchored to ABSOLUTE point indices, so a CLOSED
 //             candle is FROZEN FOREVER — only the live candle moves.
+//             DEAD-TIME COMPRESSION: consecutive buckets with zero range
+//             (no trade moved the price) at the same price collapse into
+//             ONE candle — the chart shows a candle per ACTIVITY burst,
+//             never a wall of identical flat dojis on a quiet pair.
 //
 // ── Exchange-grade viewport ────────────────────────────────────────
 // The chart is a real trading terminal viewport, not a static picture:
@@ -52,6 +56,10 @@ export type Candle = {
   id: number
   /** false only for the bucket containing the very last point */
   closed: boolean
+  /** how many raw buckets this candle covers — 1 for a normal candle,
+   *  >1 for a MERGED flat run (dead-time compression). The x-axis is
+   *  activity-indexed: a span-24 candle still takes ONE slot. */
+  span: number
 }
 
 /** Interval presets — real-time durations; the chunk size adapts to
@@ -64,8 +72,14 @@ export const INTERVALS = [
 ] as const
 export type IntervalId = (typeof INTERVALS)[number]['id']
 
-/** Safety cap only — 900 points ÷ chunk 6 = 150 candles max. */
+/** DOM safety cap — a rendered candle is a few SVG nodes, so the MERGED
+ *  output never exceeds this (the NEWEST candles are kept; quiet coins
+ *  merge down to a handful anyway, active ones clip like an exchange). */
 const MAX_CANDLES = 400
+/** Raw-bucket walk bound — the persisted series never exceeds 3600
+ *  points (persist.ts decimation), so this simply means "every bucket";
+ *  it exists only as a hard backstop for hostile inputs. */
+const MAX_RAW_BUCKETS = 4000
 
 // viewport zoom ranges, in px per unit
 const SP_C_MIN = 2.5, SP_C_MAX = 40 // candles
@@ -84,10 +98,26 @@ function clampN(v: number, lo: number, hi: number): number {
  * `histStart` = absolute index of data[0]. Bucket of absolute index i is
  * floor(i / chunk). The bucket containing the LAST point is the live
  * candle (closed: false); everything before it is frozen history.
+ *
+ * DEAD-TIME COMPRESSION — a quiet pair emits one flat doji per bucket
+ * (the price only moves on trades), which renders as a wall of identical
+ * candles ("un truc tout plat"). Consecutive ZERO-RANGE buckets (h === l:
+ * no trade moved the price inside them) at the SAME price therefore
+ * collapse into ONE candle spanning the whole quiet run:
+ *   • the merged candle keeps the run's FIRST bucket id — its identity
+ *     is stable while the run grows, and the frozen guarantee holds for
+ *     its VALUES (o/h/l/c never move; only `span` increments)
+ *   • a run is live (closed: false) only while it CONTAINS the live
+ *     bucket — the first trade at a new price splits it on the next
+ *     tick, exactly like a new candle opening on an exchange
+ *   • two flats at DIFFERENT prices never merge: the step between them
+ *     IS information (a trade happened there)
+ * The x-axis is then activity-indexed (one slot per candle, whatever it
+ * spans) — each visible candle is labelled at its own real start time.
  */
 export function toCandles(data: number[], histStart: number, chunk: number): Candle[] {
   if (data.length < 2 || chunk < 1) return []
-  const out: Candle[] = []
+  const raw: Candle[] = []
   const lastAbs = histStart + data.length - 1
   const liveBucket = Math.floor(lastAbs / chunk)
 
@@ -115,22 +145,49 @@ export function toCandles(data: number[], histStart: number, chunk: number): Can
     // activity proxy: accumulated absolute move inside the bucket
     let vol = 0
     for (let i = 1; i < slice.length; i++) vol += Math.abs(slice[i] - slice[i - 1])
-    out.unshift({
+    raw.push({ // newest → oldest; reversed below
       o, h, l, c,
       vol: vol + Math.abs(c - o) * 0.5,
       id: bucket,
       closed: bucket < liveBucket,
+      span: 1,
     })
-    if (out.length >= MAX_CANDLES) break // safety: never explode
+    if (raw.length >= MAX_RAW_BUCKETS) break // hostile-input backstop
   }
-  return out
+  raw.reverse() // oldest → newest
+
+  // Second pass — merge the flat runs. A flat bucket has h === l (⟹
+  // o === c: the price never moved inside it); a run only extends while
+  // the price is IDENTICAL, so a price step always starts a new candle.
+  const out: Candle[] = []
+  for (const k of raw) {
+    const prev = out[out.length - 1]
+    if (prev != null && k.h === k.l && prev.h === prev.l && prev.o === k.o) {
+      prev.span += k.span
+      prev.closed = prev.closed && k.closed // live while the live bucket is in the run
+    } else {
+      out.push({ ...k })
+    }
+  }
+  // DOM safety — keep the NEWEST candles (an exchange clips deep history)
+  return out.length > MAX_CANDLES ? out.slice(out.length - MAX_CANDLES) : out
 }
 
 function fmtAxis(v: number): string {
   if (v >= 1000) return v.toFixed(0)
   if (v >= 100) return v.toFixed(1)
   if (v >= 1) return v.toFixed(3)
-  return v.toFixed(4)
+  // community-coin prices are sub-milli (a bonding curve opens around
+  // 1e-4 or lower) — 4 decimals made every tick read "0.0001"
+  if (v >= 0.001) return v.toFixed(4)
+  return v.toFixed(6)
+}
+
+/** OHLC legend value — adaptive decimals for sub-milli prices. */
+function fmtOHLC(v: number): string {
+  if (v >= 1) return v.toFixed(4)
+  if (v >= 0.001) return v.toFixed(5)
+  return v.toFixed(6)
 }
 
 /** Wall-clock timestamp (ms) of an absolute point index — the live
@@ -158,6 +215,16 @@ function fmtClock(ms: number): string {
 function fmtFull(ms: number): string {
   const d = new Date(ms)
   return `${p2(d.getDate())}.${p2(d.getMonth() + 1)} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`
+}
+
+/** Human duration covered by a MERGED candle (dead-time run) —
+ *  "42m", "3.5h", "2.1d" — the legend shows it so a wide flat candle
+ *  reads as "nothing traded for this long", not as a glitch. */
+function fmtSpan(sec: number): string {
+  if (sec < 90 * 60) return `${Math.max(1, Math.round(sec / 60))}m`
+  const h = sec / 3600
+  if (h < 48) return `${h.toFixed(1)}h`
+  return `${(h / 24).toFixed(1)}d`
 }
 
 function smoothPath(pts: { x: number; y: number }[]): string {
@@ -454,21 +521,23 @@ export function PriceChart({
   }
 
   // ── bottom time axis ──
-  const idToIdx = mode === 'candles' && count
-    ? new Map(candles.map((c, i) => [c.id, i] as const))
-    : null
-  const firstId = mode === 'candles' ? (candles[i0]?.id ?? 0) : histStart + i0
-  const lastId = mode === 'candles' ? (candles[i1]?.id ?? 0) : histStart + i1
-  const stepsU = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1200]
-  const stepU = stepsU.find((s) => s * spacing >= 64) ?? 1800
+  // Candles are ACTIVITY-indexed (dead-time compression merges flat
+  // runs into single candles), so each visible candle is labelled at
+  // its own real start time — one label every ~64 px, like a terminal.
+  // Line mode keeps the uniform point grid (raw feed, linear time).
   const timeTicks: { x: number; label: string }[] = []
   if (total > 1) {
-    for (let u = Math.ceil(firstId / stepU) * stepU; u <= lastId; u += stepU) {
-      if (mode === 'candles') {
-        const idx = idToIdx?.get(u)
-        if (idx == null) continue
-        timeTicks.push({ x: xOf(idx), label: fmtClock(absTimeMs(u * chunk, lastAbs, pointSeconds)) })
-      } else {
+    if (mode === 'candles' && candles.length) {
+      const stepC = Math.max(1, Math.round(64 / spacing))
+      for (let i = Math.ceil(i0 / stepC) * stepC; i <= i1; i += stepC) {
+        const c = candles[i]
+        if (!c) continue
+        timeTicks.push({ x: xOf(i), label: fmtClock(absTimeMs(c.id * chunk, lastAbs, pointSeconds)) })
+      }
+    } else {
+      const stepsU = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1200]
+      const stepU = stepsU.find((s) => s * spacing >= 64) ?? 1800
+      for (let u = Math.ceil((histStart + i0) / stepU) * stepU; u <= histStart + i1; u += stepU) {
         timeTicks.push({ x: xOf(u - histStart), label: fmtClock(absTimeMs(u, lastAbs, pointSeconds)) })
       }
     }
@@ -720,8 +789,11 @@ export function PriceChart({
                 const col = up ? CHART_UP : CHART_DOWN
                 const hovered = hoverIdx === i
                 const isLive = i === count - 1 && !k.closed
+                // dead-time candles are dimmed: they carry the price
+                // level, not activity — activity pops, quiet runs recede
+                const flat = k.h === k.l
                 return (
-                  <g key={k.id} opacity={hoverIdx != null && !hovered ? 0.5 : 1}>
+                  <g key={k.id} opacity={hoverIdx != null && !hovered ? 0.5 : flat && !isLive ? 0.55 : 1}>
                     {/* wick */}
                     <line x1={cx} x2={cx} y1={yH} y2={yL} stroke={col} strokeWidth={hovered ? 1.8 : 1.3} strokeLinecap="round" />
                     {/* body */}
@@ -857,12 +929,20 @@ export function PriceChart({
             ['O', legendCandle.o], ['H', legendCandle.h], ['L', legendCandle.l], ['C', legendCandle.c],
           ].map(([k, v]) => (
             <span key={k as string} className="text-muted-foreground">
-              {k as string} <span className={legendUp ? 'text-vault' : 'text-destructive'}>{(v as number).toFixed(4)}</span>
+              {k as string} <span className={legendUp ? 'text-vault' : 'text-destructive'}>{fmtOHLC(v as number)}</span>
             </span>
           ))}
           <span className={legendUp ? 'text-vault' : 'text-destructive'}>
             {(((legendCandle.c - legendCandle.o) / legendCandle.o) * 100).toFixed(2)}%
           </span>
+          {legendCandle.span > 1 && (
+            <span
+              title={`no trade moved the price for ${fmtSpan(legendCandle.span * chunk * pointSeconds)} — the quiet run is collapsed into this single candle`}
+              className="border border-border bg-background/80 px-1 py-px text-[8px] font-bold uppercase tracking-[0.14em] text-muted-foreground"
+            >
+              flat · {fmtSpan(legendCandle.span * chunk * pointSeconds)}
+            </span>
+          )}
           {legendCandle === lastCandle && !legendCandle.closed && (
             <span className="border border-vault/50 bg-vault/10 px-1 py-px text-[8px] font-bold uppercase tracking-[0.18em] text-vault">
               live
@@ -875,7 +955,7 @@ export function PriceChart({
             {fmtFull(absTimeMs(histStart + hoverIdx, lastAbs, pointSeconds))}
           </span>
           {' '}
-          {data[hoverIdx] < 1 ? data[hoverIdx].toFixed(5) : data[hoverIdx].toFixed(3)}
+          {data[hoverIdx] < 0.001 ? data[hoverIdx].toFixed(6) : data[hoverIdx] < 1 ? data[hoverIdx].toFixed(5) : data[hoverIdx].toFixed(3)}
           <span className="ml-1.5 text-muted-foreground">{unit}</span>
         </div>
       ) : null}
