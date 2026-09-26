@@ -14,7 +14,12 @@
 //     deposit semantics, D14)
 //   • votes read the CURRENT deposit dial first (mainnet: 0 = free)
 
-import { getXSWDClient } from '@/lib/xelis/xswd'
+// ⚠ The trade panels connect through the VaultLaunch XSWD singleton
+// (getLaunchXSWDClient — app "VaultLaunch"). Using lib/xelis's generic
+// getXSWDClient() here would check a DIFFERENT client instance that is
+// never connected in the launchpad → "Connect your XELIS wallet first"
+// while the wallet IS connected. Same singleton, same session.
+import { getLaunchXSWDClient } from './xswd'
 import { rpcCall } from '@/lib/xelis/rpc'
 import { valStr, valU64, valHash, type ValueCell } from '@/lib/xelis/types'
 import {
@@ -67,7 +72,7 @@ async function sendInvoke(args: {
   /** extra context for the success message */
   success: string
 }): Promise<TxResult> {
-  const client = getXSWDClient()
+  const client = getLaunchXSWDClient()
   if (client.state !== 'connected') {
     return fail('Connect your XELIS wallet first (Genesix on mainnet, XSWD enabled).')
   }
