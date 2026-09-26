@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useMainnet, graduationOf } from '@/lib/launch/mainnet-store'
+import { useCommunity } from '@/lib/launch/community-store'
 import { useLaunchWallet } from '@/lib/launch/wallet'
 import { supportTx, reportTx, finalizeValidationTx, migrateTx, claimRefundTx } from '@/lib/launch/tx'
 import { shortenAddress } from '@/lib/xelis/types'
@@ -15,12 +16,13 @@ import { explorerContractUrl } from '@/lib/launch/protocol'
 import { useToast } from '@/hooks/use-toast'
 import { AnimatedNumber, Bar, BracketButton, Countdown, StatusTag, Sparkline, SquareDot, pad2 } from './shared'
 import { CommunityRail } from './community-rail'
+import { ShareCoinButton } from './community-view'
 import { ProjectLogo } from './logos'
 import { fmtXel, fmtPrice } from '@/lib/launch/math'
-import type { Project } from '@/lib/launch/types'
+import type { Project, CommunityCoin } from '@/lib/launch/types'
 import { cn } from '@/lib/utils'
 
-export type AppView = 'launchpad' | 'trading' | 'dex' | 'community' | 'create' | 'coin-launch' | 'portfolio' | 'guide'
+export type AppView = 'launchpad' | 'trading' | 'dex' | 'community' | 'coin' | 'create' | 'coin-launch' | 'portfolio' | 'guide'
 
 const FILTERS = [
   { id: 'all', label: 'All' },
@@ -434,12 +436,107 @@ function ProjectDialog({ p, open, onClose, onTrade }: {
   )
 }
 
+// ── Official token banner — the platform's own asset, flagship slot ──
+
+/** The official-coin flagship: full-width, champagne-gold framed, first
+ *  thing on the Launchpad. Official tokens left the community category —
+ *  this is their project-side home. */
+function OfficialTokenBanner({ coin, setView }: {
+  coin: CommunityCoin
+  setView: (v: AppView, id?: string) => void
+}) {
+  const series = coin.curve ?? coin.pool
+  const chg = series && series.history.length >= 2 && series.history[0] > 0
+    ? ((coin.price - series.history[0]) / series.history[0]) * 100
+    : 0
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="relative overflow-hidden border border-vault/40 bg-vault/[0.045] p-4 sm:p-5"
+    >
+      {/* corner brackets — the house signature */}
+      <span aria-hidden className="absolute -left-px -top-px h-3.5 w-3.5 border-l-2 border-t-2 border-vault" />
+      <span aria-hidden className="absolute -right-px -top-px h-3.5 w-3.5 border-r-2 border-t-2 border-vault" />
+      <span aria-hidden className="absolute -bottom-px -left-px h-3.5 w-3.5 border-b-2 border-l-2 border-vault" />
+      <span aria-hidden className="absolute -bottom-px -right-px h-3.5 w-3.5 border-b-2 border-r-2 border-vault" />
+
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+        {/* identity */}
+        <div className="flex min-w-0 items-center gap-4">
+          <ProjectLogo ticker={coin.ticker} size="xl" className="h-16 w-16" />
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="font-display text-xl font-semibold tracking-tight">{coin.name}</h2>
+              <span className="font-mono text-sm text-muted-foreground">${coin.ticker}</span>
+              <span className="border border-vault/60 bg-vault/10 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-vault">official</span>
+              <span className="border border-emerald-400/50 bg-emerald-400/5 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-emerald-400">trusted</span>
+            </div>
+            <p className="mt-1.5 line-clamp-2 max-w-xl text-[12.5px] leading-relaxed text-muted-foreground">
+              {coin.description}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10.5px]">
+              {coin.website && (
+                <a href={coin.website} target="_blank" rel="noreferrer" className="text-vault hover:underline">website ↗</a>
+              )}
+              {coin.twitter && (
+                <a href={coin.twitter} target="_blank" rel="noreferrer" className="text-vault hover:underline">X ↗</a>
+              )}
+              {coin.discord && (
+                <a href={coin.discord} target="_blank" rel="noreferrer" className="text-vault hover:underline">discord ↗</a>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* live numbers */}
+        <div className="ml-auto flex items-center gap-5">
+          <div className="text-right">
+            <div className="font-display text-2xl font-semibold tabular-nums">{fmtPrice(coin.price)}</div>
+            <div className={cn('font-mono text-[11px] font-semibold tabular-nums', chg >= 0 ? 'text-emerald-400' : 'text-destructive')}>
+              {chg >= 0 ? '+' : ''}{chg.toFixed(1)}% · XEL
+            </div>
+            <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">mcap {fmtXel(coin.marketCap)} XEL</div>
+          </div>
+          {coin.curve && (
+            <div className="hidden w-44 sm:block">
+              <div className="flex items-center justify-between font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
+                <span>graduation</span>
+                <span className="font-bold text-vault">{(coin.progress * 100).toFixed(0)}%</span>
+              </div>
+              <Bar value={coin.progress} className="mt-1.5" barClassName="bg-vault" />
+              <div className="mt-1 font-mono text-[9px] text-muted-foreground">
+                {fmtXel(coin.curve.reserves)} / {fmtXel(coin.curve.gradDepth)} XEL real depth
+              </div>
+            </div>
+          )}
+          <Sparkline data={series?.history.slice(-32) ?? []} width={72} height={28} color="var(--vault)" />
+        </div>
+
+        {/* actions */}
+        <div className="flex items-center gap-2">
+          <ShareCoinButton coin={coin} />
+          <BracketButton variant="strong" onClick={() => setView('coin', coin.ticker)}>
+            trade ${coin.ticker} →
+          </BracketButton>
+        </div>
+      </div>
+    </motion.section>
+  )
+}
+
 export function LaunchpadView({ setView }: { setView: (v: AppView, id?: string) => void }) {
   const projects = useMainnet((s) => s.projects)
   const stats = useMainnet((s) => s.stats)
   const status = useMainnet((s) => s.status)
+  const coins = useCommunity((s) => s.coins)
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('all')
   const [selected, setSelected] = useState<Project | null>(null)
+
+  // the platform's official tokens — flagship slots on the project board
+  const officialCoins = coins.filter((c) => c.official)
 
   // Keep the dialog project in sync with on-chain updates
   const liveSelected = selected ? projects.find((p) => p.id === selected.id) ?? selected : null
@@ -459,9 +556,16 @@ export function LaunchpadView({ setView }: { setView: (v: AppView, id?: string) 
 
   return (
     <div>
-      {/* community launches first — the track anyone can launch on,
+      {/* the platform's own token — the flagship, before everything */}
+      {officialCoins.map((c) => (
+        <OfficialTokenBanner key={c.id} coin={c} setView={setView} />
+      ))}
+
+      {/* community launches next — the track anyone can launch on,
           visible the moment you arrive */}
-      <CommunityRail setView={setView} />
+      <div className={officialCoins.length > 0 ? 'mt-4' : ''}>
+        <CommunityRail setView={setView} />
+      </div>
 
       {/* Header stats: the ledger band */}
       <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
@@ -521,7 +625,7 @@ export function LaunchpadView({ setView }: { setView: (v: AppView, id?: string) 
         </AnimatePresence>
       </motion.div>
 
-      {visible.length === 0 && projects.length === 0 && status === 'live' && (
+      {visible.length === 0 && projects.length === 0 && status === 'live' && officialCoins.length === 0 && (
         <div className="mt-14 border border-dashed border-border p-10 text-center">
           <div className="font-display text-2xl font-semibold text-foreground">
             The community creates the coins.

@@ -191,6 +191,10 @@ export interface CommunityCoin {
   discord?: string
   hue: number
   avatar: string
+  /** TRUE for the platform's own tokens (official.ts registry): they
+   *  leave the community boards and surface as flagship project tokens
+   *  with OFFICIAL · TRUSTED presentation. */
+  official?: boolean
   /** The REAL XELIS asset hash of the coin (set at launch). */
   asset: string | null
   /** Total supply (human tokens) — fixed forever at launch. */

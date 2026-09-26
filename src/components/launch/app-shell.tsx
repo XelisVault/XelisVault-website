@@ -65,6 +65,10 @@ const VIEW_TITLES: Record<AppView, { title: string; desc: string }> = {
     title: 'Community Coins',
     desc: 'The pump.fun track — anyone launches a real XELIS asset for ~2 XEL, no validation. Virtual curves, demand-proof graduation, permissionless migration.',
   },
+  coin: {
+    title: 'Token Terminal',
+    desc: 'One token, the full terminal — live chart, exact integer quotes and the on-chain record. Straight from the contracts.',
+  },
   create: {
     title: 'Create a Project',
     desc: 'Propose to the community — 526 XEL minimum, validation in ~1 hour, direct listing at 2 000 XEL. The serious track.',
@@ -99,10 +103,12 @@ function MainnetProvider({ children }: { children: React.ReactNode }) {
 // ── Community nav badge — the live count on the coin board tab ──────
 
 /** Count badge for the Community Coins nav item: how many coins exist,
- *  pulsing bordeaux while one is less than an hour old. */
+ *  pulsing bordeaux while one is less than an hour old. Official tokens
+ *  don't count — they are project-side assets. */
 function CommunityNavMark({ expanded, compact }: { expanded?: boolean; compact?: boolean }) {
-  const coins = useCommunity((s) => s.coins)
+  const allCoins = useCommunity((s) => s.coins)
   const topoheight = useMainnet((s) => s.topoheight)
+  const coins = allCoins.filter((c) => !c.official)
   if (coins.length === 0) return null
   const fresh = coins.some((c) => isFreshLaunch(c, topoheight))
   if (compact) {
@@ -374,11 +380,20 @@ function ConnectModal({ open, onClose }: { open: boolean; onClose: () => void })
 
 // ── The shell ────────────────────────────────────────────────────────
 
-export function LaunchAppShell({ initialView }: { initialView?: AppView }) {
+export function LaunchAppShell({ initialView, initialFocus }: { initialView?: AppView; initialFocus?: string }) {
   const [view, setViewRaw] = useState<AppView>(initialView ?? 'launchpad')
-  const [focus, setFocus] = useState<string | null>(null)
+  const [focus, setFocus] = useState<string | null>(initialFocus ?? null)
   const [connectOpen, setConnectOpen] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
+
+  // deep links arrive after mount (the URL only exists client-side) —
+  // sync once when the parsed params land.
+  useEffect(() => {
+    if (initialView) {
+      setViewRaw(initialView)
+      setFocus(initialFocus ?? null)
+    }
+  }, [initialView, initialFocus])
 
   const wallet = useLaunchWallet()
   const nodeStatus = useMainnet((s) => s.status)
@@ -398,7 +413,12 @@ export function LaunchAppShell({ initialView }: { initialView?: AppView }) {
     setViewRaw(v)
     setFocus(id || null)
     if (typeof window !== 'undefined') {
-      window.history.replaceState({}, '', '/launch')
+      // the URL IS the share link — it reopens this exact page
+      const params = new URLSearchParams()
+      if (v !== 'launchpad') params.set('view', v)
+      if (id) params.set('focus', id)
+      const qs = params.toString()
+      window.history.replaceState({}, '', qs ? `/launch?${qs}` : '/launch')
     }
     contentRef.current?.scrollTo({ top: 0 })
   }
@@ -449,7 +469,7 @@ export function LaunchAppShell({ initialView }: { initialView?: AppView }) {
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="hidden font-mono text-[9px] text-muted-foreground/50 md:inline">{pad2(activeIndex)}</span>
+                    {activeIndex >= 0 && <span className="hidden font-mono text-[9px] text-muted-foreground/50 md:inline">{pad2(activeIndex)}</span>}
                     <h1 className="truncate font-mono text-sm font-bold uppercase tracking-[0.14em] text-foreground">
                       {title.title}
                     </h1>
@@ -524,7 +544,7 @@ export function LaunchAppShell({ initialView }: { initialView?: AppView }) {
                   {view === 'launchpad' && <LaunchpadView setView={setView} />}
                   {view === 'trading' && <TradingView setView={setView} focusId={focus} />}
                   {view === 'dex' && <DexView setView={setView} focusId={focus} />}
-                  {view === 'community' && <CommunityView setView={setView} focusId={focus} />}
+                  {(view === 'community' || view === 'coin') && <CommunityView setView={setView} focusId={focus} />}
                   {view === 'create' && <ProposeView setView={setView} />}
                   {view === 'coin-launch' && <CoinLaunchView setView={setView} />}
                   {view === 'portfolio' && <PortfolioView setView={setView} />}

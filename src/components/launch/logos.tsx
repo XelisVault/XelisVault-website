@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 
 export const LOGO_HUES: Record<string, number> = {
   VLT: 38,
+  XVLT: 38,
   XPAY: 195,
   NOVA: 150,
   CYPH: 95,
@@ -139,10 +140,12 @@ const TILE_SIZES = {
 } as const
 
 /** Assets that use their OFFICIAL logo image instead of a hand-drawn
- *  emblem. VLT is the platform itself and XEL is the native coin of the
- *  XELIS network — both carry their real brand marks. */
+ *  emblem. VLT is the platform itself, XVLT is the platform's official
+ *  token, and XEL is the native coin of the XELIS network — all three
+ *  carry their real brand marks. */
 const OFFICIAL_LOGOS: Record<string, string> = {
   VLT: '/images/xelisvault-logo.png',
+  XVLT: '/images/xelisvault-logo.png',
   XEL: '/images/xel-token-logo.png',
 }
 

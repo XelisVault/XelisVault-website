@@ -32,6 +32,7 @@ import { fetchPool } from './reader'
 import { loadSeries, saveSeries, appendPoint, emptySeries, seriesPointSeconds, type ChartSeries } from './persist'
 import { toHuman } from './chain-math'
 import { coinSpotPrice, coinMarketCap, coinContinuity } from './community-math'
+import { isHiddenTicker, officialInfoOf } from './official'
 import type { CommunityCoin, CoinStatus, PoolState } from './types'
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -168,7 +169,9 @@ async function deepScan(topo: number, set: SetFn, get: GetFn): Promise<void> {
   const ids: number[] = []
   for (let cid = count - 1; cid >= 0; cid--) ids.push(cid) // newest first
   const raws = await Promise.all(ids.map((cid) => fetchCoin(cid).catch(() => null)))
-  const valid = raws.filter((r): r is RawCoin => !!r)
+  // hidden tickers (launch errors) never enter the store — no board,
+  // no rail, no badge, no deep link, no trade path can reach them.
+  const valid = raws.filter((r): r is RawCoin => !!r && !isHiddenTicker(r.symbol))
 
   // pools: one per migrated coin
   const poolReads = valid
@@ -232,6 +235,7 @@ function mapCoin(
     discord: raw.discord || undefined,
     hue,
     avatar: ticker.slice(0, 2).toUpperCase(),
+    official: false,
     asset: raw.asset,
     totalSupply: toHuman(raw.totalSupply),
     teamBps: raw.creatorBps,
@@ -246,6 +250,19 @@ function mapCoin(
     progress: 0,
     continuity: false,
     tags: buildTags(raw, status, params),
+  }
+
+  // the platform's own tokens: official metadata, official presentation
+  const official = officialInfoOf(ticker)
+  if (official) {
+    c.official = true
+    c.name = official.name
+    c.description = official.description
+    c.website = official.website
+    c.twitter = official.twitter
+    c.discord = official.discord
+    c.hue = 38 // champagne gold — the house color
+    c.tags = ['official token', 'trusted', 'fixed supply']
   }
 
   // curve era — live + graduated (the curve keeps trading at the

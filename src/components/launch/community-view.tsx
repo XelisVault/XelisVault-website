@@ -17,11 +17,13 @@
 
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Share2, Check } from 'lucide-react'
 import { useCommunity } from '@/lib/launch/community-store'
 import { useMainnet } from '@/lib/launch/mainnet-store'
 import { useToast } from '@/hooks/use-toast'
 import { useLaunchWallet } from '@/lib/launch/wallet'
+import { copyText } from '@/lib/clipboard'
+import { coinSharePath, officialInfoOf } from '@/lib/launch/official'
 import {
   buyCoinTx, sellCoinTx, migrateCoinTx, claimCreatorAllocationTx,
   swapXelForTokenTx, swapTokenForXelTx,
@@ -67,6 +69,56 @@ function NoValidationChip({ className }: { className?: string }) {
     <span className={cn('inline-flex items-center gap-1.5 border border-vlt/40 bg-vlt/[0.07] px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-vlt', className)}>
       community · no validation
     </span>
+  )
+}
+
+/** The platform's own tokens — gold house presentation. */
+function OfficialChip({ className }: { className?: string }) {
+  return (
+    <span className={cn('inline-flex items-center gap-1.5 border border-vault/60 bg-vault/10 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-vault', className)}>
+      official
+    </span>
+  )
+}
+
+function TrustedChip({ className }: { className?: string }) {
+  return (
+    <span className={cn('inline-flex items-center gap-1.5 border border-emerald-400/50 bg-emerald-400/5 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-emerald-400', className)}>
+      trusted
+    </span>
+  )
+}
+
+/** Copy the trade page's share link — the URL opens THIS coin directly. */
+export function ShareCoinButton({ coin, size = 'sm' }: { coin: CommunityCoin; size?: 'sm' | 'md' }) {
+  const { toast } = useToast()
+  const [copied, setCopied] = useState(false)
+  async function share() {
+    const path = coinSharePath(coin.ticker, coin.id, !!coin.official)
+    const url = `${window.location.origin}${path}`
+    const ok = await copyText(url)
+    setCopied(ok)
+    if (ok) setTimeout(() => setCopied(false), 2000)
+    toast({
+      title: ok ? 'Link copied' : 'Copy failed',
+      description: ok ? url : 'Select and copy the address bar URL instead.',
+    })
+  }
+  return (
+    <button
+      type="button"
+      onClick={share}
+      className={cn(
+        'inline-flex items-center gap-2 border font-mono font-semibold uppercase tracking-[0.16em] transition-colors',
+        coin.official
+          ? 'border-vault/50 bg-vault/[0.06] text-vault hover:border-vault hover:bg-vault/15'
+          : 'border-border bg-card/50 text-muted-foreground hover:border-vlt/40 hover:text-vlt',
+        size === 'sm' ? 'px-3 py-1.5 text-[10px]' : 'px-4 py-2 text-[11px]',
+      )}
+    >
+      {copied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
+      {copied ? 'copied' : 'share'}
+    </button>
   )
 }
 
@@ -778,11 +830,25 @@ export function CommunityView({ setView, focusId }: {
 }) {
   const coins = useCommunity((s) => s.coins)
   const cParams = useCommunity((s) => s.cParams)
-  const cStats = useCommunity((s) => s.cStats)
   const status = useCommunity((s) => s.status)
   const [filter, setFilter] = useState<Filter>('all')
 
-  const focused = coins.find((c) => c.id === focusId) ?? null
+  // focus resolves by cid OR by ticker — the share links of official
+  // coins carry the readable ticker (?focus=XVLT)
+  const focused = coins.find((c) => c.id === focusId
+    || (focusId != null && c.ticker.toUpperCase() === focusId.toUpperCase())) ?? null
+
+  // deep link still resolving (store loading) or pointing at nothing —
+  // never flash the board before the terminal settles
+  if (focusId && !focused) {
+    return (
+      <div className="mt-14 border border-dashed border-border p-10 text-center font-mono text-sm text-muted-foreground">
+        {status !== 'live'
+          ? 'connecting to the XELIS mainnet…'
+          : 'this token does not exist or is not available on this board'}
+      </div>
+    )
+  }
 
   // ── COIN MODE: one coin, the full terminal ──
   if (focusId && focused) {
@@ -790,16 +856,20 @@ export function CommunityView({ setView, focusId }: {
     const series = coin.curve ?? coin.pool
     const history = series?.history ?? []
     const change = coinChange(coin)
+    const official = coin.official ? officialInfoOf(coin.ticker) : null
 
     return (
       <div>
-        <button
-          onClick={() => setView('community', '')}
-          className="group mb-4 inline-flex items-center gap-2 border border-border bg-card/50 px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:border-vlt/40 hover:text-vlt"
-        >
-          <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
-          all coins
-        </button>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <button
+            onClick={() => coin.official ? setView('launchpad') : setView('community', '')}
+            className="group inline-flex items-center gap-2 border border-border bg-card/50 px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:border-vlt/40 hover:text-vlt"
+          >
+            <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+            {coin.official ? 'projects' : 'all coins'}
+          </button>
+          <ShareCoinButton coin={coin} />
+        </div>
 
         <div className="grid gap-4 xl:grid-cols-[1fr_330px]">
           {/* Chart + data */}
@@ -815,8 +885,18 @@ export function CommunityView({ setView, focusId }: {
                         <span className="font-mono text-xs text-muted-foreground">${coin.ticker}</span>
                       </div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <CoinStatusTag status={coin.status} />
-                        <NoValidationChip />
+                        {coin.official ? (
+                          <>
+                            <OfficialChip />
+                            <TrustedChip />
+                            <CoinStatusTag status={coin.status} />
+                          </>
+                        ) : (
+                          <>
+                            <CoinStatusTag status={coin.status} />
+                            <NoValidationChip />
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -831,6 +911,47 @@ export function CommunityView({ setView, focusId }: {
                   </div>
                 </div>
               </div>
+
+              {/* description + official links */}
+              {(coin.description || coin.website || coin.twitter || coin.telegram || coin.discord || official?.github) && (
+                <div className={cn('mt-4 p-3.5', coin.official
+                  ? 'border border-vault/30 bg-vault/[0.04]'
+                  : 'border border-border/60 bg-background/40')}>
+                  {coin.description && (
+                    <p className="text-[13px] leading-relaxed text-muted-foreground">{coin.description}</p>
+                  )}
+                  {(coin.website || coin.twitter || coin.telegram || coin.discord || official?.github) && (
+                    <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-[11px]">
+                      {coin.website && (
+                        <a href={coin.website} target="_blank" rel="noreferrer" className="text-vault hover:underline">website ↗</a>
+                      )}
+                      {coin.twitter && (
+                        <a href={coin.twitter} target="_blank" rel="noreferrer" className="text-vault hover:underline">X ↗</a>
+                      )}
+                      {coin.telegram && (
+                        <a href={coin.telegram} target="_blank" rel="noreferrer" className="text-vault hover:underline">telegram ↗</a>
+                      )}
+                      {coin.discord && (
+                        <a href={coin.discord} target="_blank" rel="noreferrer" className="text-vault hover:underline">discord ↗</a>
+                      )}
+                      {official?.github && (
+                        <a href={official.github} target="_blank" rel="noreferrer" className="text-vault hover:underline">source ↗</a>
+                      )}
+                      {coin.asset && (
+                        <a
+                          href={explorerAddressUrl(coin.asset)}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={`Asset ${coin.asset}`}
+                          className="text-muted-foreground hover:text-vault"
+                        >
+                          asset ↗
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="mt-4">
                 {history.length >= 2 ? (
@@ -902,18 +1023,22 @@ export function CommunityView({ setView, focusId }: {
   }
 
   // ── GRID MODE: the board ──
-  const filtered = filter === 'all' ? coins : coins.filter((c) => c.status === filter)
-  const liveCount = coins.filter((c) => c.status === 'live').length
-  const graduatedCount = coins.filter((c) => c.status === 'graduated').length
-  const migratedCount = coins.filter((c) => c.status === 'migrated').length
-  const totalVol = cStats ? (Number(cStats.totalVolume) / 1e8) : coins.reduce((a, c) => a + (c.curve?.volume ?? c.pool?.volume ?? 0), 0)
+  // official tokens are NOT community coins — they live on the project
+  // side (the Launchpad flagship banner). This board shows the pure
+  // community track only.
+  const boardCoins = coins.filter((c) => !c.official)
+  const filtered = filter === 'all' ? boardCoins : boardCoins.filter((c) => c.status === filter)
+  const liveCount = boardCoins.filter((c) => c.status === 'live').length
+  const graduatedCount = boardCoins.filter((c) => c.status === 'graduated').length
+  const migratedCount = boardCoins.filter((c) => c.status === 'migrated').length
+  const totalVol = boardCoins.reduce((a, c) => a + (c.curve?.volume ?? c.pool?.volume ?? 0), 0)
 
   return (
     <div>
       {/* stats */}
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         {[
-          { k: 'COINS LAUNCHED', v: String(cStats?.coinCount ?? coins.length), sub: `${liveCount} live · ${graduatedCount} graduated · ${migratedCount} migrated` },
+          { k: 'COINS LAUNCHED', v: String(boardCoins.length), sub: `${liveCount} live · ${graduatedCount} graduated · ${migratedCount} migrated` },
           { k: 'TRACK VOLUME', v: fmtXel(totalVol), sub: 'XEL · all community coins' },
           { k: 'LAUNCH COST', v: `≈ ${fmtXel(cParams.submissionFee + cParams.assetBudget)} XEL`, sub: 'one transaction, no vote' },
           { k: 'GRADUATION', v: `${fmtXel(cParams.graduationDepth)} XEL`, sub: 'real depth + price continuity' },
@@ -973,11 +1098,11 @@ export function CommunityView({ setView, focusId }: {
           <div className="font-mono text-sm text-muted-foreground">
             {status !== 'live'
               ? 'connecting to the XELIS mainnet…'
-              : coins.length === 0
+              : boardCoins.length === 0
                 ? 'No community coins yet — the factory is live, the board is empty.'
                 : `no ${filter} coins right now`}
           </div>
-          {status === 'live' && coins.length === 0 && (
+          {status === 'live' && boardCoins.length === 0 && (
             <BracketButton variant="vlt" className="mt-6" onClick={() => setView('coin-launch')}>
               Launch the first coin · ≈ {fmtXel(cParams.submissionFee + cParams.assetBudget)} XEL
             </BracketButton>

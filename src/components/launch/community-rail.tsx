@@ -136,9 +136,12 @@ function RailCard({ c, rank, onOpen }: { c: CommunityCoin; rank: number; onOpen:
 // ─────────────────────────────────────────────────────────────────
 
 export function CommunityRail({ setView }: { setView: (v: AppView, id?: string) => void }) {
-  const coins = useCommunity((s) => s.coins)
-  const stats = useCommunity((s) => s.cStats)
+  const allCoins = useCommunity((s) => s.coins)
   const status = useCommunity((s) => s.status)
+
+  // the community track ONLY: the platform's official tokens live on the
+  // project side (Launchpad banner), not on this rail.
+  const coins = allCoins.filter((c) => !c.official)
 
   // don't reserve layout while the chain is still answering
   if (coins.length === 0 && status !== 'live') return null
@@ -160,9 +163,9 @@ export function CommunityRail({ setView }: { setView: (v: AppView, id?: string) 
           <span className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-vlt">
             Community launches
           </span>
-          {stats && stats.coinCount > 0 && (
+          {coins.length > 0 && (
             <span className="border border-vlt/40 bg-vlt/10 px-1.5 py-0.5 font-mono text-[9px] font-semibold tabular-nums text-vlt">
-              {stats.coinCount} launched{liveCount > 0 ? ` · ${liveCount} live` : ''}
+              {coins.length} launched{liveCount > 0 ? ` · ${liveCount} live` : ''}
             </span>
           )}
         </div>
