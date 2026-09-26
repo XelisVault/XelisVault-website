@@ -13,15 +13,20 @@
 // Flow (the official XELIS standard QR payload):
 //   1. the dApp opens a WebSocket to the relayer (wss://relay.xelis.io/ws)
 //      and receives a fresh channel_id + the relayer's own timeout
+//      — NOTHING may be sent before the wallet joins: the relayer shuts
+//      the channel down on any early frame (UnexpectedMessage)
 //   2. an AES-256-GCM key is generated locally and exported to hex
 //   3. the QR payload { app_data, relayer: <url>/<channel>, encryption_mode }
-//      is shown to the user — the WALLET scans (or pastes) it
-//   4. the wallet connects to the same channel; every frame is
-//      AES-GCM encrypted with the key from the QR — the relayer NEVER
-//      sees plaintext (zero trust)
-//   5. once the wallet's first frame arrives, the returned socket is a
-//      drop-in WebSocket: our XSWDClient runs its normal
-//      ApplicationData handshake + JSON-RPC on top of it
+//      is shown to the user — the WALLET scans it, shows its approval
+//      popup and, once the user accepts, joins the channel
+//   4. the wallet's FIRST frame is the XSWD registration response
+//      (the app identity came from the QR — the dApp NEVER sends the
+//      ApplicationData on the tunnel: after registration the wallet
+//      only accepts JSON-RPC requests) — the session resolves with that
+//      frame captured as `firstFrame`
+//   5. from there the tunnel is pure JSON-RPC: XSWDClient.connect
+//      consumes `firstFrame` and the session behaves exactly like a
+//      local connection (permissions, transactions, events)
 //
 // The relay only ever sees ciphertext: it can route, but not read,
 // alter (GCM authenticates), or replay (fresh key per channel).
@@ -274,6 +279,16 @@ export interface RelayedConnection {
   qrData: string
   /** the relayer's own channel timeout, seconds (for the countdown) */
   timeoutSeconds: number | undefined
+  /** The wallet's FIRST decrypted frame — the XSWD registration response
+   *  `{ jsonrpc, id: <app id>, result: { message, success } }`. The wallet
+   *  joins the channel only AFTER the user approves the application (its
+   *  identity came from the QR), so this frame is the PROOF the approval
+   *  happened. It is delivered before XSWDClient attaches its message
+   *  handler, hence captured here — pass it to
+   *  XSWDClient.connect(appData, socket, firstFrame). No ApplicationData
+   *  must ever be sent on the tunnel: after registration the wallet only
+   *  accepts JSON-RPC requests. */
+  firstFrame: string | null
   /** close the channel */
   close: () => void
 }
@@ -295,10 +310,12 @@ export const DEFAULT_RELAYER_URL = 'wss://relay.xelis.io/ws'
 
 /**
  * Open a relay channel and wait for the wallet to join it.
- * Resolves with the tunneled socket once the wallet's first frame
- * arrives — the standard XSWD handshake (ApplicationData → approval)
- * still has to run on the socket afterwards, exactly like a local
- * connection.
+ * Resolves with the tunneled socket once the wallet's first frame — the
+ * XSWD registration response, sent right after the user approves the
+ * application in the wallet — arrives. That frame is captured as
+ * `firstFrame`: hand it to XSWDClient.connect together with the socket
+ * (the app identity already travelled in the QR; NO ApplicationData is
+ * sent on the tunnel).
  */
 export function createRelayedConnection(options: RelayConnectOptions): Promise<RelayedConnection> {
   const {
@@ -320,6 +337,7 @@ export function createRelayedConnection(options: RelayConnectOptions): Promise<R
     let timeoutHandle: ReturnType<typeof setTimeout>
     let isResolved = false
     let relayerTimeoutSeconds: number | undefined
+    let firstFrame: string | null = null
 
     const cleanup = () => {
       if (timeoutHandle) clearTimeout(timeoutHandle)
@@ -343,6 +361,7 @@ export function createRelayedConnection(options: RelayConnectOptions): Promise<R
         socket: tunneledSocket,
         qrData: JSON.stringify(createQRDataObj()),
         timeoutSeconds: relayerTimeoutSeconds,
+        firstFrame,
         close: () => tunneledSocket.close(),
       }
       resolve(result)
@@ -364,6 +383,10 @@ export function createRelayedConnection(options: RelayConnectOptions): Promise<R
     })()
 
     relayerWs = new WebSocket(relayerUrl)
+    // deterministic binary delivery: browsers default to Blob, some
+    // runtimes (Bun) to Node Buffer — the tunnel only handles
+    // string/ArrayBuffer/Blob, so pin ArrayBuffer everywhere
+    relayerWs.binaryType = 'arraybuffer'
 
     relayerWs.addEventListener('error', () => {
       handleError(new Error(
@@ -395,34 +418,42 @@ export function createRelayedConnection(options: RelayConnectOptions): Promise<R
         channelId = data.channel_id
         relayerTimeoutSeconds = typeof data.timeout === 'number' ? data.timeout : undefined
 
+        // build the socket ONLY once the AES key exists (the official
+        // lib awaits initPromise first — constructing it synchronously
+        // could capture an undefined key when the channel_id arrives
+        // faster than the keygen, e.g. on localhost)
         void initPromise.then(() => {
           onQRReady?.(createQRDataObj())
+
+          tunneledSocket = new TunneledWebSocket(relayerWs, encryptionKey)
+
+          // the wallet's first frame = the XSWD registration response —
+          // the user has already approved the application in the wallet
+          // (the identity came from the QR). Capture it: it is delivered
+          // right now, before XSWDClient attaches its own handler.
+          const handleFirstMessage = (event: Event) => {
+            removeEarlyListeners()
+            const d = (event as MessageEvent).data
+            firstFrame = typeof d === 'string' ? d : null
+            handleSuccess()
+          }
+          const handleEarlyError = () => {
+            removeEarlyListeners()
+            handleError(new Error('Connection lost before the wallet joined.'))
+          }
+          const handleEarlyClose = () => {
+            removeEarlyListeners()
+            if (!isResolved) handleError(new Error('Connection closed before the wallet joined.'))
+          }
+          const removeEarlyListeners = () => {
+            tunneledSocket.removeEventListener('message', handleFirstMessage)
+            tunneledSocket.removeEventListener('error', handleEarlyError)
+            tunneledSocket.removeEventListener('close', handleEarlyClose)
+          }
+          tunneledSocket.addEventListener('message', handleFirstMessage)
+          tunneledSocket.addEventListener('error', handleEarlyError)
+          tunneledSocket.addEventListener('close', handleEarlyClose)
         })
-
-        tunneledSocket = new TunneledWebSocket(relayerWs, encryptionKey)
-
-        // the wallet's first frame = the peer is connected and the
-        // relay is routing — resolve
-        const handleFirstMessage = () => {
-          removeEarlyListeners()
-          handleSuccess()
-        }
-        const handleEarlyError = () => {
-          removeEarlyListeners()
-          handleError(new Error('Connection lost before the wallet joined.'))
-        }
-        const handleEarlyClose = () => {
-          removeEarlyListeners()
-          if (!isResolved) handleError(new Error('Connection closed before the wallet joined.'))
-        }
-        const removeEarlyListeners = () => {
-          tunneledSocket.removeEventListener('message', handleFirstMessage)
-          tunneledSocket.removeEventListener('error', handleEarlyError)
-          tunneledSocket.removeEventListener('close', handleEarlyClose)
-        }
-        tunneledSocket.addEventListener('message', handleFirstMessage)
-        tunneledSocket.addEventListener('error', handleEarlyError)
-        tunneledSocket.addEventListener('close', handleEarlyClose)
       } catch (error) {
         handleError(error instanceof Error ? error : new Error(String(error)))
       }

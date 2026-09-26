@@ -142,15 +142,26 @@ export class XSWDClient {
     this.stateListeners.forEach((l) => l(s, msg))
   }
 
-  /** Open the WebSocket and perform the ApplicationData handshake.
+  /** Open the WebSocket and complete the XSWD registration.
    *
-   *  `externalSocket` (the RELAY tunnel): the socket is ALREADY open —
-   *  the wallet scanned the QR and joined the channel — so the local
-   *  reachability phase is skipped and the handshake runs directly on
-   *  the tunnel. When `appData.id` is a valid 64-hex id it is reused
-   *  (the relay QR already embedded it — the wallet showed that
-   *  identity when pairing). */
-  async connect(appData?: Partial<XSWDAppData>, externalSocket?: XSWDSocket): Promise<void> {
+   *  LOCAL path (`externalSocket` absent): connect to the wallet on
+   *  ws://127.0.0.1:44325/xswd and send the ApplicationData as the first
+   *  message — the wallet shows its approval popup and replies with the
+   *  registration response.
+   *
+   *  RELAY path (`externalSocket` = the relay tunnel): the socket is
+   *  ALREADY open and the registration has ALREADY happened — the
+   *  wallet received our identity in the QR (app_data) and only joins
+   *  the channel AFTER the user approves its popup. Its FIRST frame on
+   *  the tunnel is the registration response, so we must NOT send the
+   *  ApplicationData here: after registration the wallet only accepts
+   *  JSON-RPC requests (any other frame is rejected with
+   *  'Invalid body in request' — parse_request_from_bytes in
+   *  xelis_wallet/src/api/xswd). `pendingRegistration` is that first
+   *  frame as captured by the relay layer (it was delivered before this
+   *  client attached its handler); when absent we wait for it on the
+   *  socket. */
+  async connect(appData?: Partial<XSWDAppData>, externalSocket?: XSWDSocket, pendingRegistration?: string | null): Promise<void> {
     if (this.state === 'connected' || this.state === 'connecting' || this.state === 'awaiting-approval') {
       return
     }
@@ -199,11 +210,62 @@ export class XSWDClient {
         if (approvalTimer) clearTimeout(approvalTimer)
       }
 
+      // Registration / handshake response evaluation — shared by the
+      // LOCAL path (the wallet's reply to our ApplicationData) and the
+      // RELAY path (the wallet's first frame). Returns true when the
+      // message settles the connection attempt.
+      const consumeRegistrationMessage = (msg: any): boolean => {
+        // Registration response: { id: <app id>, jsonrpc: "2.0", result: { message, success } }
+        if (msg.id === this.appId && msg.result && typeof msg.result === 'object' && 'success' in msg.result) {
+          if (msg.result.success === true) {
+            settled = true
+            clearTimers()
+            this.setState('connected')
+            resolve()
+          } else {
+            settled = true
+            clearTimers()
+            this.cleanupSocket()
+            this.setState('error', 'Connection refused by wallet')
+            reject(new Error(msg.result.message || 'Wallet refused the connection'))
+          }
+          return true
+        }
+        // Legacy handshake shape (older wallets): { id: null, result: true }
+        if (msg.result === true) {
+          settled = true
+          clearTimers()
+          this.setState('connected')
+          resolve()
+          return true
+        }
+        // JSON-RPC error during handshake (bad application data, unknown
+        // permission, invalid body…)
+        if (msg.error) {
+          settled = true
+          clearTimers()
+          this.cleanupSocket()
+          this.setState('error', msg.error.message)
+          reject(new Error(msg.error.message || 'Wallet rejected the application'))
+          return true
+        }
+        return false
+      }
+
       const startHandshake = () => {
         if (openTimer) clearTimeout(openTimer)
-        this.setState('awaiting-approval', 'Waiting for wallet approval…')
-        // First message: ApplicationData (plain JSON)
-        ws.send(JSON.stringify(data))
+        this.setState('awaiting-approval', externalSocket ? 'Confirming the connection…' : 'Waiting for wallet approval…')
+        if (!externalSocket) {
+          // LOCAL path: identify ourselves — the wallet shows the approval
+          // popup and replies with the registration response.
+          ws.send(JSON.stringify(data))
+        }
+        // RELAY path: the wallet already has our identity from the QR and
+        // the user approved it there — the wallet's FIRST frame IS the
+        // registration response. Sending the ApplicationData on the
+        // tunnel would be rejected with 'Invalid body in request' (the
+        // wallet only accepts JSON-RPC after registration), so we just
+        // wait for the frame (or consume the captured one right now).
         approvalTimer = setTimeout(() => {
           if (!settled) {
             settled = true
@@ -215,6 +277,11 @@ export class XSWDClient {
             ))
           }
         }, APPROVAL_TIMEOUT_MS)
+        if (externalSocket && pendingRegistration) {
+          try {
+            consumeRegistrationMessage(JSON.parse(pendingRegistration))
+          } catch { /* not JSON — wait for the socket to deliver it */ }
+        }
       }
 
       if (externalSocket) {
@@ -251,41 +318,10 @@ export class XSWDClient {
       ws.onmessage = (ev) => {
         let msg: any
         try { msg = JSON.parse(String(ev.data)) } catch { return }
-        // Handshake response: { id: <appId>, jsonrpc: "2.0", result: { success: true, message } }
-        if (settled === false && msg.id === this.appId && msg.result && typeof msg.result === 'object' && 'success' in msg.result) {
-          if (msg.result.success === true) {
-            settled = true
-            clearTimers()
-            this.setState('connected')
-            resolve()
-          } else {
-            settled = true
-            clearTimers()
-            this.cleanupSocket()
-            this.setState('error', 'Connection refused by wallet')
-            reject(new Error(msg.result.message || 'Wallet refused the connection'))
-          }
-          return
-        }
-        // Legacy handshake shape (older wallets): { id: null, result: true }
-        if (settled === false && msg.result === true) {
-          settled = true
-          clearTimers()
-          this.setState('connected')
-          resolve()
-          return
-        }
-        // JSON-RPC error during handshake
-        if (settled === false && msg.error) {
-          settled = true
-          clearTimers()
-          this.cleanupSocket()
-          this.setState('error', msg.error.message)
-          reject(new Error(msg.error.message || 'Wallet rejected the application'))
-          return
-        }
+        // Pre-registration traffic settles the connection attempt
+        if (!settled && consumeRegistrationMessage(msg)) return
 
-        // Post-handshake traffic
+        // Post-registration traffic
         this.handleMessage(msg)
       }
     })

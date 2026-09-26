@@ -136,11 +136,13 @@ export const useLaunchWallet = create<LaunchWalletStore>((set, get) => ({
         onQRReady: (qr) => onQR(JSON.stringify(qr)),
         onError: () => onQR(null),
       })
-      // the wallet joined the channel — run the standard XSWD handshake
-      // on the tunnel (approval popup in the wallet), then the usual flow
-      onQR(null) // hide the QR — the next step is the approval
-      set({ state: 'connecting', message: 'Approve the connection in your wallet…' })
-      await client.connect(session.appData, session.connection.socket)
+      // the wallet joined the channel — its first frame (the XSWD
+      // registration response, sent right after the user approved the
+      // app in the wallet) completes the handshake. NO ApplicationData
+      // is sent on the tunnel: the identity came from the QR.
+      onQR(null) // hide the QR — the connection is being confirmed
+      set({ state: 'connecting', message: 'Confirming the connection…' })
+      await client.connect(session.appData, session.connection.socket, session.connection.firstFrame)
       set({ relayActive: true })
       await afterConnect(client, set, get)
     } catch (err) {

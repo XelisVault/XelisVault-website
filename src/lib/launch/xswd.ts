@@ -7,13 +7,18 @@
 // (Genesix / xelis_wallet) must run against a mainnet daemon.
 //
 // TWO connection paths, one client:
-//   • LOCAL  — Genesix desktop / xelis_wallet, ws://127.0.0.1:44325/xswd
+//   • LOCAL  — Genesix desktop / xelis_wallet, ws://127.0.0.1:44325/xswd:
+//     the client sends the ApplicationData and the wallet approves it
 //   • RELAY  — Genesix WEB (wallet.xelis.io) or mobile: the official
 //     XSWD relay (relay.xelis.io) + a QR the wallet scans; the frames
 //     are AES-256-GCM encrypted end-to-end — the relay only ever sees
-//     ciphertext. The XSWD handshake itself runs unchanged on the
-//     tunnel, so the session, permissions and every transaction
-//     wrapper behave exactly like the local path.
+//     ciphertext. The app identity travels IN THE QR: the wallet shows
+//     its approval popup at scan time and, once accepted, joins the
+//     channel and sends the registration response as its first frame —
+//     the client consumes it (NO ApplicationData on the tunnel: the
+//     wallet only accepts JSON-RPC after registration). From there the
+//     session, permissions and every transaction wrapper behave
+//     exactly like the local path.
 
 import { XSWDClient, XSWD_PERMISSIONS, type XSWDAppData, type XSWDSocket } from '@/lib/xelis/xswd'
 import {
@@ -49,8 +54,10 @@ function randomHexId(): string {
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-/** The FULL app identity embedded in the relay QR (and reused by the
- *  XSWD handshake, so the wallet sees one coherent application). */
+/** The FULL app identity embedded in the relay QR. The wallet shows
+ *  this identity in its approval popup at scan time — the same id is
+ *  reused when consuming the registration response, so the wallet sees
+ *  one coherent application. */
 function relayAppData(): XSWDAppData {
   return {
     id: randomHexId(),
@@ -70,9 +77,11 @@ export interface LaunchRelaySession {
 /**
  * Open a relay channel for a WEB/MOBILE wallet.
  * Resolves as soon as the QR payload is ready — the wallet joining is
- * awaited by the caller (the tunnel socket is handed to
- * XSWDClient.connect once `connection` resolves, which happens when
- * the wallet's first frame arrives).
+ * awaited by the caller: `createRelayedConnection` resolves when the
+ * wallet's first frame (the registration response, i.e. the user has
+ * approved the app in the wallet) arrives, and that frame is then
+ * consumed by XSWDClient.connect — the ApplicationData never travels
+ * on the tunnel.
  */
 export function startLaunchRelaySession(handlers: {
   onQRReady?: (qr: RelayerQRData) => void
