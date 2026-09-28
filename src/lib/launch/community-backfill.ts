@@ -50,15 +50,16 @@
 // BATCHED WALK (v3): the node enforces ≤ 20 heights per
 // get_blocks_range_by_height call but happily answers JSON-RPC BATCHES
 // (verified live, batch_limit = 20) — so ONE HTTP POST carries 20 range
-// calls = 400 heights. Waves of 3 such POSTs run concurrently, and the
+// calls = 400 heights. Waves of 6 such POSTs run concurrently, and the
 // tx resolution rides batched POSTs too (20 × get_transactions of 20
 // hashes). A full first-visit rebuild of a 43 h-old coin measured
 // ~80 s+ under the old one-page-per-request pattern (and its 600-page
 // budget could not even reach the coin's birth — the walk ALWAYS ended
 // in the partial backward anchor); the batched walk covers the coin's
-// ENTIRE life (88 000-height budget ≈ 5.7 days) in ~10-15 s, the
+// ENTIRE life (128 000-height budget ≈ 7.4 days) in ~10-25 s, the
 // calibration proof passes, and the series covers birth — so the walk
-// happens ONCE per device, never again on later visits.
+// happens ONCE per device, never again on later visits (a decimated
+// series keeps its birth anchor now — see persist.ts).
 
 import { rpcCall, rpcBatchCached, type BatchCall } from '@/lib/xelis/rpc'
 import { COMMUNITY_CONTRACT, XEL_ASSET } from './protocol'
@@ -76,14 +77,16 @@ const WALK_PAGE_HEIGHTS = 20
 const WALK_CALLS_PER_POST = 20
 /** Heights covered by one batched POST (20 calls × 20 heights). */
 const POST_HEIGHTS = WALK_CALLS_PER_POST * WALK_PAGE_HEIGHTS // 400
-/** Concurrent batched POSTs per wave. */
-const WAVE_POSTS = 5
+/** Concurrent batched POSTs per wave (verified live: the node
+ *  answers 6 × 20-call batches in ~0.6 s). */
+const WAVE_POSTS = 6
 /**
- * RPC budget per backfill: 220 batched POSTs ≈ 88 000 heights ≈ ~5.7
- * days of history (XVLT at 43 h needs ~72). Older coins fall back to
- * the backward anchor.
+ * RPC budget per backfill: 320 batched POSTs ≈ 128 000 heights ≈ ~7.4
+ * days of history (XVLT at 5 days needs ~220; the margin keeps it
+ * fully covered for days). Older coins fall back to the backward
+ * anchor (recent history exact, deep past flat).
  */
-const WALK_MAX_POSTS = 220
+const WALK_MAX_POSTS = 320
 /**
  * DAG margin: blocks of a topo range can sit a few hundred heights
  * away from the "expected" height (observed spread ≈ 415 over a day).

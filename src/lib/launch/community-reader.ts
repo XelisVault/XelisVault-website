@@ -9,7 +9,7 @@
 // formulas — the same math the contract runs).
 
 import {
-  COMMUNITY_CONTRACT, readStorage, coinKey, CF, CG,
+  COMMUNITY_CONTRACT, readStorage, readStorageBatch, coinKey, CF, CG,
 } from './protocol'
 
 // ── Raw coin record (atomic values, as stored) ────────────────────────
@@ -58,56 +58,16 @@ const num = (v: any): number => (v == null ? 0 : Number(v))
 const str = (v: any): string => (v == null ? '' : String(v))
 const bool = (v: any): boolean => v === true
 
-/** Read one coin record (all 31 fields) from the factory storage. */
-export async function fetchCoin(cid: number): Promise<RawCoin | null> {
-  const f = (field: string) => readStorage(COMMUNITY_CONTRACT, coinKey(cid, field))
-  const [
-    cr, st, nm, sy, ds, ws, lg, tw, tg, dc,
-    ts, cb, xr, yr, y0, vx, gx,
-    ct, gr, gt, mi, ma, mx, mt, cp, ah,
-    bv, sv, tc, lt, vo,
-  ] = await Promise.all([
-    f(CF.creator), f(CF.status), f(CF.name), f(CF.symbol), f(CF.description),
-    f(CF.website), f(CF.logo), f(CF.twitter), f(CF.telegram), f(CF.discord),
-    f(CF.supply), f(CF.creatorBps),
-    f(CF.xelReserve), f(CF.tokenInventory), f(CF.initialInventory),
-    f(CF.virtualXel), f(CF.gradDepth),
-    f(CF.created), f(CF.graduated), f(CF.graduatedAt),
-    f(CF.migrated), f(CF.migratedAt), f(CF.migratedXel), f(CF.migratedTokens),
-    f(CF.creatorPaid), f(CF.asset),
-    f(CF.buyVolume), f(CF.sellVolume), f(CF.trades), f(CF.lastTrade),
-    f(CF.volume),
-  ])
-  if (nm == null && sy == null && st == null) return null // never launched
-  return {
-    cid,
-    creator: cr == null ? null : str(cr),
-    status: num(st),
-    name: str(nm), symbol: str(sy), description: str(ds),
-    website: str(ws), logo: str(lg),
-    twitter: str(tw), telegram: str(tg), discord: str(dc),
-    totalSupply: big(ts), creatorBps: num(cb),
-    xr: big(xr), yr: big(yr), y0: big(y0), vx: big(vx), gdx: big(gx),
-    createdTopo: num(ct),
-    graduated: bool(gr), graduatedTopo: num(gt),
-    migrated: bool(mi), migratedTopo: num(ma),
-    migratedXel: big(mx), migratedTokens: big(mt),
-    creatorPaid: bool(cp),
-    asset: ah == null ? null : str(ah),
-    buyVolume: big(bv), sellVolume: big(sv),
-    trades: num(tc), lastTradeTopo: num(lt), volume: big(vo),
-  }
-}
+/** Fast-field order shared by fetchCoinFast and fetchCoinsFast. */
+const FAST_FIELDS = [
+  CF.status, CF.xelReserve, CF.tokenInventory,
+  CF.graduated, CF.migrated, CF.creatorPaid,
+  CF.buyVolume, CF.sellVolume, CF.trades, CF.lastTrade,
+  CF.volume,
+]
 
-/** Read the fast-changing fields only (status, reserves, scores). */
-export async function fetchCoinFast(cid: number): Promise<Partial<RawCoin> | null> {
-  const f = (field: string) => readStorage(COMMUNITY_CONTRACT, coinKey(cid, field))
-  const [st, xr, yr, gr, mi, cp, bv, sv, tc, lt, vo] = await Promise.all([
-    f(CF.status), f(CF.xelReserve), f(CF.tokenInventory),
-    f(CF.graduated), f(CF.migrated), f(CF.creatorPaid),
-    f(CF.buyVolume), f(CF.sellVolume), f(CF.trades), f(CF.lastTrade),
-    f(CF.volume),
-  ])
+function coinFastFrom(vals: any[]): Partial<RawCoin> | null {
+  const [st, xr, yr, gr, mi, cp, bv, sv, tc, lt, vo] = vals
   if (st == null && xr == null && yr == null) return null
   return {
     status: num(st), xr: big(xr), yr: big(yr),
@@ -115,6 +75,75 @@ export async function fetchCoinFast(cid: number): Promise<Partial<RawCoin> | nul
     buyVolume: big(bv), sellVolume: big(sv),
     trades: num(tc), lastTradeTopo: num(lt), volume: big(vo),
   }
+}
+
+/** Read one coin record (all 31 fields) from the factory storage.
+ *  One batched sweep: 2 POSTs instead of 31 sequential round-trips
+ *  through the 14 req/s limiter (~8 s → ~0.5 s for a 3-coin board,
+ *  and it stays ~1 s as the board grows). */
+export async function fetchCoin(cid: number): Promise<RawCoin | null> {
+  const order = [
+    CF.creator, CF.status, CF.name, CF.symbol, CF.description,
+    CF.website, CF.logo, CF.twitter, CF.telegram, CF.discord,
+    CF.supply, CF.creatorBps,
+    CF.xelReserve, CF.tokenInventory, CF.initialInventory,
+    CF.virtualXel, CF.gradDepth,
+    CF.created, CF.graduated, CF.graduatedAt,
+    CF.migrated, CF.migratedAt, CF.migratedXel, CF.migratedTokens,
+    CF.creatorPaid, CF.asset,
+    CF.buyVolume, CF.sellVolume, CF.trades, CF.lastTrade,
+    CF.volume,
+  ]
+  const vals = await readStorageBatch(
+    COMMUNITY_CONTRACT, order.map((f) => coinKey(cid, f)),
+  )
+  const v = (i: number) => vals[i]
+  const nm = v(2), sy = v(3), st = v(1)
+  if (nm == null && sy == null && st == null) return null // never launched
+  return {
+    cid,
+    creator: v(0) == null ? null : str(v(0)),
+    status: num(st),
+    name: str(nm), symbol: str(sy), description: str(v(4)),
+    website: str(v(5)), logo: str(v(6)),
+    twitter: str(v(7)), telegram: str(v(8)), discord: str(v(9)),
+    totalSupply: big(v(10)), creatorBps: num(v(11)),
+    xr: big(v(12)), yr: big(v(13)), y0: big(v(14)), vx: big(v(15)), gdx: big(v(16)),
+    createdTopo: num(v(17)),
+    graduated: bool(v(18)), graduatedTopo: num(v(19)),
+    migrated: bool(v(20)), migratedTopo: num(v(21)),
+    migratedXel: big(v(22)), migratedTokens: big(v(23)),
+    creatorPaid: bool(v(24)),
+    asset: v(25) == null ? null : str(v(25)),
+    buyVolume: big(v(26)), sellVolume: big(v(27)),
+    trades: num(v(28)), lastTradeTopo: num(v(29)), volume: big(v(30)),
+  }
+}
+
+/** Read the fast-changing fields only (status, reserves, scores).
+ *  One batched POST instead of 11 sequential round-trips. */
+export async function fetchCoinFast(cid: number): Promise<Partial<RawCoin> | null> {
+  const vals = await readStorageBatch(
+    COMMUNITY_CONTRACT, FAST_FIELDS.map((f) => coinKey(cid, f)),
+  )
+  return coinFastFrom(vals)
+}
+
+/** Read the fast fields of MANY coins in ONE batched sweep — the fast
+ *  cycle's board refresh. Every active coin's 11 cells ride 20-cell
+ *  POSTs (3 concurrent), so a 50-coin board costs ~28 POSTs ≈ 2-3 s
+ *  instead of 50 sequential single-coin fetches ≈ 15 s. Returns one
+ *  entry per input cid, in order (null = coin vanished). */
+export async function fetchCoinsFast(
+  cids: number[],
+): Promise<(Partial<RawCoin> | null)[]> {
+  if (cids.length === 0) return []
+  const keys: string[] = []
+  for (const cid of cids) {
+    for (const f of FAST_FIELDS) keys.push(coinKey(cid, f))
+  }
+  const vals = await readStorageBatch(COMMUNITY_CONTRACT, keys)
+  return cids.map((_, i) => coinFastFrom(vals.slice(i * FAST_FIELDS.length, (i + 1) * FAST_FIELDS.length)))
 }
 
 // ── Registry & reverse bridge ─────────────────────────────────────────
@@ -147,17 +176,12 @@ export interface CommunityStats {
 }
 
 export async function fetchCommunityStats(): Promise<CommunityStats> {
-  const [pc, mgc, tvl, tbv, tsv, ttc, fcl, pfe, tcx] = await Promise.all([
-    readStorage(COMMUNITY_CONTRACT, CG.count, 10000),
-    readStorage(COMMUNITY_CONTRACT, CG.migratedCount, 30000),
-    readStorage(COMMUNITY_CONTRACT, CG.totalVolume, 10000),
-    readStorage(COMMUNITY_CONTRACT, CG.totalBuyVolume, 10000),
-    readStorage(COMMUNITY_CONTRACT, CG.totalSellVolume, 10000),
-    readStorage(COMMUNITY_CONTRACT, CG.totalTrades, 10000),
-    readStorage(COMMUNITY_CONTRACT, CG.feesCollected, 30000),
-    readStorage(COMMUNITY_CONTRACT, CG.pendingFees, 30000),
-    readStorage(COMMUNITY_CONTRACT, CG.totalCurveXel, 30000),
+  const vals = await readStorageBatch(COMMUNITY_CONTRACT, [
+    CG.count, CG.migratedCount, CG.totalVolume, CG.totalBuyVolume,
+    CG.totalSellVolume, CG.totalTrades, CG.feesCollected,
+    CG.pendingFees, CG.totalCurveXel,
   ])
+  const [pc, mgc, tvl, tbv, tsv, ttc, fcl, pfe, tcx] = vals
   return {
     coinCount: num(pc),
     migratedCount: num(mgc),

@@ -23,7 +23,7 @@ import {
   TOPO_SECONDS, MAINNET_PARAMS, type ProtocolParams, fetchProtocolParams,
 } from './protocol'
 import {
-  fetchProject, fetchProjectFast, fetchPool, fetchProtocolStats,
+  fetchProject, fetchProjectFast, fetchPool, fetchPoolsBatch, fetchProtocolStats,
   fetchMigratedPids, fetchHasVoted, STATUS_FROM_CODE,
   type RawProject, type RawPool, type ProtocolStats,
 } from './reader'
@@ -181,7 +181,9 @@ export const useMainnet = create<MainnetStore>((set, get) => ({
 type SetFn = (partial: Partial<MainnetStore>) => void
 type GetFn = () => MainnetStore
 
-/** Fast fields of active projects + live pool reserves + price samples. */
+/** Fast fields of active projects + live pool reserves + price samples.
+ *  All fetches fired CONCURRENTLY (each is one batched POST) — the old
+ *  per-project sequential awaits made the fast cycle latency-bound. */
 async function fastScan(topo: number, set: SetFn, get: GetFn): Promise<void> {
   const prev = get().projects
   if (prev.length === 0) {
@@ -193,25 +195,31 @@ async function fastScan(topo: number, set: SetFn, get: GetFn): Promise<void> {
   const charts = { ...get().charts }
   const projects = [...prev]
 
+  const activeIdx: number[] = []
+  const poolIdx: number[] = []
   for (let i = 0; i < projects.length; i++) {
     const p = projects[i]
     const active =
       p.status === 'validating' || p.status === 'recovery' ||
       (p.status === 'bonding') ||
       ((p.status === 'graduated' || p.status === 'trusted' || p.status === 'untrusted') && !p.migrated)
-    if (active) {
-      const fresh = await fetchProjectFast(p.pid).catch(() => null)
-      if (fresh) {
-        projects[i] = mergeFast(projects[i], fresh, topo, get().params, charts)
-      }
-    }
-    if (p.migrated && p.pool) {
-      const pool = await fetchPool(p.pool.asset).catch(() => null)
-      if (pool) {
-        projects[i] = mergePool(projects[i], pool, topo, get().params, charts)
-      }
-    }
+    if (active) activeIdx.push(i)
+    if (p.migrated && p.pool) poolIdx.push(i)
   }
+
+  const [freshList, poolList] = await Promise.all([
+    Promise.all(activeIdx.map((i) => fetchProjectFast(projects[i].pid).catch(() => null))),
+    fetchPoolsBatch(poolIdx.map((i) => projects[i].pool!.asset)).catch(() => [] as (RawPool | null)[]),
+  ])
+
+  activeIdx.forEach((i, k) => {
+    const fresh = freshList[k]
+    if (fresh) projects[i] = mergeFast(projects[i], fresh, topo, get().params, charts)
+  })
+  poolIdx.forEach((i, k) => {
+    const pool = poolList[k]
+    if (pool) projects[i] = mergePool(projects[i], pool, topo, get().params, charts)
+  })
 
   set({ projects, charts })
 }

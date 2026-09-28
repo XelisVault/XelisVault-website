@@ -25,10 +25,10 @@ import {
   TOPO_SECONDS, COMMUNITY_PARAMS, type CommunityParams, fetchCommunityParams,
 } from './protocol'
 import {
-  fetchCoin, fetchCoinFast, fetchCommunityStats, COIN_STATUS_FROM_CODE,
+  fetchCoin, fetchCoinFast, fetchCoinsFast, fetchCommunityStats, COIN_STATUS_FROM_CODE,
   type RawCoin, type CommunityStats,
 } from './community-reader'
-import { fetchPool } from './reader'
+import { fetchPool, fetchPoolsBatch } from './reader'
 import { loadSeries, saveSeries, appendPoint, emptySeries, seriesPointSeconds, type ChartSeries } from './persist'
 import { toHuman } from './chain-math'
 import { coinSpotPrice, coinMarketCap, coinContinuity, coinGraduationAnalysis } from './community-math'
@@ -431,7 +431,10 @@ function currentSeries(
   return charts[`${kind}:${id}`] ?? loadSeries(kind, id) ?? emptySeries(topo)
 }
 
-/** Fast fields of active coins + live pool reserves + price samples. */
+/** Fast fields of active coins + live pool reserves + price samples.
+ *  ONE batched sweep for all coins + one for all pools — the old
+ *  per-coin sequential awaits made the fast cycle latency-bound
+ *  (~1 RTT per coin per 15 s cycle; ~15 s at 50 coins). */
 async function fastScan(topo: number, set: SetFn, get: GetFn): Promise<void> {
   const prev = get().coins
   if (prev.length === 0) {
@@ -442,23 +445,32 @@ async function fastScan(topo: number, set: SetFn, get: GetFn): Promise<void> {
   const charts = { ...get().charts }
   const coins = [...prev]
 
+  const activeIdx: number[] = []
+  const poolIdx: number[] = []
   for (let i = 0; i < coins.length; i++) {
     const c = coins[i]
-    if (c.status === 'live' || c.status === 'graduated') {
-      const fresh = await fetchCoinFast(c.cid).catch(() => null)
-      if (fresh) {
-        // HOLD the sampler while the coin's chain rebuild runs: its
-        // commit replaces the series, and a couple of live points would
-        // flip the chart on prematurely (the "0 candles" bug)
-        const hold = isBackfillActive(get().backfills[c.cid])
-        coins[i] = mergeFast(coins[i], fresh, topo, get().cParams, charts, hold)
-      }
-    }
-    if (c.status === 'migrated' && c.asset) {
-      const pool = await fetchPool(c.asset).catch(() => null)
-      if (pool) coins[i] = mergePool(coins[i], pool, topo, get().cParams, charts)
-    }
+    if (c.status === 'live' || c.status === 'graduated') activeIdx.push(i)
+    if (c.status === 'migrated' && c.asset) poolIdx.push(i)
   }
+
+  const [freshList, poolList] = await Promise.all([
+    fetchCoinsFast(activeIdx.map((i) => coins[i].cid)).catch(() => [] as (Partial<RawCoin> | null)[]),
+    fetchPoolsBatch(poolIdx.map((i) => coins[i].asset!)).catch(() => [] as (Awaited<ReturnType<typeof fetchPool>>[])),
+  ])
+
+  activeIdx.forEach((i, k) => {
+    const fresh = freshList[k]
+    if (!fresh) return
+    // HOLD the sampler while the coin's chain rebuild runs: its
+    // commit replaces the series, and a couple of live points would
+    // flip the chart on prematurely (the "0 candles" bug)
+    const hold = isBackfillActive(get().backfills[coins[i].cid])
+    coins[i] = mergeFast(coins[i], fresh, topo, get().cParams, charts, hold)
+  })
+  poolIdx.forEach((i, k) => {
+    const pool = poolList[k]
+    if (pool) coins[i] = mergePool(coins[i], pool, topo, get().cParams, charts)
+  })
 
   set({ coins, charts })
 }

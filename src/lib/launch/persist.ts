@@ -11,7 +11,9 @@
 // Series shape (compatible with the chart's absolute bucket anchoring):
 //   history[]     price points, oldest → newest
 //   histStart     absolute index of history[0] (frozen-candle guarantee)
-//   points        total grid points ever emitted (= lastGrid + 1)
+//   points        newest point's absolute grid index + 1, in the
+//                 CURRENT interval's units (= lastGrid + 1; recomputed
+//                 whenever decimation doubles the interval)
 //   lastTopo      topoheight of the last sample (gap detection)
 //   intervalTopo  target spacing between points, in topos
 //   topoSeconds   OPTIONAL calibrated seconds/topo from real block
@@ -36,6 +38,7 @@
 export interface ChartSeries {
   history: number[]
   histStart: number
+  /** newest point's absolute grid index + 1, in intervalTopo units */
   points: number
   lastTopo: number
   intervalTopo: number
@@ -156,7 +159,6 @@ export function appendPoint(
   for (let i = 0; i < fill; i++) history.push(last)
   history.push(price)
 
-  const points = s.points + fill + 1
   let finalInterval = interval
 
   // Decimate 2:1 until back under the cap (each pass halves the
@@ -169,6 +171,18 @@ export function appendPoint(
     history = kept
     finalInterval *= 2
   }
+
+  // Re-anchor the counters in the FINAL interval's units. The old code
+  // carried `points` over from the pre-decimation grid and derived
+  // histStart from it, so a decimated series reported a histStart
+  // thousands of slots past its true position: seriesCoversBirth()
+  // then failed and EVERY session re-triggered a full chain rebuild
+  // for the coin (the "the chart re-scans on every visit" bug). The
+  // series spans grid indices [histStart, gNow] — both in
+  // current-interval units; history[0]'s absolute topo is unchanged by
+  // decimation (index 0 is always kept), so birth coverage survives.
+  const gNow = Math.floor(topo / finalInterval)
+  const points = gNow + 1
 
   return {
     ...s,

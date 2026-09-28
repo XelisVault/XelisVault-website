@@ -23,7 +23,7 @@
 // The chain is the backend: every value the app shows is a storage read
 // or derived from one. No indexer, no database.
 
-import { rpcCall } from '@/lib/xelis/rpc'
+import { rpcCall, rpcBatchCached, type BatchCall } from '@/lib/xelis/rpc'
 import { keyStr, parseCell, fromAtomic } from '@/lib/xelis/types'
 
 // ── On-chain identity (mainnet, 23/09/2026) ──────────────────────────
@@ -335,19 +335,55 @@ export async function readStorage(
   }
 }
 
+/**
+ * Read MANY string-keyed storage cells of ONE contract in BATCHED
+ * POSTs — 20 get_contract_data calls per HTTP request (verified live:
+ * the node answers JSON-RPC batches, batch_limit = 20; a 20-cell batch
+ * measures ~220 ms vs ~20 × 100 ms sequentially through the rate
+ * limiter). A whole coin record (31 fields) costs 2 POSTs instead of
+ * 31, a deep scan of the board ~1 s instead of ~8 s.
+ * Returns one parsed value per input key, in order — null for cells
+ * that were never written (per-item "No data found" errors) or that
+ * failed to fetch. Never throws: a dead POST degrades to nulls and
+ * the caller decides what a missing cell means (same contract as
+ * readStorage's null).
+ */
+export async function readStorageBatch(
+  contract: string,
+  keys: string[],
+): Promise<any[]> {
+  if (keys.length === 0) return []
+  const calls: BatchCall[] = keys.map((key) => ({
+    method: 'get_contract_data',
+    params: { contract, key: keyStr(key) },
+  }))
+  const res = await rpcBatchCached(calls, { retries: 2, network: 'mainnet' })
+  return res.map((r) => {
+    if (r?.result?.data == null) return null // never written / item error
+    try {
+      return parseCell(r.result.data)
+    } catch {
+      return null
+    }
+  })
+}
+
 /** Read the live community factory configuration from the chain. */
 export async function fetchCommunityParams(): Promise<CommunityParams> {
-  const c = (k: string) => readStorage(COMMUNITY_CONTRACT, k, 30000)
-  const [sub, abd, cfe, gfe, mgf, gdx, vxs, pz, dxa] = await Promise.all([
-    c(CG.submissionFee), c(CG.assetBudget), c(CG.curveFeeBps),
-    c(CG.graduatedFeeBps), c(CG.migrationFeeBps), c(CG.graduationDepth),
-    c(CG.virtualXel), c(CG.paused), c(CG.dexAddress),
-  ])
   // DEX fees follow the factory's pin: read sfe/fsl from the DEX the
   // coins actually migrate to (dxa), falling back to the known D141.
+  const dxa = await readStorage(COMMUNITY_CONTRACT, CG.dexAddress, 30000)
   const pinned = dxa == null ? DEX_CONTRACT : String(dxa)
-  const d = (k: string) => readStorage(pinned, k, 30000)
-  const [sfe, fsl] = await Promise.all([d(DG.swapFeeBps), d(DG.feeSplitBps)])
+  const [c, d] = await Promise.all([
+    readStorageBatch(COMMUNITY_CONTRACT, [
+      CG.submissionFee, CG.assetBudget, CG.curveFeeBps,
+      CG.graduatedFeeBps, CG.migrationFeeBps, CG.graduationDepth,
+      CG.virtualXel, CG.paused,
+    ]),
+    readStorageBatch(pinned, [DG.swapFeeBps, DG.feeSplitBps]),
+  ])
+  const [sub, abd, cfe, gfe, mgf, gdx, vxs, pz] = c
+  const [sfe, fsl] = d
   const num = (x: any, dflt: number) => (x == null ? dflt : fromAtomic(x))
   const small = (x: any, dflt: number) => (x == null ? dflt : Number(x))
   return {
@@ -367,20 +403,20 @@ export async function fetchCommunityParams(): Promise<CommunityParams> {
 
 /** Read the live protocol configuration from both contracts. */
 export async function fetchProtocolParams(): Promise<ProtocolParams> {
-  const v = (k: string) => readStorage(VAULT_CONTRACT, k, 30000)
-  const d = (k: string) => readStorage(DEX_CONTRACT, k, 30000)
-  const [
-    sub, abd, mnl, mnp, mab, vdt, gmu, dlt, tfe, gfe, mgf, vdp,
-    tdy, vmn, vmx, pz, sfe, fsl, xpa,
-  ] = await Promise.all([
-    v(VG.submissionFee), v(VG.assetBudget), v(VG.minLiquidity),
-    v(VG.minParticipants), v(VG.minApprovalBps), v(VG.validationDuration),
-    v(VG.graduationMultiplier), v(VG.directListingThreshold),
-    v(VG.tradingFeeBps), v(VG.graduatedFeeBps), v(VG.migrationFeeBps),
-    v(VG.voteDeposit), v(VG.teamUnlockDelay), v(VG.vestingMin),
-    v(VG.vestingMax), v(VG.paused),
-    d(DG.swapFeeBps), d(DG.feeSplitBps), d(DG.emergency),
+  const [v, d] = await Promise.all([
+    readStorageBatch(VAULT_CONTRACT, [
+      VG.submissionFee, VG.assetBudget, VG.minLiquidity,
+      VG.minParticipants, VG.minApprovalBps, VG.validationDuration,
+      VG.graduationMultiplier, VG.directListingThreshold,
+      VG.tradingFeeBps, VG.graduatedFeeBps, VG.migrationFeeBps,
+      VG.voteDeposit, VG.teamUnlockDelay, VG.vestingMin,
+      VG.vestingMax, VG.paused,
+    ]),
+    readStorageBatch(DEX_CONTRACT, [DG.swapFeeBps, DG.feeSplitBps, DG.emergency]),
   ])
+  const [sub, abd, mnl, mnp, mab, vdt, gmu, dlt, tfe, gfe, mgf, vdp,
+    tdy, vmn, vmx, pz] = v
+  const [sfe, fsl, xpa] = d
   const num = (x: any, dflt: number) => (x == null ? dflt : fromAtomic(x))
   const small = (x: any, dflt: number) => (x == null ? dflt : Number(x))
   return {

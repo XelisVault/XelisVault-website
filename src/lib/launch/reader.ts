@@ -8,7 +8,7 @@
 
 import {
   VAULT_CONTRACT, DEX_CONTRACT, XEL_ASSET,
-  readStorage, projKey, poolKey, lpKey, voteKey, migratedIndexKey,
+  readStorage, readStorageBatch, projKey, poolKey, lpKey, voteKey, migratedIndexKey,
   PF, QF, LPF, VG, DG, type ProtocolParams,
 } from './protocol'
 import {
@@ -76,66 +76,69 @@ const num = (v: any): number => (v == null ? 0 : Number(v))
 const str = (v: any): string => (v == null ? '' : String(v))
 const bool = (v: any): boolean => v === true
 
-/** Read one project record (all 38 fields) from the launchpad storage. */
+/** Read one project record (all 38 fields) from the launchpad storage.
+ *  One batched sweep: 2 POSTs instead of 43 sequential round-trips. */
 export async function fetchProject(pid: number): Promise<RawProject | null> {
-  const f = (field: string) => readStorage(VAULT_CONTRACT, projKey(pid, field))
-  const [
-    cr, st, nm, sy, ds, ws, lg, tw, tg, dc,
-    ts, tb, lq, rv, cs, ct, ve, sp, rp, gr,
-    rc, rd, vo, dl, bt, tp, vs, vd, vp,
-    bv, sv, tc, lt, mc, mh, mg, ah, ab,
-    mi, ma, mx, mt, dsy,
-  ] = await Promise.all([
-    f(PF.creator), f(PF.status), f(PF.name), f(PF.symbol), f(PF.description),
-    f(PF.website), f(PF.logo), f(PF.twitter), f(PF.telegram), f(PF.discord),
-    f(PF.supply), f(PF.teamBps), f(PF.liquidity), f(PF.reserves), f(PF.curve),
-    f(PF.created), f(PF.deadline), f(PF.supports), f(PF.reports), f(PF.graduated),
-    f(PF.refundClaimed), f(PF.round), f(PF.volume), f(PF.directListing),
-    f(PF.bondingStart), f(PF.teamPaid), f(PF.vestingStart), f(PF.vestingDuration),
-    f(PF.vestingPlan),
-    f(PF.buyVolume), f(PF.sellVolume), f(PF.trades), f(PF.lastTrade),
-    f(PF.marketCap), f(PF.marketCapHigh), f(PF.marketCapGrad),
-    f(PF.asset), f(PF.budget),
-    f(PF.migrated), f(PF.migratedAt), f(PF.migratedXel), f(PF.migratedTokens),
-    f(PF.dexSynced),
-  ])
+  const order = [
+    PF.creator, PF.status, PF.name, PF.symbol, PF.description,
+    PF.website, PF.logo, PF.twitter, PF.telegram, PF.discord,
+    PF.supply, PF.teamBps, PF.liquidity, PF.reserves, PF.curve,
+    PF.created, PF.deadline, PF.supports, PF.reports, PF.graduated,
+    PF.refundClaimed, PF.round, PF.volume, PF.directListing,
+    PF.bondingStart, PF.teamPaid, PF.vestingStart, PF.vestingDuration,
+    PF.vestingPlan,
+    PF.buyVolume, PF.sellVolume, PF.trades, PF.lastTrade,
+    PF.marketCap, PF.marketCapHigh, PF.marketCapGrad,
+    PF.asset, PF.budget,
+    PF.migrated, PF.migratedAt, PF.migratedXel, PF.migratedTokens,
+    PF.dexSynced,
+  ]
+  const vals = await readStorageBatch(
+    VAULT_CONTRACT, order.map((f) => projKey(pid, f)),
+  )
+  const v = (i: number) => vals[i]
+  const nm = v(2), sy = v(3), st = v(1)
   if (nm == null && sy == null && st == null) return null // never proposed
   return {
     id: pid,
-    creator: cr == null ? null : str(cr),
+    creator: v(0) == null ? null : str(v(0)),
     status: num(st),
-    name: str(nm), symbol: str(sy), description: str(ds),
-    website: str(ws), logo: str(lg),
-    twitter: str(tw), telegram: str(tg), discord: str(dc),
-    totalSupply: big(ts), teamBps: num(tb), liquidity: big(lq),
-    reserves: big(rv), curveSupply: big(cs),
-    createdTopo: num(ct), deadlineTopo: num(ve),
-    supports: num(sp), reports: num(rp),
-    graduated: bool(gr),
-    refundClaimed: bool(rc), round: num(rd),
-    volume: big(vo),
-    directListing: bool(dl), bondingStart: num(bt),
-    teamPaid: big(tp),
-    vestingStart: num(vs), vestingDuration: num(vd), vestingPlan: num(vp),
-    buyVolume: big(bv), sellVolume: big(sv), trades: num(tc), lastTradeTopo: num(lt),
-    marketCap: big(mc), marketCapHigh: big(mh), marketCapGrad: big(mg),
-    asset: ah == null ? null : str(ah),
-    budget: big(ab),
-    migrated: bool(mi), migratedAt: num(ma),
-    migratedXel: big(mx), migratedTokens: big(mt),
-    dexSynced: bool(dsy),
+    name: str(nm), symbol: str(sy), description: str(v(4)),
+    website: str(v(5)), logo: str(v(6)),
+    twitter: str(v(7)), telegram: str(v(8)), discord: str(v(9)),
+    totalSupply: big(v(10)), teamBps: num(v(11)), liquidity: big(v(12)),
+    reserves: big(v(13)), curveSupply: big(v(14)),
+    createdTopo: num(v(15)), deadlineTopo: num(v(16)),
+    supports: num(v(17)), reports: num(v(18)),
+    graduated: bool(v(19)),
+    refundClaimed: bool(v(20)), round: num(v(21)),
+    volume: big(v(22)),
+    directListing: bool(v(23)), bondingStart: num(v(24)),
+    teamPaid: big(v(25)),
+    vestingStart: num(v(26)), vestingDuration: num(v(27)), vestingPlan: num(v(28)),
+    buyVolume: big(v(29)), sellVolume: big(v(30)), trades: num(v(31)), lastTradeTopo: num(v(32)),
+    marketCap: big(v(33)), marketCapHigh: big(v(34)), marketCapGrad: big(v(35)),
+    asset: v(36) == null ? null : str(v(36)),
+    budget: big(v(37)),
+    migrated: bool(v(38)), migratedAt: num(v(39)),
+    migratedXel: big(v(40)), migratedTokens: big(v(41)),
+    dexSynced: bool(v(42)),
   }
 }
 
-/** Read the fast-changing fields only (status, reserves, votes, scores). */
+/** Read the fast-changing fields only (status, reserves, votes, scores).
+ *  One batched POST instead of 14 sequential round-trips. */
 export async function fetchProjectFast(pid: number): Promise<Partial<RawProject> | null> {
-  const f = (field: string) => readStorage(VAULT_CONTRACT, projKey(pid, field))
-  const [st, rv, cs, sp, rp, ve, vo, bv, sv, tc, mc, mh, mi, gr] = await Promise.all([
-    f(PF.status), f(PF.reserves), f(PF.curve), f(PF.supports), f(PF.reports),
-    f(PF.deadline), f(PF.volume), f(PF.buyVolume), f(PF.sellVolume),
-    f(PF.trades), f(PF.marketCap), f(PF.marketCapHigh), f(PF.migrated),
-    f(PF.graduated),
-  ])
+  const order = [
+    PF.status, PF.reserves, PF.curve, PF.supports, PF.reports,
+    PF.deadline, PF.volume, PF.buyVolume, PF.sellVolume,
+    PF.trades, PF.marketCap, PF.marketCapHigh, PF.migrated,
+    PF.graduated,
+  ]
+  const vals = await readStorageBatch(
+    VAULT_CONTRACT, order.map((f) => projKey(pid, f)),
+  )
+  const [st, rv, cs, sp, rp, ve, vo, bv, sv, tc, mc, mh, mi, gr] = vals
   if (st == null && rv == null) return null
   return {
     status: num(st), reserves: big(rv), curveSupply: big(cs),
@@ -165,14 +168,17 @@ export interface RawPool {
   lpPotTokens: bigint
 }
 
-/** Read one DEX pool by asset hash. */
+/** Read one DEX pool by asset hash. One batched POST. */
 export async function fetchPool(asset: string): Promise<RawPool | null> {
-  const f = (field: string) => readStorage(DEX_CONTRACT, poolKey(asset, field))
-  const [xr, yr, bp, ct, bv, sv, tc, fl, lp, lx, ly, tl, pl] = await Promise.all([
-    f(QF.xelReserve), f(QF.tokenReserve), f(QF.buysPaused), f(QF.created),
-    f(QF.buyVolume), f(QF.sellVolume), f(QF.trades), f(QF.lifetimeFees),
-    f(QF.lpCount), f(QF.lpPotXel), f(QF.lpPotTokens), f(QF.lpTotal), f(QF.lpLocked),
-  ])
+  const order = [
+    QF.xelReserve, QF.tokenReserve, QF.buysPaused, QF.created,
+    QF.buyVolume, QF.sellVolume, QF.trades, QF.lifetimeFees,
+    QF.lpCount, QF.lpPotXel, QF.lpPotTokens, QF.lpTotal, QF.lpLocked,
+  ]
+  const vals = await readStorageBatch(
+    DEX_CONTRACT, order.map((f) => poolKey(asset, f)),
+  )
+  const [xr, yr, bp, ct, bv, sv, tc, fl, lp, lx, ly, tl, pl] = vals
   if (xr == null && yr == null) return null
   return {
     asset,
@@ -185,6 +191,12 @@ export async function fetchPool(asset: string): Promise<RawPool | null> {
   }
 }
 
+/** Read many DEX pools in ONE batched sweep (one POST per pool, all
+ *  chunks in parallel waves) — the fast cycle's pool refresh. */
+export async function fetchPoolsBatch(assets: string[]): Promise<(RawPool | null)[]> {
+  return Promise.all(assets.map((a) => fetchPool(a)))
+}
+
 /** A provider's position in one pool (X10/X12). */
 export interface RawLpInfo {
   parts: bigint
@@ -194,10 +206,11 @@ export interface RawLpInfo {
 }
 
 export async function fetchLpInfo(asset: string, wallet: string): Promise<RawLpInfo> {
-  const f = (field: string) => readStorage(DEX_CONTRACT, lpKey(asset, wallet, field))
-  const [x, cx, cy, w] = await Promise.all([
-    f(LPF.parts), f(LPF.claimXel), f(LPF.claimTokens), f(LPF.withdrawable),
-  ])
+  const order = [LPF.parts, LPF.claimXel, LPF.claimTokens, LPF.withdrawable]
+  const vals = await readStorageBatch(
+    DEX_CONTRACT, order.map((f) => lpKey(asset, wallet, f)),
+  )
+  const [x, cx, cy, w] = vals
   return {
     parts: big(x), claimableXel: big(cx), claimableTokens: big(cy),
     withdrawable: big(w),
@@ -212,13 +225,15 @@ export async function fetchHasVoted(pid: number, round: number, addr: string): P
   return v != null && v !== false && v !== 0n
 }
 
-/** D22: every migrated project id, oldest first. */
+/** D22: every migrated project id, oldest first. One batched sweep. */
 export async function fetchMigratedPids(count: number): Promise<number[]> {
-  const out: number[] = []
-  const reads = Array.from({ length: Math.min(count, 200) }, (_, r) =>
-    readStorage(VAULT_CONTRACT, migratedIndexKey(r), 30000),
+  const n = Math.min(count, 200)
+  if (n <= 0) return []
+  const vals = await readStorageBatch(
+    VAULT_CONTRACT,
+    Array.from({ length: n }, (_, r) => migratedIndexKey(r)),
   )
-  const vals = await Promise.all(reads)
+  const out: number[] = []
   for (const v of vals) {
     if (v == null) continue
     out.push(Number(v))
@@ -255,19 +270,16 @@ export interface ProtocolStats {
 }
 
 export async function fetchProtocolStats(): Promise<ProtocolStats> {
-  const [pc, mgc, tvl, tbv, tsv, ttc, fcl, pfe, tcx, dpc, dxa] = await Promise.all([
-    readStorage(VAULT_CONTRACT, VG.count, 10000),
-    readStorage(VAULT_CONTRACT, VG.migratedCount, 30000),
-    readStorage(VAULT_CONTRACT, VG.totalVolume, 10000),
-    readStorage(VAULT_CONTRACT, VG.totalBuyVolume, 10000),
-    readStorage(VAULT_CONTRACT, VG.totalSellVolume, 10000),
-    readStorage(VAULT_CONTRACT, VG.totalTrades, 10000),
-    readStorage(VAULT_CONTRACT, VG.feesCollected, 30000),
-    readStorage(VAULT_CONTRACT, VG.pendingFees, 30000),
-    readStorage(VAULT_CONTRACT, VG.totalCurveXel, 30000),
-    readStorage(DEX_CONTRACT, DG.poolsCount, 30000),
-    readStorage(DEX_CONTRACT, DG.launchpad, 60000),
+  const [v, d] = await Promise.all([
+    readStorageBatch(VAULT_CONTRACT, [
+      VG.count, VG.migratedCount, VG.totalVolume, VG.totalBuyVolume,
+      VG.totalSellVolume, VG.totalTrades, VG.feesCollected,
+      VG.pendingFees, VG.totalCurveXel,
+    ]),
+    readStorageBatch(DEX_CONTRACT, [DG.poolsCount, DG.launchpad]),
   ])
+  const [pc, mgc, tvl, tbv, tsv, ttc, fcl, pfe, tcx] = v
+  const [dpc, dxa] = d
   return {
     projectCount: num(pc),
     migratedCount: num(mgc),
