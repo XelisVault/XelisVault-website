@@ -44,12 +44,23 @@
 // Cost control: every RPC goes through the shared rate-limited client
 // (14 req/s), tx-bearing blocks are cached per hash, tx parses are
 // cached per hash and shared across coins in-session, and the walk is
-// bounded (WALK_MAX_PAGES) with an early exit as soon as the on-chain
-// trade counter is satisfied. Pages are fetched in CONCURRENT WAVES of
-// 4 — the limiter paces the requests, the latency stops serializing
-// them (first visit measured ~60 s sequential → ~30 s waved).
+// bounded (WALK_MAX_POSTS) with an early exit as soon as the on-chain
+// trade counter is satisfied.
+//
+// BATCHED WALK (v3): the node enforces ≤ 20 heights per
+// get_blocks_range_by_height call but happily answers JSON-RPC BATCHES
+// (verified live, batch_limit = 20) — so ONE HTTP POST carries 20 range
+// calls = 400 heights. Waves of 3 such POSTs run concurrently, and the
+// tx resolution rides batched POSTs too (20 × get_transactions of 20
+// hashes). A full first-visit rebuild of a 43 h-old coin measured
+// ~80 s+ under the old one-page-per-request pattern (and its 600-page
+// budget could not even reach the coin's birth — the walk ALWAYS ended
+// in the partial backward anchor); the batched walk covers the coin's
+// ENTIRE life (88 000-height budget ≈ 5.7 days) in ~10-15 s, the
+// calibration proof passes, and the series covers birth — so the walk
+// happens ONCE per device, never again on later visits.
 
-import { rpcCall } from '@/lib/xelis/rpc'
+import { rpcCall, rpcBatchCached, type BatchCall } from '@/lib/xelis/rpc'
 import { COMMUNITY_CONTRACT, XEL_ASSET } from './protocol'
 import {
   coinBuyTokensOut, coinSellXelOut, coinSpotPrice,
@@ -57,14 +68,22 @@ import {
 import { toHuman, feeTake } from './chain-math'
 import type { ChartSeries } from './persist'
 
+/** get_transactions: tx hashes per call (node-verified). */
 const TX_BATCH = 20
 /** get_blocks_range_by_height: max 20 heights per call (node-enforced). */
 const WALK_PAGE_HEIGHTS = 20
+/** Range calls packed per batched POST — the node's batch_limit is 20. */
+const WALK_CALLS_PER_POST = 20
+/** Heights covered by one batched POST (20 calls × 20 heights). */
+const POST_HEIGHTS = WALK_CALLS_PER_POST * WALK_PAGE_HEIGHTS // 400
+/** Concurrent batched POSTs per wave. */
+const WAVE_POSTS = 5
 /**
- * RPC budget per backfill: 600 pages ≈ 12 000 heights ≈ ~14 000 topos
- * ≈ 19 h of history. Older coins fall back to the backward anchor.
+ * RPC budget per backfill: 220 batched POSTs ≈ 88 000 heights ≈ ~5.7
+ * days of history (XVLT at 43 h needs ~72). Older coins fall back to
+ * the backward anchor.
  */
-const WALK_MAX_PAGES = 600
+const WALK_MAX_POSTS = 220
 /**
  * DAG margin: blocks of a topo range can sit a few hundred heights
  * away from the "expected" height (observed spread ≈ 415 over a day).
@@ -214,7 +233,10 @@ function parseTrade(tx: RawTx): ParsedTx | null {
 
 /**
  * Resolve tx hashes through the shared cache, fetching unknown ones in
- * batches. Returns one entry per input hash (null = not a trade).
+ * BATCHED POSTs: 20 get_transactions calls of 20 hashes ride ONE HTTP
+ * request (400 txs per POST — a whole walk's worth of txs is 2-3 POSTs
+ * instead of ~45 sequential round-trips).
+ * Returns one entry per input hash (null = not a trade).
  */
 async function resolveTxs(hashes: string[]): Promise<(ParsedTx | null)[]> {
   const out: (ParsedTx | null)[] = new Array(hashes.length).fill(null)
@@ -226,21 +248,27 @@ async function resolveTxs(hashes: string[]): Promise<(ParsedTx | null)[]> {
     if (txCache.has(hash)) out[idx] = txCache.get(hash) ?? null
     else need.push({ idx, hash })
   })
+  if (need.length === 0) return out
+
+  const calls: BatchCall[] = []
+  const groups: { idx: number; hash: string }[][] = []
   for (let i = 0; i < need.length; i += TX_BATCH) {
-    const batch = need.slice(i, i + TX_BATCH)
-    const txs = await rpcCall<RawTx[]>(
-      'get_transactions', { tx_hashes: batch.map((b) => b.hash) },
-      { retries: 2, network: 'mainnet' },
-    ).catch(() => null)
-    if (!Array.isArray(txs)) continue
+    const group = need.slice(i, i + TX_BATCH)
+    groups.push(group)
+    calls.push({ method: 'get_transactions', params: { tx_hashes: group.map((g) => g.hash) } })
+  }
+  const res = await rpcBatchCached(calls, { retries: 2, network: 'mainnet' })
+  res.forEach((r, g) => {
+    const txs = Array.isArray(r.result) ? (r.result as RawTx[]) : null
+    if (!txs) return
     const byHash = new Map<string, RawTx>()
     for (const t of txs) if (t?.hash) byHash.set(t.hash, t)
-    for (const { idx, hash } of batch) {
+    for (const { idx, hash } of groups[g]) {
       const parsed = byHash.has(hash) ? parseTrade(byHash.get(hash)!) : null
       txCache.set(hash, parsed)
       out[idx] = parsed
     }
-  }
+  })
   return out
 }
 
@@ -300,16 +328,21 @@ export async function fetchWindowTrades(cid: number): Promise<BackfillTrade[]> {
  * Walk blocks by height, newest → oldest, collecting every buy/sell of
  * `cid`. Stops as soon as the deduped found-count reaches the on-chain
  * trade counter (we then provably have them all), at the coin's
- * creation (minus the DAG margin), or at the page budget.
+ * creation (minus the DAG margin), or at the POST budget.
  *
- * Pages are fetched in CONCURRENT WAVES: the walk is latency-bound (one
- * page at a time measured ~2 pages/s ≈ 60 s for a young coin, while the
- * shared limiter allows 14 req/s) — waves of WALK_CONCURRENCY pages cut
- * the first-visit rebuild to roughly half. The limiter paces every
- * request, so the node never sees more than it already accepts.
+ * BATCHED + OVERLAPPED PIPELINE: one HTTP POST carries 20
+ * get_blocks_range_by_height calls (400 heights — the node's per-call
+ * cap is 20 heights, its batch cap is 20 requests), WAVE_POSTS such
+ * POSTs run concurrently, and the tx resolution of wave N OVERLAPS the
+ * block POSTs of wave N+1 — the blocks stream and the tx lookups never
+ * serialize behind each other. The old one-20-height-page-per-request
+ * pattern was latency-bound (~2 pages/s ≈ 80 s+ for XVLT at 43 h, and
+ * its 600-page budget covered only ~19 h of chain — the coin's birth
+ * was UNREACHABLE, every first visit ended in the partial backward
+ * anchor); the batched pipeline covers the coin's whole life in
+ * seconds. The shared limiter still paces every POST, so the node never
+ * sees more than it already accepts.
  */
-const WALK_CONCURRENCY = 4
-
 async function walkTrades(
   cid: number,
   currentTopo: number,
@@ -329,35 +362,92 @@ async function walkTrades(
   if (typeof tipH !== 'number' || typeof birthH !== 'number') return []
 
   const bottomH = Math.max(1, birthH - WALK_BOTTOM_MARGIN)
+  const totalHeights = tipH - bottomH + 1
+  // progress is reported in 20-height PAGES (the panel's unit) — the
+  // real total, not an arbitrary budget, so the bar reflects the walk
+  const totalPages = Math.ceil(totalHeights / WALK_PAGE_HEIGHTS)
   const found = new Map<string, BackfillTrade>()
   let pages = 0 // completed pages — monotonic, drives the loading panel
-  let launched = 0 // pages launched — the budget gate
-  let nextHi = tipH // top height of the next page to launch
-  // A FULL wave of failures = the node is gone (single transient page
-  // failures don't kill the walk — the calibration proof catches any
-  // hole, exactly as a mid-walk break did before).
-  let failedWave = 0
+  let posts = 0 // batched POSTs launched — the budget gate
+  let nextHi = tipH // top height of the next POST to launch
+  // TWO full waves of failures = the node is gone (single transient
+  // POST failures don't kill the walk — the calibration proof catches
+  // any hole, exactly as a mid-walk break did before).
+  let failedWaves = 0
+  // tx hashes accumulated by landed block POSTs, resolved wave by wave
+  let pending: string[] = []
 
-  async function fetchPage(lo: number, hi: number): Promise<boolean> {
-    const blocks = await rpcCall<RawBlock[]>(
-      'get_blocks_range_by_height', [lo, hi],
-      { retries: 2, network: 'mainnet' },
-    ).catch(() => null)
-    if (!Array.isArray(blocks) || blocks.length === 0) return false
-
-    // seed the block cache with this page's tx-bearing blocks (most
-    // trades' executed block is right here — no extra RPC needed)
-    const hashes: string[] = []
-    for (const b of blocks) {
-      if (
-        b?.hash && typeof b.topoheight === 'number' && typeof b.timestamp === 'number' &&
-        Array.isArray(b.txs_hashes) && b.txs_hashes.length > 0
+  /** One batched POST of up to 20 range calls (400 heights) — BLOCKS
+   * ONLY: seeds the block cache, accumulates the tx hashes it saw into
+   * `pending`. Never rejects (a dead POST resolves ok:false so the wave
+   * accounting can stop the walk when the node is gone). */
+  async function fetchBlocksPost(lo: number, hi: number): Promise<boolean> {
+    try {
+      const calls: BatchCall[] = []
+      for (
+        let h = hi;
+        h >= lo && calls.length < WALK_CALLS_PER_POST;
+        h -= WALK_PAGE_HEIGHTS
       ) {
-        blockCache.set(b.hash, { topo: b.topoheight, ts: b.timestamp })
-        hashes.push(...b.txs_hashes)
+        const l = Math.max(lo, h - WALK_PAGE_HEIGHTS + 1)
+        calls.push({ method: 'get_blocks_range_by_height', params: [l, h] })
       }
-    }
+      if (calls.length === 0) return false
+      const res = await rpcBatchCached(calls, { retries: 2, network: 'mainnet' })
 
+      let gotAny = false
+      for (const r of res) {
+        const blocks = Array.isArray(r.result) ? (r.result as RawBlock[]) : null
+        if (!blocks || blocks.length === 0) continue
+        gotAny = true
+        // seed the block cache with this page's tx-bearing blocks (most
+        // trades' executed block is right here — no extra RPC needed)
+        for (const b of blocks) {
+          if (
+            b?.hash && typeof b.topoheight === 'number' && typeof b.timestamp === 'number' &&
+            Array.isArray(b.txs_hashes) && b.txs_hashes.length > 0
+          ) {
+            blockCache.set(b.hash, { topo: b.topoheight, ts: b.timestamp })
+            pending.push(...b.txs_hashes)
+          }
+        }
+      }
+      return gotAny
+    } catch {
+      return false // unreachable in practice — belt and braces
+    }
+  }
+
+  /** Launch the next wave of block POSTs; returns its promises. */
+  function launchWave(): Promise<boolean>[] {
+    const wave: Promise<boolean>[] = []
+    while (
+      wave.length < WAVE_POSTS && nextHi >= bottomH && posts < WALK_MAX_POSTS
+    ) {
+      const lo = Math.max(bottomH, nextHi - POST_HEIGHTS + 1)
+      wave.push(fetchBlocksPost(lo, nextHi))
+      nextHi = lo - 1
+      posts++
+    }
+    return wave
+  }
+
+  let wave = launchWave()
+  while (wave.length > 0 && failedWaves < 2 && found.size < totalTrades) {
+    // 1 — the wave's block POSTs land
+    const results = await Promise.all(wave)
+    failedWaves = results.every((ok) => !ok) ? failedWaves + 1 : 0
+    pages = Math.min(totalPages, Math.ceil((tipH - nextHi) / WALK_PAGE_HEIGHTS))
+    const hashes = pending
+    pending = []
+
+    // 2 — launch the NEXT wave BEFORE resolving this one's txs: the
+    // block POSTs stream while the tx lookups fly (the pipeline's whole
+    // point — they never serialize). The found-count gate runs one wave
+    // late, which bounds the overshoot at one wave — harmless.
+    wave = failedWaves < 2 && found.size < totalTrades ? launchWave() : []
+
+    // 3 — resolve this wave's txs (overlapped with the next wave)
     if (hashes.length > 0) {
       const parsed = await resolveTxs(hashes)
       for (const p of parsed) {
@@ -367,36 +457,17 @@ async function walkTrades(
       }
     }
 
-    pages++
     onProgress?.({
       phase: 'walk',
       pages,
-      maxPages: WALK_MAX_PAGES,
+      maxPages: totalPages,
       foundTrades: found.size,
       totalTrades,
     })
-    return true
-  }
 
-  while (
-    nextHi >= bottomH && launched < WALK_MAX_PAGES &&
-    found.size < totalTrades && failedWave < WALK_CONCURRENCY
-  ) {
-    // launch a wave of up to WALK_CONCURRENCY pages (the early exit is
-    // re-checked between waves — at most a wave's worth of overshoot)
-    const wave: Promise<boolean>[] = []
-    while (
-      wave.length < WALK_CONCURRENCY && nextHi >= bottomH &&
-      launched < WALK_MAX_PAGES && found.size < totalTrades
-    ) {
-      const lo = Math.max(bottomH, nextHi - WALK_PAGE_HEIGHTS + 1)
-      wave.push(fetchPage(lo, nextHi))
-      nextHi = lo - 1
-      launched++
-    }
-    if (wave.length === 0) break
-    const results = await Promise.all(wave)
-    failedWave = results.every((ok) => !ok) ? failedWave + results.length : 0
+    // early exit — we provably have them all (the in-flight wave, if
+    // any, only holds txs of other coins or duplicates by then)
+    if (found.size >= totalTrades) break
   }
 
   const out = [...found.values()]
@@ -598,17 +669,25 @@ export async function backfillCoinCurveSeries(
     }
 
     // 1 — the walk (bulk of the history; early-exits at the counter)
+    let lastWalkPages = { pages: 0, maxPages: 0 }
     const walked = await walkTrades(
-      coin.cid, coin.currentTopo, coin.createdTopo, coin.totalTrades, coin.onProgress,
+      coin.cid, coin.currentTopo, coin.createdTopo, coin.totalTrades,
+      coin.onProgress
+        ? (p) => {
+            if (p.phase === 'walk') lastWalkPages = { pages: p.pages, maxPages: p.maxPages }
+            coin.onProgress!(p)
+          }
+        : undefined,
     )
 
     // 2 — the registry window AFTER the walk: catches trades that
     //     landed while the walk was running (the window always holds
-    //     the newest ones)
+    //     the newest ones). The 'replay' progress keeps the walk's last
+    //     page tally so the counters stay monotonic for the panel.
     coin.onProgress?.({
       phase: 'replay',
-      pages: WALK_MAX_PAGES,
-      maxPages: WALK_MAX_PAGES,
+      pages: lastWalkPages.pages,
+      maxPages: lastWalkPages.maxPages,
       foundTrades: walked.length,
       totalTrades: coin.totalTrades,
     })
@@ -642,7 +721,10 @@ export async function backfillCoinCurveSeries(
 
     // 6 — no trades at all: a flat line at the birth price (the truth)
     return sampleSeries(coin, [], 0n, coin.y0)
-  } catch {
-    return null // node error, shape drift — keep the local series
+  } catch (e) {
+    // node error, shape drift — keep the local series; log the cause so
+    // intermittent failures are diagnosable from the browser console
+    console.error('[coin-backfill] failed:', e)
+    return null
   }
 }

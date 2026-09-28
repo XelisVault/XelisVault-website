@@ -53,8 +53,9 @@ function hueOf(ticker: string): number {
 export type CommunityNodeStatus = 'connecting' | 'live' | 'offline'
 
 /** Live state of a coin's chain-history rebuild — drives the chart's
- *  loading panel so the user SEES the scan happening (it can take up
- *  to a minute on a first visit) instead of a blank chart. */
+ *  loading panel so the user SEES the scan happening (a few seconds
+ *  thanks to the batched walk — it was up to a minute) instead of a
+ *  blank chart. */
 export interface CoinBackfillState {
   phase: 'starting' | 'scanning' | 'rebuilding' | 'done' | 'error'
   /** walk pages fetched so far (phase 'scanning') */
@@ -134,7 +135,8 @@ export function seriesCoversBirth(
  *  the series anyway), and not from a live-sampled fragment that
  *  starts after the coin's birth — the loading panel covers both, so
  *  the animated "scanning the chain" state stays visible for the whole
- *  walk (~1 min on a first visit) instead of flashing a broken chart. */
+ *  walk (seconds — the batched chain walk) instead of flashing a broken
+ *  chart. */
 export function isCurveChartReady(coin: {
   createdTopo: number
   curve?: {

@@ -121,6 +121,120 @@ export async function rpcCall<T = any>(
   throw lastError ?? new Error(`${method}: failed`)
 }
 
+// ---- JSON-RPC batch (verified live: node.xelis.io answers arrays, batch_limit = 20) ----
+
+export interface BatchCall {
+  method: string
+  params?: Record<string, any> | any[]
+}
+
+export interface BatchResult {
+  result?: any
+  error?: { message: string }
+}
+
+/** Max requests per batched POST (public nodes: `batch_limit` = 20). */
+export const BATCH_LIMIT = 20
+
+/**
+ * Send up to BATCH_LIMIT JSON-RPC requests in ONE HTTP POST.
+ * Responses are matched by id (order is NOT guaranteed). Per-item errors are
+ * returned as { error } entries, never thrown — the caller decides what a
+ * failed cell means. Transport failures (5xx / HTML / network) retry the
+ * whole batch with backoff, then throw.
+ */
+async function rpcBatchOnce(
+  calls: BatchCall[],
+  network?: NetworkId,
+): Promise<BatchResult[]> {
+  if (calls.length === 0) return []
+  const payload = calls.map((c, i) => {
+    const req: Record<string, any> = { jsonrpc: '2.0', id: 1000 + i, method: c.method }
+    if (c.params !== undefined && c.method !== 'get_info') req.params = c.params
+    return req
+  })
+  await rateLimitGate() // ONE gate per HTTP request, not per cell
+  const res = await fetch(endpointFor(network), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok && res.status >= 500) throw new RPCError(`batch: HTTP ${res.status}`, true)
+  let data: any
+  try {
+    data = await res.json()
+  } catch {
+    // HTML response (rate limit / CF) → transient
+    throw new RPCError('batch: non-JSON response (rate limited?)', true)
+  }
+  if (!Array.isArray(data)) {
+    // Some proxies strip JSON-RPC batching — bail out to the sequential path
+    throw new RPCError('batch: response is not an array', false)
+  }
+  const byId = new Map<number, BatchResult>()
+  for (const item of data) {
+    if (item && typeof item.id === 'number') {
+      byId.set(item.id, item.error ? { error: item.error } : { result: item.result })
+    }
+  }
+  return calls.map((_, i) => byId.get(1000 + i) ?? { error: { message: 'missing batch response' } })
+}
+
+/**
+ * Batched sweep for ANY calls (block ranges, tx lookups…). Any number of
+ * calls; misses are fetched in chunks of BATCH_LIMIT with retries, in
+ * chunk-parallel waves when the caller passes more than one chunk. If the
+ * endpoint refuses batches, falls back to individual rpcCalls. Returns one
+ * entry per input call, in input order — { result } or { error }, never
+ * throws.
+ */
+export async function rpcBatchCached(
+  calls: BatchCall[],
+  opts: { retries?: number; network?: NetworkId } = {},
+): Promise<BatchResult[]> {
+  const { retries = 2, network } = opts
+  const out: BatchResult[] = new Array(calls.length)
+  const missIdx: number[] = calls.map((_, i) => i)
+
+  // fetch misses in batches of BATCH_LIMIT, up to 3 POSTs concurrently
+  const chunks: number[][] = []
+  for (let m = 0; m < missIdx.length; m += BATCH_LIMIT) {
+    chunks.push(missIdx.slice(m, m + BATCH_LIMIT))
+  }
+  for (let g = 0; g < chunks.length; g += 3) {
+    const group = chunks.slice(g, g + 3)
+    await Promise.all(group.map(async (chunkIdx) => {
+      const chunk = chunkIdx.map((i) => calls[i])
+      let settled = false
+      for (let attempt = 0; attempt < Math.max(1, retries) && !settled; attempt++) {
+        try {
+          const res = await rpcBatchOnce(chunk, network)
+          res.forEach((r, k) => { out[chunkIdx[k]] = r })
+          settled = true
+        } catch (e: any) {
+          const transient = e instanceof RPCError ? e.transient : true
+          if (!transient || attempt === Math.max(1, retries) - 1) {
+            // Batch refused / dead — sequential fallback so a bad proxy never
+            // breaks a whole sweep
+            const results = await Promise.all(
+              chunk.map((c) =>
+                rpcCall(c.method, c.params, { retries: 1, network })
+                  .then((result) => ({ result }))
+                  .catch((error) => ({ error: { message: String(error?.message ?? error) } })),
+              ),
+            )
+            results.forEach((r, k) => { out[chunkIdx[k]] = r })
+            settled = true
+          } else {
+            await new Promise((r) => setTimeout(r, 500 * (attempt + 1)))
+          }
+        }
+      }
+    }))
+  }
+  return out
+}
+
 // Convenience wrappers -------------------------------------------------
 
 export async function getTopoheight(net?: NetworkId): Promise<number> {

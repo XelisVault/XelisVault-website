@@ -937,8 +937,8 @@ function ChartLoadingPanel({ coin }: { coin: CommunityCoin }) {
           opening the on-chain history…
         </div>
         <p className="max-w-md font-mono text-[10px] leading-relaxed text-muted-foreground/70">
-          the full price history is rebuilt from the XELIS chain — it can take up to
-          half a minute on a first visit. The chart appears on its own, identical on every computer.
+          the full price history is rebuilt from the XELIS chain — about ten seconds on a
+          first visit (batched block reads). The chart appears on its own, identical on every computer.
         </p>
       </div>
     )
@@ -956,6 +956,7 @@ function ChartLoadingPanel({ coin }: { coin: CommunityCoin }) {
           {bf.phase === 'scanning' ? (
             <>
               scanning the chain — page <span className="text-foreground">{bf.pages}</span>
+              {bf.maxPages > 0 && <>/<span className="text-foreground">{bf.maxPages}</span></>}
               {bf.totalTrades > 0 && (
                 <>
                   {' '}· <span className="text-foreground">{bf.foundTrades}/{bf.totalTrades}</span> trades found
@@ -990,8 +991,8 @@ function ChartLoadingPanel({ coin }: { coin: CommunityCoin }) {
         </div>
         <p className="max-w-md font-mono text-[10px] leading-relaxed text-muted-foreground/70">
           first visit on this device: every trade, in every block, is read from the XELIS
-          chain — usually about half a minute (a bit more for older coins). The chart
-          appears on its own and is then kept locally.
+          chain — usually about ten seconds. The chart appears on its own and is then
+          kept locally.
         </p>
       </div>
     )
@@ -1064,9 +1065,9 @@ export function CommunityView({ setView, focusId }: {
     const official = coin.official ? officialInfoOf(coin.ticker) : null
     // the chart lands ONLY when the FULL history is here: never while
     // the chain rebuild runs (the loading panel then covers the whole
-    // ~1 min walk) and never from a live-sampled fragment — this is
-    // what kept the "scanning the chain" animation on screen for the
-    // entire rebuild instead of flashing a 0-candle chart at ~30 s
+    // walk) and never from a live-sampled fragment — this is what kept
+    // the "scanning the chain" animation on screen for the entire
+    // rebuild instead of flashing a 0-candle chart mid-walk
     const chartReady = isCurveChartReady(coin, backfills[coin.cid])
 
     return (
