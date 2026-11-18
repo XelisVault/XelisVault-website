@@ -95,3 +95,13 @@ export async function fetchArchiveSeries(
 
   return usableSeries(r)
 }
+
+/** One archive GET, no polling — lets a caller distinguish "the
+ *  server is walking right now" (keep the panel, don't burn the
+ *  browser) from "the archive has nothing" (walk locally). */
+export async function fetchArchiveStatus(
+  kind: string,
+  id: string,
+): Promise<ArchiveResponse | null> {
+  return getOnce(kind, id)
+}

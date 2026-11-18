@@ -81,6 +81,16 @@ const SCHEMA_STATEMENTS = [
      state         JSONB,
      updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
    )`,
+  // v2 of the series row: the per-slot OHLC (o,h,l,c interleaved
+  // Float64, 4 × history.length values) — the candle renderer draws
+  // TRUE wicks from it. Nullable: legacy rows / close-only series.
+  `ALTER TABLE candle_series ADD COLUMN IF NOT EXISTS ohlc BYTEA`,
+  // v3: wall-clock anchor of the last point — set on FROZEN series
+  // (migrated coins) so the time axis tells the truth weeks later.
+  `ALTER TABLE candle_series ADD COLUMN IF NOT EXISTS end_ts_ms BIGINT`,
+  // v4: TRUE on a PARTIAL (backward-anchored, budget-cut) series — the
+  // client re-fetches until the finished walk replaces it.
+  `ALTER TABLE candle_series ADD COLUMN IF NOT EXISTS degraded BOOLEAN`,
   `CREATE TABLE IF NOT EXISTS candle_sync (
      asset             TEXT PRIMARY KEY,
      status            TEXT NOT NULL DEFAULT 'idle',
@@ -131,6 +141,38 @@ export function unpackHistory(buf: Buffer | Uint8Array | string): number[] {
   return Array.from(new Float64Array(b.buffer, b.byteOffset, b.byteLength / 8))
 }
 
+// ── OHLC packing (4 interleaved Float64 per slot) ──────────────────
+
+export interface PackedOhlc { o: number; h: number; l: number; c: number }
+
+export function packOhlc(ohlc: PackedOhlc[]): Buffer {
+  const flat = new Float64Array(ohlc.length * 4)
+  for (let i = 0; i < ohlc.length; i++) {
+    flat[i * 4] = ohlc[i].o
+    flat[i * 4 + 1] = ohlc[i].h
+    flat[i * 4 + 2] = ohlc[i].l
+    flat[i * 4 + 3] = ohlc[i].c
+  }
+  return Buffer.from(flat.buffer)
+}
+
+export function unpackOhlc(
+  buf: Buffer | Uint8Array | string | null,
+  historyLen: number,
+): PackedOhlc[] | undefined {
+  if (buf == null) return undefined
+  const b = typeof buf === 'string' ? Buffer.from(buf, 'hex') : Buffer.from(buf)
+  if (b.byteLength === 0 || b.byteLength % 32 !== 0) return undefined
+  const flat = new Float64Array(b.buffer, b.byteOffset, b.byteLength / 8)
+  const n = flat.length / 4
+  if (n !== historyLen) return undefined // misaligned — drop, stay honest
+  const out: PackedOhlc[] = new Array(n)
+  for (let i = 0; i < n; i++) {
+    out[i] = { o: flat[i * 4], h: flat[i * 4 + 1], l: flat[i * 4 + 2], c: flat[i * 4 + 3] }
+  }
+  return out
+}
+
 // ── Row shapes ──────────────────────────────────────────────────────
 
 export interface AssetRow {
@@ -151,6 +193,9 @@ export interface SeriesRow {
   hist_start: number
   points: number
   history: Buffer | Uint8Array | string
+  ohlc: Buffer | Uint8Array | string | null
+  end_ts_ms: number | null
+  degraded: boolean | null
   last_topo: number
   state: { xr: string; yr: string } | null
   updated_at: string
@@ -176,13 +221,17 @@ export interface SyncRow {
 import type { ChartSeries } from '@/lib/launch/persist'
 
 export function rowToSeries(row: SeriesRow): ChartSeries {
+  const history = unpackHistory(row.history)
   return {
-    history: unpackHistory(row.history),
+    history,
+    ohlc: unpackOhlc(row.ohlc, history.length),
     histStart: row.hist_start,
     points: row.points,
     lastTopo: row.last_topo,
     intervalTopo: row.interval_topo,
     topoSeconds: row.topo_seconds,
+    endTsMs: row.end_ts_ms != null ? Number(row.end_ts_ms) : undefined,
+    degraded: row.degraded === true || undefined,
     st: row.state ?? undefined,
     savedAt: new Date(row.updated_at).getTime(),
   }
@@ -195,10 +244,15 @@ export function saveSeriesRow(
 ): Promise<unknown> {
   return client`
     INSERT INTO candle_series
-      (asset, interval_topo, topo_seconds, hist_start, points, history, last_topo, state, updated_at)
+      (asset, interval_topo, topo_seconds, hist_start, points, history,
+       ohlc, end_ts_ms, degraded, last_topo, state, updated_at)
     VALUES
       (${asset}, ${s.intervalTopo}, ${s.topoSeconds ?? 5}, ${s.histStart},
-       ${s.points}, ${packHistory(s.history)}, ${s.lastTopo},
+       ${s.points}, ${packHistory(s.history)},
+       ${s.ohlc && s.ohlc.length === s.history.length ? packOhlc(s.ohlc) : null},
+       ${s.endTsMs != null ? Math.round(s.endTsMs) : null},
+       ${s.degraded === true},
+       ${s.lastTopo},
        ${s.st ? JSON.stringify(s.st) : null}, now())
     ON CONFLICT (asset) DO UPDATE SET
       interval_topo = EXCLUDED.interval_topo,
@@ -206,6 +260,9 @@ export function saveSeriesRow(
       hist_start = EXCLUDED.hist_start,
       points = EXCLUDED.points,
       history = EXCLUDED.history,
+      ohlc = EXCLUDED.ohlc,
+      end_ts_ms = EXCLUDED.end_ts_ms,
+      degraded = EXCLUDED.degraded,
       last_topo = EXCLUDED.last_topo,
       state = EXCLUDED.state,
       updated_at = now()
@@ -218,7 +275,7 @@ export async function getSeriesRow(
 ): Promise<SeriesRow | null> {
   const rows = (await client`
     SELECT asset, interval_topo, topo_seconds, hist_start, points,
-           history, last_topo, state, updated_at
+           history, ohlc, end_ts_ms, degraded, last_topo, state, updated_at
     FROM candle_series WHERE asset = ${asset} LIMIT 1
   `) as unknown as SeriesRow[]
   return rows[0] ?? null

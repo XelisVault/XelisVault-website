@@ -564,6 +564,7 @@ export function TradingView({ setView, focusId }: {
               {curve.history.length >= 2 ? (
                 <PriceChart
                   data={curve.history}
+                  ohlc={curve.ohlc}
                   histStart={curve.histStart}
                   height={360}
                   defaultMode="candles"

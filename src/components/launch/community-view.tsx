@@ -907,13 +907,14 @@ function Elapsed({ startedAt }: { startedAt: number }) {
  *  being rebuilt from the chain (and never a blank chart without
  *  explanation). Same height as the chart — no layout jump when it
  *  lands. */
-function ChartLoadingPanel({ coin }: { coin: CommunityCoin }) {
+function ChartLoadingPanel({ coin, era }: { coin: CommunityCoin; era?: 'curve' | 'pool' }) {
   const bf = useCommunity((s) => s.backfills[coin.cid])
 
-  // pool era (migrated coin): the price lives on the DEX pool — sampled
-  // live here AND kept in the shared vault archive, so the first points
-  // arrive within seconds and the history builds for everyone over time
-  if (coin.migratedTopo > 0 || !coin.curve) {
+  // pool era (migrated coin's DEX chart): the price lives on the DEX
+  // pool — sampled live here AND kept in the shared vault archive, so
+  // the first points arrive within seconds and the history builds for
+  // everyone over time. (The launchpad era keeps its own panels below.)
+  if ((era == null || era === 'pool') && (coin.migratedTopo > 0 || !coin.curve)) {
     return (
       <div className="flex h-[360px] flex-col items-center justify-center gap-4 border border-dashed border-border bg-foreground/[0.015] px-6 text-center">
         <LoadingCandles />
@@ -1067,6 +1068,11 @@ export function CommunityView({ setView, focusId }: {
   const status = useCommunity((s) => s.status)
   const backfills = useCommunity((s) => s.backfills)
   const [filter, setFilter] = useState<Filter>('all')
+  // era toggle for a MIGRATED coin's chart (launchpad curve vs DEX
+  // pool). null = untouched → auto (the launchpad era once its frozen
+  // history has landed, the DEX era before that). Reset on focus change.
+  const [eraPref, setEraPref] = useState<'curve' | 'pool' | null>(null)
+  useEffect(() => { setEraPref(null) }, [focusId])
 
   // focus resolves by cid OR by ticker — the share links of official
   // coins carry the readable ticker (?focus=XVLT)
@@ -1088,7 +1094,15 @@ export function CommunityView({ setView, focusId }: {
   // ── COIN MODE: one coin, the full terminal ──
   if (focusId && focused) {
     const coin = focused
-    const series = coin.curve ?? coin.pool
+    // the two eras of a migrated coin — the launchpad curve (frozen,
+    // served whole by the archive once walked) and the DEX pool (live
+    // samples). A live coin only ever has the curve.
+    const curveReady = !!coin.curve && isCurveChartReady(coin, backfills[coin.cid])
+    const poolReady = (coin.pool?.history?.length ?? 0) >= 2
+    const era: 'curve' | 'pool' = coin.migratedTopo > 0
+      ? (eraPref ?? (curveReady ? 'curve' : 'pool'))
+      : 'curve'
+    const series = era === 'pool' ? coin.pool : coin.curve
     const history = series?.history ?? []
     const change = coinChange(coin)
     const official = coin.official ? officialInfoOf(coin.ticker) : null
@@ -1097,14 +1111,13 @@ export function CommunityView({ setView, focusId }: {
     // walk) and never from a live-sampled fragment — this is what kept
     // the "scanning the chain" animation on screen for the entire
     // rebuild instead of flashing a 0-candle chart mid-walk.
-    // POOL ERA (migrated coin): isCurveChartReady only knows the curve
-    // — it always returned false here, so the pool chart NEVER landed
-    // (the "collecting live pool prices" panel stayed forever). A pool
-    // series is ready as soon as it holds a couple of points, whether
-    // they come from live sampling or the shared vault archive.
-    const chartReady = coin.migratedTopo > 0 || !coin.curve
-      ? (coin.pool?.history?.length ?? 0) >= 2
-      : isCurveChartReady(coin, backfills[coin.cid])
+    const chartReady = era === 'pool' ? poolReady : curveReady
+    // the migration marker on the launchpad chart: the absolute grid
+    // point of the migration block (the curve series ends there)
+    const markPoint = era === 'curve' && coin.migratedTopo > 0 && coin.curve?.intervalTopo
+      ? Math.floor(coin.migratedTopo / coin.curve.intervalTopo)
+      : null
+    const curveEndMs = era === 'curve' ? coin.curve?.endTsMs : undefined
 
     return (
       <div>
@@ -1203,16 +1216,59 @@ export function CommunityView({ setView, focusId }: {
               )}
 
               <div className="mt-4">
+                {/* era switch — a migrated coin has TWO lives: the
+                    launchpad curve (frozen full history, marked at the
+                    migration) and the DEX pool (live) */}
+                {coin.migratedTopo > 0 && (curveReady || poolReady) && (
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex" role="group" aria-label="Chart era">
+                      {([['curve', 'launchpad'], ['pool', 'dex']] as const).map(([k, label]) => (
+                        <button
+                          key={k}
+                          type="button"
+                          onClick={() => setEraPref(k)}
+                          disabled={k === 'curve' && !curveReady}
+                          aria-pressed={era === k}
+                          className={cn(
+                            'border px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] transition-colors',
+                            k === 'curve' ? 'border-r-0' : '',
+                            era === k
+                              ? k === 'curve'
+                                ? 'border-vault/60 bg-vault/12 text-vault'
+                                : 'border-xusd/60 bg-xusd/12 text-xusd'
+                              : 'border-border bg-background/60 text-muted-foreground hover:text-foreground',
+                            k === 'curve' && !curveReady ? 'cursor-wait opacity-60' : '',
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-muted-foreground">
+                      {era === 'curve'
+                        ? <>curve era · frozen at migration — <span className="text-xusd">topo {coin.migratedTopo.toLocaleString('en-US')}</span></>
+                        : <>dex era · live pool since <span className="text-xusd">topo {coin.migratedTopo.toLocaleString('en-US')}</span></>}
+                    </div>
+                  </div>
+                )}
                 {chartReady ? (
                   <PriceChart
                     data={history}
+                    ohlc={series?.ohlc}
                     histStart={series?.histStart ?? 0}
                     height={360}
                     defaultMode="candles"
+                    accent={era === 'pool' ? 'teal' : 'gold'}
                     pointSeconds={series?.pointSeconds ?? 30}
+                    endMs={curveEndMs}
+                    mark={markPoint != null ? {
+                      point: markPoint,
+                      label: 'MIGRATION · DEX',
+                      onClick: poolReady ? () => setEraPref('pool') : undefined,
+                    } : undefined}
                   />
                 ) : (
-                  <ChartLoadingPanel coin={coin} />
+                  <ChartLoadingPanel coin={coin} era={era} />
                 )}
               </div>
 

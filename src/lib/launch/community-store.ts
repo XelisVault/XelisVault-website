@@ -30,7 +30,7 @@ import {
 } from './community-reader'
 import { fetchPool, fetchPoolsBatch } from './reader'
 import { loadSeries, saveSeries, appendPoint, emptySeries, seriesPointSeconds, type ChartSeries } from './persist'
-import { fetchArchiveSeries } from './server-series'
+import { fetchArchiveSeries, fetchArchiveStatus } from './server-series'
 import { toHuman } from './chain-math'
 import { coinSpotPrice, coinMarketCap, coinContinuity, coinGraduationAnalysis } from './community-math'
 import {
@@ -245,22 +245,114 @@ export const useCommunity = create<CommunityStore>((set, get) => ({
     const coin = get().coins.find((c) => c.cid === cid)
     if (!coin) return
 
-    // ── POOL ERA (migrated coin) — the price lives on the LaunchDEX
-    // pool and no chain walk exists for it: the archive holds the
-    // SHARED sample history (every visitor's GET keeps it warm) and
-    // the local sampler keeps the live edge. One archive GET per
-    // session — instant when it has data, nothing lost when not.
+    // ── MIGRATED COIN — TWO eras to serve, both fetched here:
+    //   1. CURVE ERA (the launchpad history, birth → migration): the
+    //      server archive walks the chain ONCE and freezes the series
+    //      (calibrated against the migration snapshot). Until it lands
+    //      the browser can walk it itself — for a recently migrated
+    //      coin the walk reaches the birth easily; for an old one the
+    //      backward-anchored local series still shows the recent past.
+    //   2. POOL ERA (DEX): the archive holds the SHARED sample history
+    //      (every visitor's GET keeps it warm) and the local sampler
+    //      keeps the live edge. One archive GET per session.
     if (coin.migratedTopo > 0) {
-      if (poolArchiveTried.has(cid)) return
-      poolArchiveTried.add(cid)
-      const local = loadSeries('coinpool', coin.id)
-      const server = await fetchArchiveSeries('coinpool', coin.id, { maxWaitMs: 6_000 })
-      if (
-        server && server.history.length >= 2 &&
-        (!local || local.history.length < 2 || server.lastTopo > local.lastTopo)
-      ) {
-        commitCoinPoolSeries(coin.id, server, set, get)
+      // pool era — once per session
+      const poolP = (async () => {
+        if (poolArchiveTried.has(cid)) return
+        poolArchiveTried.add(cid)
+        const local = loadSeries('coinpool', coin.id)
+        const server = await fetchArchiveSeries('coinpool', coin.id, { maxWaitMs: 6_000 })
+        if (
+          server && server.history.length >= 2 &&
+          (!local || local.history.length < 2 || server.lastTopo > local.lastTopo)
+        ) {
+          commitCoinPoolSeries(coin.id, server, set, get)
+        }
+      })()
+
+      // curve era — once per session, with the loading panel's progress.
+      // The archive is ALWAYS asked (even when a local series exists):
+      // a backward-anchored local fallback covers "birth" on the grid
+      // but flattens the deep past — only the server's full walk (or
+      // this browser's, when the archive has nothing) is the truth.
+      if (coin.curve && !backfillTried.has(cid)) {
+        const existing = loadSeries('coin', coin.id)
+        const curveReady = existing != null && existing.history.length >= 2
+          && seriesCoversBirth(existing.histStart, existing.intervalTopo, coin.createdTopo)
+        if (!curveReady || existing?.degraded === true) {
+          backfillTried.add(cid)
+          patchBackfill(cid, {
+            phase: 'starting', source: 'archive', startedAt: Date.now(),
+            finishedAt: null, pages: 0, foundTrades: 0,
+          }, set, get)
+          const server = await fetchArchiveSeries('coin', coin.id, {
+            maxWaitMs: 180_000,
+            onProgress: (r) => patchBackfill(cid, {
+              phase: 'scanning', source: 'archive',
+              progress: r.progress ?? 0, startedAt: Date.now(),
+            }, set, get),
+          })
+          if (server && server.history.length >= 2) {
+            patchBackfill(cid, {
+              phase: 'done', source: 'archive', progress: 1,
+              finishedAt: Date.now(),
+            }, set, get)
+            commitCoinSeries(coin.id, server, set, get)
+          } else {
+            // archive still walking or absent — if it's WALKING, trust
+            // it (the panel keeps its progress; the resumable frontier
+            // finishes across requests). Only when it has NOTHING does
+            // the browser walk the chain itself (migrated variant: the
+            // grid ends at the migration topo, calibration against
+            // the migration snapshot).
+            const st = await fetchArchiveStatus('coin', coin.id)
+            if (st?.status === 'syncing') {
+              patchBackfill(cid, {
+                phase: 'scanning', source: 'archive',
+                progress: st.progress ?? 0,
+              }, set, get)
+              return // the panel keeps the server's live progress
+            }
+            if (!curveReady) {
+              const params = get().cParams
+              const series = await backfillCoinCurveSeries({
+                cid,
+                currentTopo: coin.migratedTopo,
+                createdTopo: coin.createdTopo,
+                y0: toAtomicSafe(coin.curve.initialInventory),
+                vx: toAtomicSafe(coin.curve.virtualXel),
+                graduated: coin.graduatedTopo > 0,
+                graduatedTopo: coin.graduatedTopo,
+                curveFeeBps: coin.curve.feeBps,
+                graduatedFeeBps: params.graduatedFeeBps,
+                totalTrades: coin.curve.trades,
+                liveXr: toAtomicSafe(coin.curve.reserves),
+                liveYr: toAtomicSafe(coin.curve.inventory),
+                frozen: true,
+              })
+              if (series && series.history.length >= 2) {
+                patchBackfill(cid, {
+                  phase: 'done', source: 'chain', progress: 1,
+                  finishedAt: Date.now(),
+                }, set, get)
+                commitCoinSeries(coin.id, series, set, get)
+              } else {
+                backfillTried.delete(cid) // node hiccup — allow a retry
+                patchBackfill(cid, { phase: 'error', finishedAt: Date.now() }, set, get)
+              }
+            } else {
+              // curveReady locally + archive unconfigured — keep the
+              // local series (probably the backward-anchored fallback)
+              patchBackfill(cid, {
+                phase: 'done', source: 'chain', progress: 1,
+                finishedAt: Date.now(),
+              }, set, get)
+            }
+          }
+        }
       }
+
+      await poolP
       return
     }
 
@@ -278,6 +370,7 @@ export const useCommunity = create<CommunityStore>((set, get) => ({
     const existing = loadSeries('coin', coin.id)
     const modeA = !existing || existing.history.length < 2
       || !seriesCoversBirth(existing.histStart, existing.intervalTopo, coin.createdTopo)
+      || existing.degraded === true // a backward-anchored fallback — the archive's full walk replaces it
 
     if (modeA) {
       backfillTried.add(cid)
@@ -481,10 +574,13 @@ function commitCoinSeries(
           curve: {
             ...c.curve,
             history: series.history,
+            ohlc: series.ohlc,
             histStart: series.histStart,
             points: series.points,
             pointSeconds: seriesPointSeconds(series, TOPO_SECONDS),
             intervalTopo: series.intervalTopo,
+            endTsMs: series.endTsMs,
+            ...(c.migratedTopo > 0 ? { frozen: true } : {}),
           },
         }
       : c,
@@ -509,6 +605,7 @@ function commitCoinPoolSeries(
           pool: {
             ...c.pool,
             history: series.history,
+            ohlc: series.ohlc,
             histStart: series.histStart,
             points: series.points,
             pointSeconds: seriesPointSeconds(series, TOPO_SECONDS),
@@ -619,8 +716,10 @@ async function deepScan(topo: number, set: SetFn, get: GetFn): Promise<void> {
   // over unseen trades) — ensureCoinHistory no-ops once reconciled.
   // Coins whose backfill FAILED this session get a retry (once per
   // deep cycle) — never a mass backfill of every coin.
+  // MIGRATED coins are excluded: their curve series is frozen at the
+  // migration topo by design — "stale" is its permanent, correct state.
   for (const c of coins) {
-    if (!c.curve) continue
+    if (!c.curve || c.migratedTopo > 0) continue
     const s = charts[`coin:${c.id}`] ?? loadSeries('coin', c.id)
     const stale = s && s.history.length > 0 && topo - s.lastTopo > COIN_STALE_TOPOS
     const failed = get().backfills[c.cid]?.phase === 'error'
@@ -744,10 +843,12 @@ function mapCoin(
       gradDepth: toHuman(raw.gdx),
       feeBps,
       history: series.history,
+      ohlc: series.ohlc,
       histStart: series.histStart,
       points: series.points,
       pointSeconds: seriesPointSeconds(series, TOPO_SECONDS),
       intervalTopo: series.intervalTopo,
+      endTsMs: series.endTsMs,
       volume: toHuman(raw.volume),
       trades: raw.trades,
     }
@@ -763,7 +864,40 @@ function mapCoin(
     )
   }
 
-  // pool era (migrated) — the price lives on the LaunchDEX pool
+  // curve era — MIGRATED: the curve is closed forever, but its life
+  // (birth → migration) is real history and the archive can serve the
+  // WHOLE launchpad series. Keep a FINAL curve view: the migration
+  // snapshot as reserves/inventory, the on-chain trade counters, and
+  // the local series if one exists (the archive fetch fills/replaces
+  // it — ensureCoinHistory). No live sampling: the curve is dead.
+  if (raw.migrated && raw.migratedTopo > 0) {
+    const series = currentSeries(charts, 'coin', c.id, raw.migratedTopo)
+    const feeBps = raw.graduated
+      ? Math.min(params.graduatedFeeBps, params.curveFeeBps)
+      : params.curveFeeBps
+    c.curve = {
+      reserves: toHuman(raw.migratedXel),
+      inventory: toHuman(raw.migratedTokens),
+      initialInventory: toHuman(raw.y0),
+      virtualXel: toHuman(raw.vx),
+      gradDepth: toHuman(raw.gdx),
+      feeBps,
+      history: series.history,
+      ohlc: series.ohlc,
+      histStart: series.histStart,
+      points: series.points,
+      pointSeconds: seriesPointSeconds(series, TOPO_SECONDS),
+      intervalTopo: series.intervalTopo,
+      endTsMs: series.endTsMs,
+      frozen: true,
+      volume: toHuman(raw.volume),
+      trades: raw.trades,
+    }
+  }
+
+  // pool era (migrated) — the price lives on the LaunchDEX pool.
+  // The curve view is KEPT (the frozen launchpad history above): the
+  // coin page offers both eras, the migration marker bridging them.
   if (raw.migrated && pool) {
     const price = toHuman((pool.xelReserve * 100000000n) / (pool.tokenReserve || 1n))
     const series = samplePrice(charts, 'coinpool', c.id, price, topo)
@@ -777,6 +911,7 @@ function mapCoin(
       seedLocked: toHuman(pool.lpLockedDepth),
       totalParts: toHuman(pool.lpTotalDepth),
       history: series.history,
+      ohlc: series.ohlc,
       histStart: series.histStart,
       points: series.points,
       pointSeconds: seriesPointSeconds(series, TOPO_SECONDS),
@@ -867,7 +1002,9 @@ function mergeFast(
   return next
 }
 
-/** Merge a fresh pool read into an existing coin. */
+/** Merge a fresh pool read into an existing coin. The frozen curve
+ *  view is KEPT — a migrated coin's launchpad history stays on the
+ *  coin page (the era toggle + migration marker bridge the two). */
 function mergePool(
   c: CommunityCoin,
   pool: NonNullable<Awaited<ReturnType<typeof fetchPool>>>,
@@ -875,13 +1012,13 @@ function mergePool(
   params: CommunityParams,
   charts: Record<string, ChartSeries>,
 ): CommunityCoin {
+  const price = toHuman((pool.xelReserve * 100000000n) / (pool.tokenReserve || 1n))
+  const series = samplePrice(charts, 'coinpool', c.id, price, topo)
   if (!c.pool) {
-    // first time we see the pool — no curve fields needed, map directly
-    const price = toHuman((pool.xelReserve * 100000000n) / (pool.tokenReserve || 1n))
-    const series = samplePrice(charts, 'coinpool', c.id, price, topo)
+    // first time we see the pool — map the pool view directly; the
+    // curve view (if any) stays untouched
     return {
       ...c,
-      curve: undefined,
       price,
       marketCap: toHuman((pool.xelReserve * toAtomicSafe(c.totalSupply)) / (pool.tokenReserve || 1n)),
       pool: {
@@ -894,6 +1031,7 @@ function mergePool(
         seedLocked: toHuman(pool.lpLockedDepth),
         totalParts: toHuman(pool.lpTotalDepth),
         history: series.history,
+        ohlc: series.ohlc,
         histStart: series.histStart,
         points: series.points,
         pointSeconds: seriesPointSeconds(series, TOPO_SECONDS),
@@ -904,8 +1042,6 @@ function mergePool(
       },
     }
   }
-  const price = toHuman((pool.xelReserve * 100000000n) / (pool.tokenReserve || 1n))
-  const series = samplePrice(charts, 'coinpool', c.id, price, topo)
   return {
     ...c,
     price,
@@ -915,6 +1051,7 @@ function mergePool(
       xel: toHuman(pool.xelReserve),
       token: toHuman(pool.tokenReserve),
       history: series.history,
+      ohlc: series.ohlc,
       histStart: series.histStart,
       points: series.points,
       pointSeconds: seriesPointSeconds(series, TOPO_SECONDS),

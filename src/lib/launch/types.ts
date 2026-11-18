@@ -51,6 +51,8 @@ export interface CurveState {
   teamBps: number
   /** Historical price points (XEL per token) — persisted locally. */
   history: number[]
+  /** Per-slot OHLC, 1:1 with history — true wicks for the candles. */
+  ohlc?: { o: number; h: number; l: number; c: number }[]
   /** Absolute index of history[0] — anchors candle buckets so CLOSED
    *  candles NEVER move, even when the capped array slides. */
   histStart: number
@@ -87,6 +89,8 @@ export interface PoolState {
   totalParts: number
   /** Historical pool price points — persisted locally. */
   history: number[]
+  /** Per-slot OHLC, 1:1 with history — true wicks for the candles. */
+  ohlc?: { o: number; h: number; l: number; c: number }[]
   /** Absolute index of history[0] (candle anchoring — see CurveState). */
   histStart: number
   /** Total price points ever emitted. */
@@ -154,9 +158,11 @@ export type CoinStatus = 'live' | 'graduated' | 'migrated'
 
 /** The bonding curve of one community coin. */
 export interface CoinCurve {
-  /** Real XEL in the curve (human XEL) — starts at 0, grows with buys. */
+  /** Real XEL in the curve (human XEL) — starts at 0, grows with buys.
+   *  For a MIGRATED coin this is the FINAL migration snapshot. */
   reserves: number
-  /** Real token inventory still on the curve (human tokens). */
+  /** Real token inventory still on the curve (human tokens) — final
+   *  snapshot for a migrated coin. */
   inventory: number
   /** Initial inventory snapshot (human tokens) — together with vx it
    *  prices the coin at birth. */
@@ -167,8 +173,12 @@ export interface CoinCurve {
   gradDepth: number
   /** Effective fee: 1% live, 0.5% once graduated. */
   feeBps: number
-  /** Historical price points (XEL per token) — persisted locally. */
+  /** Historical price points (XEL per token) — persisted locally.
+   *  For a migrated coin this is the FULL frozen launchpad history
+   *  (birth → migration) once the archive has walked it. */
   history: number[]
+  /** Per-slot OHLC, 1:1 with history — true wicks for the candles. */
+  ohlc?: { o: number; h: number; l: number; c: number }[]
   histStart: number
   points: number
   pointSeconds: number
@@ -176,6 +186,11 @@ export interface CoinCurve {
    *  the "covers birth" test (a fragment that starts after the coin's
    *  creation is NOT the full history — the loading panel stays). */
   intervalTopo?: number
+  /** Wall-clock of the series' last point — set on FROZEN series
+   *  (migrated coins: the migration block), anchors the time axis. */
+  endTsMs?: number
+  /** TRUE for a migrated coin — the curve is closed forever. */
+  frozen?: boolean
   /** Total volume traded on the curve (human XEL). */
   volume: number
   trades: number

@@ -9,7 +9,15 @@
 // missed (flat fill while away), not a blank chart.
 //
 // Series shape (compatible with the chart's absolute bucket anchoring):
-//   history[]     price points, oldest → newest
+//   history[]     price points, oldest → newest (= the CLOSE of each slot)
+//   ohlc[]        OPTIONAL per-slot open/high/low/close, 1:1 with history —
+//                 the candle renderer draws TRUE wicks from it (a slot's
+//                 intra-variation — a dip recovered inside the slot — is
+//                 information a close-only series loses). Maintained by
+//                 appendPoint (live sampling) and by the chain rebuilds
+//                 (every trade step lands in its slot); absent on legacy
+//                 series, where the chart falls back to close-derived
+//                 flat candles.
 //   histStart     absolute index of history[0] (frozen-candle guarantee)
 //   points        newest point's absolute grid index + 1, in the
 //                 CURRENT interval's units (= lastGrid + 1; recomputed
@@ -19,6 +27,10 @@
 //   topoSeconds   OPTIONAL calibrated seconds/topo from real block
 //                 timestamps (community series) — defaults to the
 //                 caller's chain constant when absent
+//   endTsMs       OPTIONAL wall-clock anchor of the LAST point — set
+//                 ONLY on FROZEN series (a migrated coin's curve ended
+//                 at the migration block; "now" would lie by weeks).
+//                 Live series leave it absent: the live edge is now.
 //   st            OPTIONAL replayed curve state at the last sample —
 //                 lets a catch-up continue the EXACT integer replay
 //                 from where the series stopped (community coins)
@@ -35,14 +47,31 @@
 // re-labels itself through `pointSeconds`, so a decimated series shows
 // the same history with half the resolution instead of growing forever.
 
+export interface Ohlc {
+  o: number
+  h: number
+  l: number
+  c: number
+}
+
 export interface ChartSeries {
   history: number[]
+  /** per-slot OHLC, 1:1 with history (history[i] === ohlc[i].c) */
+  ohlc?: Ohlc[]
   histStart: number
   /** newest point's absolute grid index + 1, in intervalTopo units */
   points: number
   lastTopo: number
   intervalTopo: number
   topoSeconds?: number
+  /** wall-clock of the last point — frozen series only (see header) */
+  endTsMs?: number
+  /** TRUE when the series is a BACKWARD-ANCHORED fallback (an old
+   *  coin the walk budget couldn't fully cover): the recent history is
+   *  exact but the deep past is flat — the archive's full walk must
+   *  replace it when it can. Set by the client backfill only; a
+   *  server/calibrated series never carries it. */
+  degraded?: boolean
   /** replayed curve state (atomic, as strings) as of lastTopo */
   st?: { xr: string; yr: string }
   savedAt: number
@@ -112,6 +141,44 @@ export function seriesPointSeconds(s: ChartSeries, topoSeconds: number): number 
   return Math.max(1, s.intervalTopo * Math.max(1, perTopo))
 }
 
+/** A flat cell at `p` — the price never moved inside the slot. */
+function flatCell(p: number): Ohlc {
+  return { o: p, h: p, l: p, c: p }
+}
+
+/** Cells for a series' history — the true per-slot ohlc when present,
+ *  FLAT cells derived from the closes otherwise (a close-only history
+ *  carries no wick information: a flat cell per close is exactly what
+ *  it knows). This way every series CONVERGES to the ohlc shape: the
+ *  first appendPoint maintains cells even when none were stored. */
+function cellsOf(s: ChartSeries): Ohlc[] {
+  if (s.ohlc && s.ohlc.length === s.history.length) return s.ohlc
+  return s.history.map((v) => flatCell(v))
+}
+
+/** 2:1 decimation of an ohlc array — each kept slot ABSORBS its dropped
+ *  neighbour (o = kept.o, c = dropped.c, h/l = extremes of both), so a
+ *  wick survives decimation instead of vanishing with the dropped slot.
+ *  `history` is then re-derived from the merged closes so
+ *  history[i] === ohlc[i].c always holds. */
+function decimateOhlc(ohlc: Ohlc[]): Ohlc[] {
+  const kept: Ohlc[] = []
+  for (let i = 0; i < ohlc.length; i += 2) {
+    const a = ohlc[i]
+    const b = ohlc[i + 1]
+    if (b == null) { kept.push({ ...a }); continue }
+    kept.push({
+      o: a.o,
+      c: b.c,
+      h: Math.max(a.h, b.h),
+      l: Math.min(a.l, b.l),
+    })
+  }
+  const newest = ohlc[ohlc.length - 1]
+  if (kept[kept.length - 1].c !== newest.c) kept.push({ ...newest })
+  return kept
+}
+
 /**
  * Append a price sample at `topo` on the ABSOLUTE grid
  * (index = floor(topo / intervalTopo)):
@@ -120,6 +187,9 @@ export function seriesPointSeconds(s: ChartSeries, topoSeconds: number): number 
  *   • slot advanced → flat-fill the missed slots with the last price
  *     (the price only moves on trades — a flat gap is the truth), then
  *     push; decimation caps memory the same way as before
+ * The per-slot ohlc array rides along: a same-slot sample extends the
+ * live slot's high/low, a new slot opens flat at the carried price —
+ * so a live-sampled series carries true intra-slot wicks too.
  * Returns the updated series (never mutates the input). Out-of-order
  * or stale samples (grid not advanced, older topo) are ignored.
  */
@@ -130,11 +200,13 @@ export function appendPoint(
 ): ChartSeries {
   const interval = Math.max(1, s.intervalTopo)
   const g = Math.floor(topo / interval)
+  const ohlc = cellsOf(s)
 
   if (s.history.length === 0) {
     return {
       ...s,
       history: [price],
+      ohlc: [flatCell(price)],
       histStart: g,
       points: g + 1,
       lastTopo: topo,
@@ -146,29 +218,55 @@ export function appendPoint(
   if (g < gLast) return s // stale / out of order — ignore
 
   if (g === gLast) {
-    // same slot — the live point tracks the newest price
+    // same slot — the live point tracks the newest price, and the
+    // slot's high/low extend to include it (a dip that recovers inside
+    // the slot stays visible as a wick)
     const history = [...s.history]
     history[history.length - 1] = price
-    return { ...s, history, lastTopo: topo, savedAt: Date.now() }
+    let nextOhlc: Ohlc[] | undefined
+    if (ohlc) {
+      const cell = ohlc[ohlc.length - 1]
+      nextOhlc = [...ohlc]
+      nextOhlc[nextOhlc.length - 1] = {
+        o: cell.o,
+        h: Math.max(cell.h, price),
+        l: Math.min(cell.l, price),
+        c: price,
+      }
+    }
+    return { ...s, history, ohlc: nextOhlc, lastTopo: topo, savedAt: Date.now() }
   }
 
   // the grid advanced: flat-fill the missed slots, then push
   const fill = g - gLast - 1
   let history = [...s.history]
+  let nextOhlc = ohlc ? [...ohlc] : undefined
   const last = history[history.length - 1]
-  for (let i = 0; i < fill; i++) history.push(last)
+  for (let i = 0; i < fill; i++) {
+    history.push(last)
+    nextOhlc?.push(flatCell(last))
+  }
   history.push(price)
+  nextOhlc?.push(flatCell(price))
 
   let finalInterval = interval
 
   // Decimate 2:1 until back under the cap (each pass halves the
-  // resolution and doubles the span; the newest point is always kept)
+  // resolution and doubles the span; the newest point is always kept).
+  // The ohlc path merges PAIRS (extremes survive); the legacy path
+  // keeps the even indices exactly as before.
   while (history.length > MAX_POINTS) {
-    const kept: number[] = []
-    for (let i = 0; i < history.length; i += 2) kept.push(history[i])
-    const newest = history[history.length - 1]
-    if (kept[kept.length - 1] !== newest) kept.push(newest)
-    history = kept
+    if (nextOhlc && nextOhlc.length === history.length) {
+      nextOhlc = decimateOhlc(nextOhlc)
+      history = nextOhlc.map((c) => c.c)
+    } else {
+      const kept: number[] = []
+      for (let i = 0; i < history.length; i += 2) kept.push(history[i])
+      const newest = history[history.length - 1]
+      if (kept[kept.length - 1] !== newest) kept.push(newest)
+      history = kept
+      nextOhlc = undefined
+    }
     finalInterval *= 2
   }
 
@@ -187,6 +285,7 @@ export function appendPoint(
   return {
     ...s,
     history,
+    ohlc: nextOhlc && nextOhlc.length === history.length ? nextOhlc : undefined,
     points,
     lastTopo: topo,
     intervalTopo: finalInterval,

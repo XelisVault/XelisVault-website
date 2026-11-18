@@ -639,6 +639,7 @@ export function DexView({ setView, focusId }: {
               {pool.history.length >= 2 ? (
                 <PriceChart
                   data={pool.history}
+                  ohlc={pool.ohlc}
                   histStart={pool.histStart}
                   height={340}
                   color={CHART_TEAL}

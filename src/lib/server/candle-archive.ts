@@ -90,7 +90,9 @@ interface RawBlock {
 
 interface StoredTrade { hash: string; topo: number; ts_ms: number; kind: string; amount: string }
 
-async function loadStoredTrades(sql: NonNullable<ReturnType<typeof db>>, asset: string): Promise<BackfillTrade[]> {
+/** Every stored trade of an asset, oldest → newest (the raw truth a
+ *  rebuild replays — exported for the backfill script's verification). */
+export async function loadStoredTrades(sql: NonNullable<ReturnType<typeof db>>, asset: string): Promise<BackfillTrade[]> {
   const rows = (await sql`
     SELECT hash, topo, ts_ms, kind, amount FROM candle_trades
     WHERE asset = ${asset} ORDER BY topo ASC
@@ -258,6 +260,19 @@ async function walkRange(
  * Full rebuilds walk the chain; catch-ups replay the stored trades and
  * only walk the height range that was never covered. The calibration
  * proof against the live reserves guarantees correctness either way.
+ *
+ * MIGRATED coins: the curve is closed FOREVER, its final state is
+ * snapshotted on-chain (migratedXel/migratedTokens — the curve's own
+ * reserves are zeroed) and the trade counter is final. A migrated
+ * coin with no series yet therefore gets the SAME treatment as a live
+ * one — the full walk, replaying every trade from (0, y0) and
+ * calibrating against the migration snapshot — after which the series
+ * is frozen and served as-is forever (the walk is paid once, by
+ * whoever visits first; the resumable frontier makes even a
+ * budget-cut walk finish across a few requests). Skipping this walk
+ * used to leave migrated coins with NO curve history at all: the
+ * visitor only ever saw the DEX-era samples (a few flat marks — the
+ * "4 creux" chart) instead of the coin's whole launchpad life.
  */
 export async function syncCoinCurve(
   cid: number,
@@ -274,14 +289,32 @@ export async function syncCoinCurve(
   const raw = await fetchCoin(cid).catch(() => null)
   if (!raw || isHiddenTicker(raw.symbol)) return { status: 'missing' }
 
-  // migrated: the curve is closed forever — serve what we have, frozen
-  if (raw.migrated) {
+  const frozen = raw.migrated === true
+  if (frozen && raw.migratedTopo > 0) {
+    // a COMPLETE series already exists → serve it frozen, nothing to do
+    // (the curve ended at the migration block; its history cannot
+    // change). A PARTIAL series (a budget-cut backward-anchored save
+    // from an earlier round) is NOT complete: fall through and resume
+    // the walk — the stored frontier continues exactly where it stopped.
     const row = await getSeriesRow(sql, asset)
-    return row
-      ? { status: 'frozen', series: rowToSeries(row) }
-      : { status: 'frozen' }
+    const sr = await getSyncRow(sql, asset)
+    const walkDone = sr == null
+      || sr.status === 'ready'
+      || sr.walk_complete === true
+      || (sr.total_trades > 0 && sr.found_trades >= sr.total_trades)
+    if (row && walkDone) return { status: 'frozen', series: rowToSeries(row) }
+    // no series yet, or the walk is incomplete → WALK / RESUME below
+  } else if (frozen) {
+    // migrated but no migration topo recorded — nothing walkable
+    return { status: 'missing' }
+  } else if (raw.yr <= 0n || raw.createdTopo <= 0) {
+    return { status: 'missing' }
   }
-  if (raw.yr <= 0n || raw.createdTopo <= 0) return { status: 'missing' }
+
+  // calibration targets: the LIVE reserves for a live coin, the
+  // MIGRATION SNAPSHOT for a migrated one (xr/yr are zeroed after)
+  const targetXr = frozen ? raw.migratedXel : raw.xr
+  const targetYr = frozen ? raw.migratedTokens : raw.yr
 
   // 2 — asset row (identity + curve params for future syncs)
   const params = await communityParamsCached()
@@ -296,6 +329,7 @@ export async function syncCoinCurve(
               totalSupply: raw.totalSupply.toString(),
               curveFeeBps,
               graduatedFeeBps,
+              ...(frozen ? { frozen: true, migratedTopo: raw.migratedTopo } : {}),
             })}, now())
     ON CONFLICT (asset) DO UPDATE SET
       ticker = EXCLUDED.ticker, name = EXCLUDED.name,
@@ -317,6 +351,18 @@ export async function syncCoinCurve(
     graduatedFeeBps,
   }
 
+  // the exact wall-clock of the curve's end for a frozen series — the
+  // migration block's timestamp (one RPC, worth it: the whole time
+  // axis of a frozen chart hangs on it)
+  let endTsMs: number | undefined
+  if (frozen) {
+    const endBlock = await rpcCall<RawBlock>(
+      'get_block_at_topoheight', { topoheight: raw.migratedTopo },
+      { retries: 2, network: 'mainnet' },
+    ).catch(() => null)
+    if (endBlock && typeof endBlock.timestamp === 'number') endTsMs = endBlock.timestamp
+  }
+
   const finish = async (
     steps: ReplayStep[],
     endXr: bigint,
@@ -335,13 +381,20 @@ export async function syncCoinCurve(
       curveFeeBps,
       graduatedFeeBps,
       totalTrades,
-      liveXr: raw.xr,
-      liveYr: raw.yr,
+      liveXr: targetXr,
+      liveYr: targetYr,
+      frozen,
+      endTsMs,
     }
     const series = sampleCoinSeries(input, steps, endXr, endYr)
     await saveSeriesRow(sql, asset, series)
+    // a frozen coin's walk is over forever — pin the frontier complete
+    // so no later sync ever re-walks it
+    if (frozen) {
+      await progressSync(sql, asset, { phase: 'frozen', walk_complete: true }).catch(() => {})
+    }
     await releaseSync(sql, asset, 'ready', {
-      phase: degraded ? 'ready (backward anchor)' : 'ready',
+      phase: frozen ? 'frozen' : degraded ? 'ready (backward anchor)' : 'ready',
       progress: 1,
     })
     return { status: 'ready', series }
@@ -351,19 +404,24 @@ export async function syncCoinCurve(
   //     whose walk is complete and whose trade counter is satisfied
   //     needs NO walk at all — its catch-up is a pure replay of the
   //     stored trades plus the registry window (a couple of seconds).
+  //     A MIGRATED coin's life ends at the migration topo: the walk
+  //     stops there (nothing above it can hold a curve trade) and the
+  //     sampled grid ends with it.
   const tipTopo = await getTopoheight('mainnet').catch(() => 0)
-  if (!tipTopo || tipTopo <= raw.createdTopo) return { status: 'missing' }
+  if (!tipTopo) return { status: 'missing' }
+  const endTopo = frozen ? Math.min(tipTopo, raw.migratedTopo) : tipTopo
+  if (endTopo <= raw.createdTopo) return { status: 'missing' }
 
   const coveredLo = syncRow?.walked_to_height ?? null   // lowest walked height
   const coveredHi = syncRow?.covered_to_height ?? null  // highest walked height
-  const walkComplete = syncRow?.walk_complete === true
-  const needsWalk = !walkComplete || known.size < totalTrades
+  let walkCompleteNow = syncRow?.walk_complete === true
+  const needsWalk = !walkCompleteNow || known.size < totalTrades
 
   let tipH: number | null = null
   let bottomH = 1
   const ranges: WalkRange[] = []
   if (needsWalk) {
-    tipH = await heightOfTopo(tipTopo)
+    tipH = await heightOfTopo(endTopo)
     const birthH = await heightOfTopo(raw.createdTopo)
     if (tipH == null || birthH == null) {
       return { status: 'error', error: 'tip/birth height unreachable' }
@@ -375,9 +433,12 @@ export async function syncCoinCurve(
     } else {
       // (a) the deep past, below any previous walk
       if (coveredLo > bottomH) ranges.push({ lo: bottomH, hi: coveredLo - 1 })
-      // (b) the fresh top, above the last completed walk
-      if (coveredHi != null && tipH > coveredHi) ranges.push({ lo: coveredHi + 1, hi: tipH })
-      if (coveredHi == null) ranges.push({ lo: coveredLo, hi: tipH })
+      // (b) the fresh top, above the last completed walk (a live coin
+      //     grows; a frozen coin's end is fixed — nothing new ever lands)
+      if (!frozen && coveredHi != null && tipH > coveredHi) {
+        ranges.push({ lo: coveredHi + 1, hi: tipH })
+      }
+      if (!frozen && coveredHi == null) ranges.push({ lo: coveredLo, hi: tipH })
     }
   }
 
@@ -406,6 +467,7 @@ export async function syncCoinCurve(
     const newHi = Math.max(coveredHi ?? 0, range.hi)
     const completeNow =
       known.size >= totalTrades || (r.complete && newLo <= bottomH)
+    walkCompleteNow = walkCompleteNow || completeNow
     await progressSync(sql, asset, {
       walked_to_height: newLo,
       covered_to_height: newHi,
@@ -416,25 +478,54 @@ export async function syncCoinCurve(
   }
 
   // 5 — the registry window AFTER the walk: catches trades that landed
-  //     while we were walking (same union trick as the client)
+  //     while we were walking (same union trick as the client). For a
+  //     frozen coin nothing can land on the curve anymore — the window
+  //     is still unioned (deduped) but clamped to the migration topo.
   const windowTrades = await fetchWindowTrades(cid).catch(() => [] as BackfillTrade[])
   for (const t of windowTrades) {
-    if (t.topo >= raw.createdTopo && !known.has(t.hash)) known.set(t.hash, t)
+    if (
+      t.topo >= raw.createdTopo &&
+      (!frozen || t.topo <= raw.migratedTopo) &&
+      !known.has(t.hash)
+    ) {
+      known.set(t.hash, t)
+    }
   }
   if (windowTrades.length > 0) {
-    await storeTrades(sql, asset, windowTrades.filter((t) => t.topo >= raw.createdTopo)).catch(() => {})
+    await storeTrades(sql, asset, windowTrades.filter(
+      (t) => t.topo >= raw.createdTopo && (!frozen || t.topo <= raw.migratedTopo),
+    )).catch(() => {})
   }
 
   const trades = [...known.values()].sort((a, b) => a.topo - b.topo)
+  const provenComplete = known.size >= totalTrades || totalTrades === 0 || walkCompleteNow
   if (trades.length === 0) {
-    // no trades at all — a flat birth line is the truth
-    return finish([], 0n, raw.y0, tipTopo, false)
+    // "no trades at all" is only the TRUTH when the walk provably
+    // covered the coin's life (or the on-chain counter is zero). An
+    // incomplete walk that found nothing must NOT save a flat birth
+    // line as ready — that garbage series used to block the real
+    // rebuild forever (the XELFAN flat-line bug).
+    if (!provenComplete) {
+      const p = totalTrades > 0
+        ? Math.max(0.05, Math.min(0.95, (coveredLo != null ? 0.5 : 0.05)))
+        : 0.95
+      await progressSync(sql, asset, {
+        phase: 'walking',
+        progress: p,
+        total_trades: totalTrades,
+        found_trades: 0,
+      })
+      return { status: 'syncing', progress: p, phase: 'walking' }
+    }
+    return finish([], 0n, raw.y0, endTopo, false)
   }
 
-  // 6 — replay + calibrate against the LIVE reserves (the proof)
+  // 6 — replay + calibrate against the targets (the proof): a
+  //     complete trade set reproduces the live reserves (live coin)
+  //     or the migration snapshot (migrated coin) exactly
   const replay = replayCurve(trades, fees)
-  if (closeEnough(replay.xr, raw.xr) && closeEnough(replay.yr, raw.yr)) {
-    return finish(replay.steps, replay.xr, replay.yr, tipTopo, false)
+  if (closeEnough(replay.xr, targetXr) && closeEnough(replay.yr, targetYr)) {
+    return finish(replay.steps, replay.xr, replay.yr, endTopo, false)
   }
 
   // 7 — calibration miss. If the budget cut the walk mid-range, the
@@ -443,12 +534,12 @@ export async function syncCoinCurve(
   //     than a blank chart) and report progress; the next request
   //     resumes from the frontier and replaces it with the full
   //     calibrated series.
-  if (walkedAny && Date.now() > deadline && known.size < totalTrades) {
+  if (!provenComplete && (walkedAny || Date.now() > deadline) && known.size < totalTrades) {
     const p = totalTrades > 0 ? Math.min(0.98, known.size / totalTrades) : 0.98
-    const b = backwardSteps(trades, fees, raw.xr, raw.yr)
+    const b = backwardSteps(trades, fees, targetXr, targetYr)
     const input: BackfillInput = {
       cid,
-      currentTopo: tipTopo,
+      currentTopo: endTopo,
       createdTopo: raw.createdTopo,
       y0: raw.y0,
       vx: raw.vx,
@@ -457,10 +548,17 @@ export async function syncCoinCurve(
       curveFeeBps,
       graduatedFeeBps,
       totalTrades,
-      liveXr: raw.xr,
-      liveYr: raw.yr,
+      liveXr: targetXr,
+      liveYr: targetYr,
+      frozen,
+      endTsMs,
     }
-    await saveSeriesRow(sql, asset, sampleCoinSeries(input, b.steps, raw.xr, raw.yr)).catch(() => {})
+    // the PARTIAL series is marked degraded: the client re-fetches the
+    // archive on a later session and swaps in the finished walk
+    await saveSeriesRow(sql, asset, {
+      ...sampleCoinSeries(input, b.steps, targetXr, targetYr),
+      degraded: true,
+    }).catch(() => {})
     await progressSync(sql, asset, {
       phase: 'walking',
       progress: p,
@@ -471,8 +569,8 @@ export async function syncCoinCurve(
 
   // ancient coin beyond every walk attempt — backward anchor: the
   // recent history is exact, the deep past stays flat
-  const b = backwardSteps(trades, fees, raw.xr, raw.yr)
-  return finish(b.steps, raw.xr, raw.yr, tipTopo, true)
+  const b = backwardSteps(trades, fees, targetXr, targetYr)
+  return finish(b.steps, targetXr, targetYr, endTopo, true)
 }
 
 // ── Sampling syncs (pool era + project curves) ──────────────────────
@@ -579,6 +677,14 @@ export async function serveArchiveSeries(kind: ArchiveKind, id: string): Promise
   if (row) {
     const ageS = Math.max(0, (Date.now() - new Date(row.updated_at).getTime()) / 1000)
     if (ageS > FRESH_S) {
+      // FROZEN assets (migrated coins) are FINAL: the curve's history
+      // ended at the migration block and can never change — serve it
+      // forever without ever kicking a re-sync. EXCEPTION: a DEGRADED
+      // row (a budget-cut partial save) still needs its walk finished.
+      const arow = await getAssetRow(sql, asset).catch(() => null)
+      if (arow?.meta?.frozen === true && row.degraded !== true) {
+        return { ok: true, status: 'frozen', series: rowToSeries(row), ageS }
+      }
       return { ok: true, status: 'ready', series: rowToSeries(row), ageS, kick: kind === 'coin' ? 'coin' : 'sample' }
     }
     return { ok: true, status: 'ready', series: rowToSeries(row), ageS }

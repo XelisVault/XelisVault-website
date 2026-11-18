@@ -117,9 +117,32 @@ that walk server-side, once, for everyone:
 - Every walked trade is stored durably: later rebuilds are replays, not
   re-walks. Pool-era series (`coinpool`, `pool`) and project curves are
   sampled on every sync, building a shared history over time.
+- **Migrated coins keep their whole launchpad history.** The curve is
+  closed at migration, its final state is snapshotted on-chain
+  (`migratedXel`/`migratedTokens`) and the trade counter is final — the
+  archive walks the curve's entire life (birth → migration) once,
+  calibrates the replay against the migration snapshot, and serves the
+  series **frozen** forever. The coin page shows both eras (a
+  `LAUNCHPAD` / `DEX` toggle) with a clickable **MIGRATION · DEX**
+  marker on the chart at the exact block the curve ended.
+- **Candles carry true OHLC.** Every grid slot stores its open/high/low/
+  close (built from every trade step at rebuild time, maintained by the
+  live sampler), so a dip recovered inside a slot renders as a real
+  wick — no more flat dojis where the price actually moved. Frozen
+  series also carry `endTsMs` (the migration block's wall clock), so
+  the time axis stays truthful weeks later.
+- A walk cut short by the time budget saves a **backward-anchored
+  partial** marked `degraded` (recent history exact, deep past flat) —
+  the client re-fetches until the finished walk replaces it, and a
+  series is never marked ready from an incomplete walk that found
+  nothing (the old flat-birth-line bug).
 - `POST /api/launch/sync` (daily cron, `vercel.json`) catches every known
   asset up inside a time budget; per-asset atomic claims prevent
   stampedes, and visitors' on-demand GETs keep the hot series fresh.
+- `bun scripts/backfill-candles.ts <cid>…` runs the production sync
+  engine for specific coins with no budget limit (resumable rounds) —
+  used to pre-build XVLT's and XELFAN's full histories so every visitor
+  gets them in one request.
 
 ## Security model
 

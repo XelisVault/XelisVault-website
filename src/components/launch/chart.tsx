@@ -42,6 +42,7 @@
 import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import type { Ohlc } from '@/lib/launch/persist'
 
 export const CHART_UP = 'var(--vault)'
 export const CHART_DOWN = 'var(--destructive)'
@@ -99,6 +100,14 @@ function clampN(v: number, lo: number, hi: number): number {
  * floor(i / chunk). The bucket containing the LAST point is the live
  * candle (closed: false); everything before it is frozen history.
  *
+ * When the series carries per-slot OHLC (`ohlc`, 1:1 with `data` — the
+ * chain rebuilds and the live sampler both maintain it), every bucket
+ * aggregates TRUE opens/highs/lows/closes: a dip recovered inside a
+ * bucket stays visible as a wick, exactly like an exchange terminal
+ * fed with ticks. Without ohlc, buckets derive flat candles from the
+ * closes alone (legacy series — better than nothing, but a slot's
+ * intra-variation is lost).
+ *
  * DEAD-TIME COMPRESSION — a quiet pair emits one flat doji per bucket
  * (the price only moves on trades), which renders as a wall of identical
  * candles ("un truc tout plat"). Consecutive ZERO-RANGE buckets (h === l:
@@ -115,8 +124,17 @@ function clampN(v: number, lo: number, hi: number): number {
  * The x-axis is then activity-indexed (one slot per candle, whatever it
  * spans) — each visible candle is labelled at its own real start time.
  */
-export function toCandles(data: number[], histStart: number, chunk: number): Candle[] {
+export function toCandles(
+  data: number[],
+  histStart: number,
+  chunk: number,
+  ohlc?: Ohlc[],
+): Candle[] {
   if (data.length < 2 || chunk < 1) return []
+  // per-slot cells: the true OHLC when provided, flat closes otherwise
+  const cells: Ohlc[] = ohlc && ohlc.length === data.length
+    ? ohlc
+    : data.map((v) => ({ o: v, h: v, l: v, c: v }))
   const raw: Candle[] = []
   const lastAbs = histStart + data.length - 1
   const liveBucket = Math.floor(lastAbs / chunk)
@@ -136,15 +154,20 @@ export function toCandles(data: number[], histStart: number, chunk: number): Can
     if (to <= 0) break // this bucket — and every older one — is entirely before the data
     const from = Math.max(0, bucket * chunk - histStart)
     if (to <= from) continue
-    const slice = data.slice(from, to)
+    const slice = cells.slice(from, to)
     if (slice.length === 0) continue
-    const o = slice[0]
-    const c = slice[slice.length - 1]
-    const h = Math.max(...slice)
-    const l = Math.min(...slice)
-    // activity proxy: accumulated absolute move inside the bucket
+    const o = slice[0].o
+    const c = slice[slice.length - 1].c
+    let h = -Infinity
+    let l = Infinity
+    // activity proxy: the movement actually seen inside the bucket —
+    // each slot contributes its body (c−o) and its wick (h−l)
     let vol = 0
-    for (let i = 1; i < slice.length; i++) vol += Math.abs(slice[i] - slice[i - 1])
+    for (const s of slice) {
+      if (s.h > h) h = s.h
+      if (s.l < l) l = s.l
+      vol += Math.abs(s.c - s.o) + (s.h - s.l) * 0.5
+    }
     raw.push({ // newest → oldest; reversed below
       o, h, l, c,
       vol: vol + Math.abs(c - o) * 0.5,
@@ -156,13 +179,19 @@ export function toCandles(data: number[], histStart: number, chunk: number): Can
   }
   raw.reverse() // oldest → newest
 
-  // Second pass — merge the flat runs. A flat bucket has h === l (⟹
-  // o === c: the price never moved inside it); a run only extends while
+  // Second pass — merge the flat runs. A flat bucket has o === h === l
+  // === c (the price never moved inside it); a run only extends while
   // the price is IDENTICAL, so a price step always starts a new candle.
+  // A slot with a TRUE wick (h > l from intra-slot variation) is never
+  // flat and never merges — the variation is information.
   const out: Candle[] = []
   for (const k of raw) {
     const prev = out[out.length - 1]
-    if (prev != null && k.h === k.l && prev.h === prev.l && prev.o === k.o) {
+    if (
+      prev != null && k.o === k.h && k.h === k.l && k.l === k.c &&
+      prev.o === prev.h && prev.h === prev.l && prev.l === prev.c &&
+      prev.o === k.o
+    ) {
       prev.span += k.span
       prev.closed = prev.closed && k.closed // live while the live bucket is in the run
     } else {
@@ -191,10 +220,13 @@ function fmtOHLC(v: number): string {
 }
 
 /** Wall-clock timestamp (ms) of an absolute point index — the live
- *  edge is "now" and each point is `pointSeconds` of mainnet time
- *  apart, so absIndex → now + (absIndex − lastAbs)·pointSeconds. */
-function absTimeMs(absIndex: number, lastAbs: number, pointSeconds: number): number {
-  return Date.now() + (absIndex - lastAbs) * pointSeconds * 1000
+ *  edge is "now" on a LIVE series, but a FROZEN series (a migrated
+ *  coin's curve) ended at a known block: `endMs` anchors it so the
+ *  axis tells the truth weeks later instead of dragging 33 days of
+ *  dead time onto "now". Each point is `pointSeconds` apart. */
+function absTimeMs(absIndex: number, lastAbs: number, pointSeconds: number, endMs?: number): number {
+  const anchor = endMs != null && Number.isFinite(endMs) ? endMs : Date.now()
+  return anchor + (absIndex - lastAbs) * pointSeconds * 1000
 }
 
 const p2 = (x: number) => String(x).padStart(2, '0')
@@ -257,6 +289,9 @@ export function PriceChart({
   defaultInterval = '2m',
   accent = 'gold',
   pointSeconds = 30,
+  ohlc,
+  endMs,
+  mark,
 }: {
   data: number[]
   /** absolute index of data[0] — REQUIRED for frozen closed candles */
@@ -273,6 +308,21 @@ export function PriceChart({
   accent?: 'gold' | 'teal'
   /** seconds of mainnet time between two points — drives the time axis */
   pointSeconds?: number
+  /** per-slot OHLC, 1:1 with `data` — candles draw TRUE wicks from it */
+  ohlc?: Ohlc[]
+  /** wall-clock of the LAST point (frozen series) — anchors the time
+   *  axis; a live series leaves it undefined (the live edge is now) */
+  endMs?: number
+  /** an event marker at an ABSOLUTE grid point (e.g. the migration):
+   *  a dashed vertical line + a labelled chip, clickable */
+  mark?: {
+    /** absolute grid index of the event */
+    point: number
+    /** chip label ("MIGRATION · DEX") */
+    label: string
+    /** chip click (e.g. switch to the DEX era) */
+    onClick?: () => void
+  }
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -313,13 +363,31 @@ export function PriceChart({
   const n = data.length
   const ivSeconds = INTERVALS.find((i) => i.id === iv)?.seconds ?? 120
   const chunk = Math.max(1, Math.round(ivSeconds / Math.max(1, pointSeconds)))
+  // the TRUE seconds a candle spans at the current preset — the slot
+  // grid (pointSeconds) is the floor: a 2m preset on a ~9 min grid
+  // yields ~9 min candles, and the UI must say so instead of lying
+  const candleSeconds = chunk * pointSeconds
   // bucketing is O(n) with two passes — memoize it or every pointermove
   // hover re-derives the whole candle set (visible jank on long series)
   const candles = useMemo(
-    () => toCandles(data, histStart, chunk),
-    [data, histStart, chunk],
+    () => toCandles(data, histStart, chunk, ohlc),
+    [data, histStart, chunk, ohlc],
   )
   const count = candles.length
+
+  // ── the event marker's screen position (when provided & visible) ──
+  // candles are activity-indexed with dead-time compression, so the
+  // marker must sit on the MERGED candle whose bucket range contains
+  // the event's bucket id (a merged run keeps its first bucket id)
+  const markCandleIdx = useMemo(() => {
+    if (!mark) return null
+    const b = Math.floor(mark.point / chunk)
+    for (let i = 0; i < candles.length; i++) {
+      const c = candles[i]
+      if (b >= c.id && b < c.id + c.span) return i
+    }
+    return null
+  }, [mark, chunk, candles])
 
   const spacing = mode === 'candles' ? cSp : lSp
   const spMin = mode === 'candles' ? SP_C_MIN : SP_L_MIN
@@ -503,11 +571,11 @@ export function PriceChart({
   // ── sensible default zoom when the interval changes: fit ~all candles
   // (a fresh 15m view has 2 candles — they should hug the right edge at
   // a normal size, not stretch across the plot with giant gaps) ──
-  const fitRef = useRef({ data, histStart, width })
-  useEffect(() => { fitRef.current = { data, histStart, width } })
+  const fitRef = useRef({ data, histStart, ohlc, width })
+  useEffect(() => { fitRef.current = { data, histStart, ohlc, width } })
   useEffect(() => {
-    const { data: d, histStart: h, width: w } = fitRef.current
-    const c = toCandles(d, h, chunk).length
+    const { data: d, histStart: h, ohlc: o, width: w } = fitRef.current
+    const c = toCandles(d, h, chunk, o).length
     const plot = Math.max(10, w - 56)
     setCSp(clampN(plot / clampN(c + 4, 18, 90), 3.2, 24))
     setCOff(0)
@@ -537,13 +605,13 @@ export function PriceChart({
       for (let i = Math.ceil(i0 / stepC) * stepC; i <= i1; i += stepC) {
         const c = candles[i]
         if (!c) continue
-        timeTicks.push({ x: xOf(i), label: fmtClock(absTimeMs(c.id * chunk, lastAbs, pointSeconds)) })
+        timeTicks.push({ x: xOf(i), label: fmtClock(absTimeMs(c.id * chunk, lastAbs, pointSeconds, endMs)) })
       }
     } else {
       const stepsU = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1200]
       const stepU = stepsU.find((s) => s * spacing >= 64) ?? 1800
       for (let u = Math.ceil((histStart + i0) / stepU) * stepU; u <= histStart + i1; u += stepU) {
-        timeTicks.push({ x: xOf(u - histStart), label: fmtClock(absTimeMs(u, lastAbs, pointSeconds)) })
+        timeTicks.push({ x: xOf(u - histStart), label: fmtClock(absTimeMs(u, lastAbs, pointSeconds, endMs)) })
       }
     }
   }
@@ -593,7 +661,7 @@ export function PriceChart({
                   type="button"
                   onClick={() => { setIv(ivl.id); setHover(null) }}
                   aria-pressed={iv === ivl.id}
-                  title={`1 candle = ${ivl.label} of mainnet time`}
+                  title={`1 candle ≈ ${fmtSpan(candleSeconds)} of mainnet time${candleSeconds > ivSeconds * 1.6 ? ' (grid floor)' : ''}`}
                   className={cn(
                     'border px-1.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.1em] transition-colors',
                     iv === ivl.id
@@ -812,8 +880,10 @@ export function PriceChart({
                       stroke={col}
                       strokeWidth={hovered ? 1.5 : 0.75}
                     />
-                    {/* live candle marker — the ONLY candle that moves */}
-                    {isLive && (
+                    {/* live candle marker — the ONLY candle that moves
+                        (never on a FROZEN series: its last candle is
+                        closed history, not a live edge) */}
+                    {isLive && endMs == null && (
                       <rect x={cx - cW / 2 - 2.5} y={bodyTop - 2.5} width={cW + 5} height={bodyH + 5} fill="none" stroke={col} strokeWidth={1} opacity={0.5}>
                         <animate attributeName="opacity" values="0.55;0.12;0.55" dur="1.8s" repeatCount="indefinite" />
                       </rect>
@@ -824,6 +894,58 @@ export function PriceChart({
             </motion.g>
           </>
         )}
+
+        {/* ── EVENT MARKER (e.g. the migration → DEX) — a dashed teal
+             line + a clickable chip at the event's position. In candles
+             mode it sits on the candle whose bucket range contains the
+             event (dead-time compression shifts candles around); in
+             line mode it sits on the raw grid point. ── */}
+        {mark && (() => {
+          const lineX = mode === 'candles' && markCandleIdx != null
+            ? xOf(markCandleIdx)
+            : mode === 'line' && mark.point >= histStart + i0 && mark.point <= histStart + i1
+              ? xOf(mark.point - histStart)
+              : null
+          if (lineX == null || lineX < -4 || lineX > plotW + 4) return null
+          const clickable = mark.onClick != null
+          return (
+            <g
+              className={clickable ? 'cursor-pointer' : undefined}
+              onClick={clickable
+                ? (e) => { e.stopPropagation(); mark.onClick!() }
+                : undefined}
+            >
+              <line
+                x1={lineX} x2={lineX}
+                y1={padT} y2={hasVol ? axisY - gapAxis : padT + priceH}
+                stroke={CHART_TEAL}
+                strokeOpacity={0.75}
+                strokeWidth={1.2}
+                strokeDasharray="4 4"
+              >
+                <animate attributeName="stroke-opacity" values="0.75;0.35;0.75" dur="2.4s" repeatCount="indefinite" />
+              </line>
+              {/* the chip, anchored to the marker line */}
+              <g transform={`translate(${Math.min(Math.max(lineX - 44, 2), plotW - 92)}, ${padT + 2})`}>
+                <rect
+                  width={88} height={15}
+                  fill="var(--background)"
+                  stroke={CHART_TEAL}
+                  strokeWidth={1}
+                  strokeOpacity={0.8}
+                />
+                <text
+                  x={44} y={11}
+                  textAnchor="middle"
+                  fontSize={8}
+                  className="fill-[var(--xusd)] font-mono font-bold uppercase tracking-[0.1em]"
+                >
+                  {mark.label}
+                </text>
+              </g>
+            </g>
+          )
+        })()}
 
         {/* last price line + tag (both modes) — always the LIVE price */}
         {n > 1 && (
@@ -905,7 +1027,8 @@ export function PriceChart({
                 </text>
               </g>
             ))}
-            {/* "now" marker at the live edge while following */}
+            {/* live-edge marker while following — "now" on a live series,
+                the frozen end's date on a migrated curve */}
             {off < 0.5 && (
               <g>
                 <line x1={xEdge} x2={xEdge} y1={axisY} y2={axisY + 3} stroke="var(--muted-foreground)" strokeWidth={1} />
@@ -916,7 +1039,7 @@ export function PriceChart({
                   fontSize={8.5}
                   className="fill-[var(--foreground)] font-mono"
                 >
-                  now
+                  {endMs != null ? fmtClock(endMs) : 'now'}
                 </text>
               </g>
             )}
@@ -928,7 +1051,7 @@ export function PriceChart({
       {mode === 'candles' && legendCandle ? (
         <div className="pointer-events-none absolute left-1.5 top-1 z-10 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 border border-border bg-background/90 px-2 py-1 font-mono text-[9.5px] tabular-nums">
           <span className="text-muted-foreground">
-            {fmtFull(absTimeMs(legendCandle.id * chunk, lastAbs, pointSeconds))}
+            {fmtFull(absTimeMs(legendCandle.id * chunk, lastAbs, pointSeconds, endMs))}
           </span>
           {[
             ['O', legendCandle.o], ['H', legendCandle.h], ['L', legendCandle.l], ['C', legendCandle.c],
@@ -948,7 +1071,7 @@ export function PriceChart({
               flat · {fmtSpan(legendCandle.span * chunk * pointSeconds)}
             </span>
           )}
-          {legendCandle === lastCandle && !legendCandle.closed && (
+          {legendCandle === lastCandle && !legendCandle.closed && endMs == null && (
             <span className="border border-vault/50 bg-vault/10 px-1 py-px text-[8px] font-bold uppercase tracking-[0.18em] text-vault">
               live
             </span>
@@ -957,7 +1080,7 @@ export function PriceChart({
       ) : mode === 'line' && hoverIdx != null && data[hoverIdx] != null ? (
         <div className="pointer-events-none absolute left-1.5 top-1 z-10 border border-border bg-background/90 px-2 py-1 font-mono text-[10px] tabular-nums text-foreground">
           <span className="text-muted-foreground">
-            {fmtFull(absTimeMs(histStart + hoverIdx, lastAbs, pointSeconds))}
+            {fmtFull(absTimeMs(histStart + hoverIdx, lastAbs, pointSeconds, endMs))}
           </span>
           {' '}
           {data[hoverIdx] < 0.001 ? data[hoverIdx].toFixed(6) : data[hoverIdx] < 1 ? data[hoverIdx].toFixed(5) : data[hoverIdx].toFixed(3)}

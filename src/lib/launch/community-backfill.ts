@@ -123,7 +123,11 @@ interface RawBlock {
 
 export interface BackfillInput {
   cid: number
-  /** current topoheight (call getTopoheight first) */
+  /** current topoheight (call getTopoheight first) — for a MIGRATED
+   *  coin this is the MIGRATION topo: the curve's life ends there and
+   *  the grid must end with it (walking/sampling past the migration
+   *  would flat-fill weeks of dead curve as if it still priced the
+   *  coin). */
   currentTopo: number
   createdTopo: number
   /** initial inventory y0, ATOMIC */
@@ -136,9 +140,16 @@ export interface BackfillInput {
   graduatedFeeBps: number
   /** on-chain trade counter (c:{cid}:tc) — completeness target */
   totalTrades: number
-  /** live atomic reserves — the calibration targets */
+  /** calibration targets — the LIVE reserves for a live coin, the
+   *  MIGRATION SNAPSHOT (migratedXel/migratedTokens) for a migrated
+   *  one (the curve's own reserves are zeroed at migration). */
   liveXr: bigint
   liveYr: bigint
+  /** TRUE for a migrated coin — the series is FROZEN at currentTopo */
+  frozen?: boolean
+  /** exact wall-clock (ms) of currentTopo's block when known (the
+   *  migration block) — anchors the frozen series' time axis */
+  endTsMs?: number
   /** live progress report — drives the chart's loading panel */
   onProgress?: (p: BackfillProgress) => void
 }
@@ -614,8 +625,15 @@ export function closeEnough(replayed: bigint, live: bigint): boolean {
 /**
  * Lay the replay steps on the absolute grid (index = floor(topo /
  * interval)), flat between trades — the price only moves on trades.
+ * Every slot carries TRUE OHLC: it opens at the carried price, every
+ * trade step inside it extends the high/low, and it closes at the
+ * last step's price — a dip that recovers inside one slot stays
+ * visible as a wick instead of being decimated away (the "flat
+ * candles with no variations" bug on close-only series).
  * Also calibrates `topoSeconds` from the real block timestamps and
- * stores the end state in `st` for future catch-ups.
+ * stores the end state in `st` for future catch-ups. A FROZEN series
+ * (migrated coin) additionally carries `endTsMs` — the wall-clock of
+ * the migration block — so the chart's time axis tells the truth.
  * Exported as sampleCoinSeries for the server-side candle archive
  * (identical sampling on both sides → identical charts).
  */
@@ -627,29 +645,9 @@ export function sampleSeries(
 ): ChartSeries {
   const birth = toHuman(coinSpotPrice(0n, coin.y0, coin.y0, coin.vx))
 
-  // resolution: the finest grid that keeps the coin's life under the cap
-  let interval = 1
-  while ((coin.currentTopo - coin.createdTopo) / interval > MAX_POINTS) interval *= 2
-
-  const gBirth = Math.floor(coin.createdTopo / interval)
-  const gNow = Math.floor(coin.currentTopo / interval)
-  const nSlots = Math.min(gNow - gBirth + 1, MAX_POINTS)
-
-  const history: number[] = new Array(nSlots)
-  let price = birth
-  let ti = 0
-  for (let i = 0; i < nSlots; i++) {
-    // slot i covers topos [ (gBirth+i)·interval, (gBirth+i+1)·interval )
-    const slotEnd = (gBirth + i + 1) * interval
-    while (ti < steps.length && steps[ti].topo < slotEnd) {
-      price = steps[ti].price
-      ti++
-    }
-    history[i] = price
-  }
-
   // seconds/topo from the real block timestamps (deterministic — the
-  // same trades give the same slope on every computer)
+  // same trades give the same slope on every computer). Computed FIRST
+  // so the frozen endTsMs extrapolation can use it.
   let topoSeconds = 5
   if (steps.length >= 2) {
     const first = steps[0]
@@ -661,13 +659,62 @@ export function sampleSeries(
   }
   topoSeconds = Math.min(MAX_TOPO_SECONDS, Math.max(MIN_TOPO_SECONDS, topoSeconds))
 
+  // resolution: the finest grid that keeps the coin's life under the cap
+  let interval = 1
+  while ((coin.currentTopo - coin.createdTopo) / interval > MAX_POINTS) interval *= 2
+
+  const gBirth = Math.floor(coin.createdTopo / interval)
+  const gNow = Math.floor(coin.currentTopo / interval)
+  const nSlots = Math.min(gNow - gBirth + 1, MAX_POINTS)
+
+  // per-slot OHLC: open = carried price, every step extends h/l, close = last
+  const cells: { o: number; h: number; l: number; c: number }[] = new Array(nSlots)
+  const history: number[] = new Array(nSlots)
+  let price = birth
+  let ti = 0
+  for (let i = 0; i < nSlots; i++) {
+    // slot i covers topos [ (gBirth+i)·interval, (gBirth+i+1)·interval )
+    const slotEnd = (gBirth + i + 1) * interval
+    let o = price
+    let h = price
+    let l = price
+    let c = price
+    while (ti < steps.length && steps[ti].topo < slotEnd) {
+      const p = steps[ti].price
+      if (p > h) h = p
+      if (p < l) l = p
+      c = p
+      price = p
+      ti++
+    }
+    cells[i] = { o, h, l, c }
+    history[i] = c
+  }
+
+  // a FROZEN series (migrated coin) anchors its time axis at the real
+  // end of the curve — the migration block when known, else the last
+  // trade extrapolated over the remaining topos
+  let endTsMs: number | undefined
+  if (coin.frozen) {
+    if (coin.endTsMs != null && Number.isFinite(coin.endTsMs)) {
+      endTsMs = coin.endTsMs
+    } else if (steps.length > 0) {
+      const last = steps[steps.length - 1]
+      endTsMs = last.tsMs + (coin.currentTopo - last.topo) * topoSeconds * 1000
+    } else {
+      endTsMs = Date.now()
+    }
+  }
+
   return {
     history,
+    ohlc: cells,
     histStart: gBirth,
     points: gBirth + nSlots, // = gNow + 1 when the whole life fits
     lastTopo: coin.currentTopo,
     intervalTopo: interval,
     topoSeconds,
+    endTsMs,
     st: { xr: endXr.toString(), yr: endYr.toString() },
     savedAt: Date.now(),
   }
@@ -743,10 +790,12 @@ export async function backfillCoinCurveSeries(
     // 5 — calibration miss (ancient coin / walk budget / the state
     //     moved mid-scan): anchor backwards at the LIVE state — the
     //     recent history is exact, the deep past is flat. The catch-up
-    //     machinery keeps the recent edge truthful from here on.
+    //     machinery keeps the recent edge truthful from here on. The
+    //     `degraded` flag tells the store this is a FALLBACK the shared
+    //     archive's full walk must replace when it can.
     if (trades.length > 0) {
       const b = backwardSteps(trades, fees, coin.liveXr, coin.liveYr)
-      return sampleSeries(coin, b.steps, coin.liveXr, coin.liveYr)
+      return { ...sampleSeries(coin, b.steps, coin.liveXr, coin.liveYr), degraded: true }
     }
 
     // 6 — no trades at all: a flat line at the birth price (the truth)
