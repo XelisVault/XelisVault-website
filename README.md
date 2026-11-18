@@ -1,4 +1,4 @@
-# XelisVault Website
+# XelisVault Website 1
 
 [![Site CI](https://github.com/XelisVault/XelisVault-website/actions/workflows/site-ci.yml/badge.svg)](https://github.com/XelisVault/XelisVault-website/actions/workflows/site-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
