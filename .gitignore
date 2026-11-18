@@ -90,3 +90,6 @@ axon-src/
 # Antumbra repository (separate git repo, root only)
 /antumbra/
 /scripts/antumbra-wp-en/main.pdf
+
+# local probe/test scripts (never commit)
+/.probes/

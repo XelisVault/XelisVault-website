@@ -49,6 +49,46 @@ let rpcId = 1
 let requestCounter = 0
 let lastRequestTimes: number[] = []
 
+/**
+ * Hard fetch timeout. WITHOUT this, a connection that stalls mid-read
+ * (mobile network drop, node hiccup, CF edge) hangs the await FOREVER —
+ * the store's `syncing` flag never clears and every later refresh
+ * no-ops: the live charts silently freeze until a page reload (the
+ * "it stops working after a while" bug). With it, a stalled request
+ * aborts, retries, and the store's try/finally always recovers.
+ */
+const FETCH_TIMEOUT_MS = 15_000
+
+/** fetch + JSON body, both under one timeout (a stalled BODY read hangs
+ * just as hard as a stalled connect). */
+async function postJsonWithTimeout(
+  url: string,
+  body: string,
+): Promise<{ ok: boolean; status: number; data?: any }> {
+  const ctl = new AbortController()
+  const timer = setTimeout(() => ctl.abort(), FETCH_TIMEOUT_MS)
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      signal: ctl.signal,
+    })
+    if (!res.ok && res.status >= 500) {
+      return { ok: false, status: res.status }
+    }
+    try {
+      const data = await res.json()
+      return { ok: true, status: res.status, data }
+    } catch {
+      // HTML response (rate limit / CF) → transient
+      throw new RPCError('non-JSON response (rate limited?)', true)
+    }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 // Simple rate limiter: max 14 requests / 1s window (the public node comfortably
 // handles 15+ parallel reads; we stay a notch under)
 async function rateLimitGate(): Promise<void> {
@@ -89,19 +129,9 @@ export async function rpcCall<T = any>(
     try {
       await rateLimitGate()
       requestCounter++
-      const res = await fetch(endpointFor(network), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      const res = await postJsonWithTimeout(endpointFor(network), JSON.stringify(payload))
       if (!res.ok && res.status >= 500) throw new RPCError(`${method}: HTTP ${res.status}`, true)
-      let data: any
-      try {
-        data = await res.json()
-      } catch {
-        // HTML response (rate limit / CF) → transient
-        throw new RPCError(`${method}: non-JSON response (rate limited?)`, true)
-      }
+      const data = res.data
       if (data.error) {
         throw new RPCError(
           `${method}: ${data.error.message ?? JSON.stringify(data.error)}`,
@@ -154,18 +184,11 @@ async function rpcBatchOnce(
     return req
   })
   await rateLimitGate() // ONE gate per HTTP request, not per cell
-  const res = await fetch(endpointFor(network), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
+  const res = await postJsonWithTimeout(endpointFor(network), JSON.stringify(payload))
   if (!res.ok && res.status >= 500) throw new RPCError(`batch: HTTP ${res.status}`, true)
-  let data: any
-  try {
-    data = await res.json()
-  } catch {
-    // HTML response (rate limit / CF) → transient
-    throw new RPCError('batch: non-JSON response (rate limited?)', true)
+  const data = res.data
+  if (data == null) {
+    throw new RPCError('batch: empty response', true)
   }
   if (!Array.isArray(data)) {
     // Some proxies strip JSON-RPC batching — bail out to the sequential path

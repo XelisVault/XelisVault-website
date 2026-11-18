@@ -39,7 +39,7 @@
 
 'use client'
 
-import { useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
@@ -313,7 +313,12 @@ export function PriceChart({
   const n = data.length
   const ivSeconds = INTERVALS.find((i) => i.id === iv)?.seconds ?? 120
   const chunk = Math.max(1, Math.round(ivSeconds / Math.max(1, pointSeconds)))
-  const candles = toCandles(data, histStart, chunk)
+  // bucketing is O(n) with two passes — memoize it or every pointermove
+  // hover re-derives the whole candle set (visible jank on long series)
+  const candles = useMemo(
+    () => toCandles(data, histStart, chunk),
+    [data, histStart, chunk],
+  )
   const count = candles.length
 
   const spacing = mode === 'candles' ? cSp : lSp

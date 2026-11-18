@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { Nav } from '@/components/site/nav'
 import { ScrollProgress } from '@/components/site/scroll-progress'
 import { Hero } from '@/components/sections/hero'
+import { MainnetBand } from '@/components/sections/mainnet-band'
 import { Problem } from '@/components/sections/problem'
 import { Solution } from '@/components/sections/solution'
 import { Architecture } from '@/components/sections/architecture'
@@ -59,6 +60,7 @@ export default function Home() {
 
       <main className="flex-1 relative">
         <Hero />
+        <MainnetBand />
         <Problem />
         <Solution />
         <Architecture />

@@ -910,25 +910,27 @@ function Elapsed({ startedAt }: { startedAt: number }) {
 function ChartLoadingPanel({ coin }: { coin: CommunityCoin }) {
   const bf = useCommunity((s) => s.backfills[coin.cid])
 
-  // pool era (migrated coin): the price lives on the DEX pool and is
-  // sampled live — no chain walk, the first candles arrive on their own
+  // pool era (migrated coin): the price lives on the DEX pool — sampled
+  // live here AND kept in the shared vault archive, so the first points
+  // arrive within seconds and the history builds for everyone over time
   if (coin.migratedTopo > 0 || !coin.curve) {
     return (
       <div className="flex h-[360px] flex-col items-center justify-center gap-4 border border-dashed border-border bg-foreground/[0.015] px-6 text-center">
         <LoadingCandles />
         <div className="font-mono text-xs text-muted-foreground">
-          collecting live pool prices — the first candles arrive within a minute
+          collecting live pool prices — the first candles arrive within seconds
         </div>
         <div className="max-w-md font-mono text-[10px] leading-relaxed text-muted-foreground/70">
           this token trades on its LaunchDEX pool; the chart draws itself from the live
-          reserves as the poller observes them.
+          reserves, and the shared vault archive keeps every sample so the history keeps
+          growing for every visitor.
         </div>
       </div>
     )
   }
 
   // no backfill state yet — the store is still resolving the coin
-  // (topoheight fetch) before the walk starts
+  // (archive GET / topoheight fetch) before anything else starts
   if (!bf || bf.phase === 'starting') {
     return (
       <div className="flex h-[360px] flex-col items-center justify-center gap-4 border border-dashed border-border bg-foreground/[0.015] px-6 text-center">
@@ -937,8 +939,35 @@ function ChartLoadingPanel({ coin }: { coin: CommunityCoin }) {
           opening the on-chain history…
         </div>
         <p className="max-w-md font-mono text-[10px] leading-relaxed text-muted-foreground/70">
-          the full price history is rebuilt from the XELIS chain — about ten seconds on a
-          first visit (batched block reads). The chart appears on its own, identical on every computer.
+          the full price history is served from the shared vault archive — one request, the
+          whole chart. On the very first visit ever, the server walks the chain once so nobody
+          has to again.
+        </p>
+      </div>
+    )
+  }
+
+  // the archive is serving / walking — the shared server-side history
+  if (bf.source === 'archive' && (bf.phase === 'scanning' || bf.phase === 'rebuilding')) {
+    const pct = Math.max(0, Math.min(1, bf.progress ?? 0))
+    return (
+      <div className="flex h-[360px] flex-col items-center justify-center gap-4 border border-dashed border-border bg-foreground/[0.015] px-6 text-center">
+        <LoadingCandles />
+        <div className="font-mono text-xs text-muted-foreground">
+          building the shared archive — <span className="text-foreground">
+            {Math.round(pct * 100)}%
+          </span> {' '}· <Elapsed startedAt={bf.startedAt} />
+        </div>
+        <div className="w-64">
+          <Bar value={pct} barClassName="bg-xusd" />
+          <div className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground/70">
+            vault archive · one server-side walk, shared by everyone
+          </div>
+        </div>
+        <p className="max-w-md font-mono text-[10px] leading-relaxed text-muted-foreground/70">
+          the server is walking every block of this coin&apos;s life, once — trades are stored
+          durably and the finished chart is replayed from the archive on every later visit.
+          If it takes too long the browser takes over automatically.
         </p>
       </div>
     )
@@ -990,9 +1019,9 @@ function ChartLoadingPanel({ coin }: { coin: CommunityCoin }) {
           </div>
         </div>
         <p className="max-w-md font-mono text-[10px] leading-relaxed text-muted-foreground/70">
-          first visit on this device: every trade, in every block, is read from the XELIS
-          chain — usually about ten seconds. The chart appears on its own and is then
-          kept locally.
+          the archive didn&apos;t answer — this browser is walking the chain itself: every trade,
+          in every block, read directly from the XELIS mainnet. Usually about ten seconds; the
+          finished chart is stored locally and identical on every computer.
         </p>
       </div>
     )
@@ -1067,8 +1096,15 @@ export function CommunityView({ setView, focusId }: {
     // the chain rebuild runs (the loading panel then covers the whole
     // walk) and never from a live-sampled fragment — this is what kept
     // the "scanning the chain" animation on screen for the entire
-    // rebuild instead of flashing a 0-candle chart mid-walk
-    const chartReady = isCurveChartReady(coin, backfills[coin.cid])
+    // rebuild instead of flashing a 0-candle chart mid-walk.
+    // POOL ERA (migrated coin): isCurveChartReady only knows the curve
+    // — it always returned false here, so the pool chart NEVER landed
+    // (the "collecting live pool prices" panel stayed forever). A pool
+    // series is ready as soon as it holds a couple of points, whether
+    // they come from live sampling or the shared vault archive.
+    const chartReady = coin.migratedTopo > 0 || !coin.curve
+      ? (coin.pool?.history?.length ?? 0) >= 2
+      : isCurveChartReady(coin, backfills[coin.cid])
 
     return (
       <div>

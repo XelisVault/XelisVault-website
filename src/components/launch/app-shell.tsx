@@ -577,6 +577,16 @@ export function LaunchAppShell({ initialView, initialFocus }: { initialView?: Ap
   const refresh = useMainnet((s) => s.refresh)
   const [, setTick] = useState(0)
 
+  // the June-2027 announcement strip — dismissible, once per session
+  const [hqOpen, setHqOpen] = useState(true)
+  useEffect(() => {
+    try { setHqOpen(sessionStorage.getItem('xv-hq-strip') !== '1') } catch { /* noop */ }
+  }, [])
+  const dismissHq = () => {
+    setHqOpen(false)
+    try { sessionStorage.setItem('xv-hq-strip', '1') } catch { /* noop */ }
+  }
+
   // "synced Xs ago" label
   useEffect(() => {
     const t = setInterval(() => setTick((x) => x + 1), 5000)
@@ -633,6 +643,31 @@ export function LaunchAppShell({ initialView, initialFocus }: { initialView?: Ap
             resync
           </button>
         </div>
+
+        {/* ── mainnet-2027 strip: the announcement, slim + dismissible ── */}
+        {hqOpen && (
+          <div className="flex items-center justify-center gap-2 border-b border-vault/25 bg-vault/[0.06] px-3 py-1.5 font-mono text-[10px] tracking-wide">
+            <span className="text-vault" aria-hidden>◆</span>
+            <span className="truncate text-muted-foreground">
+              the <span className="text-foreground">full protocol</span> lands on mainnet —{' '}
+              <span className="text-vault">June 2027</span> · see every level of what&apos;s coming
+            </span>
+            <a
+              href="/mainnet"
+              className="shrink-0 font-semibold uppercase tracking-[0.14em] text-vault transition-colors hover:text-vault/80"
+            >
+              mainnet hq →
+            </a>
+            <button
+              type="button"
+              onClick={dismissHq}
+              aria-label="dismiss"
+              className="ml-1 shrink-0 text-muted-foreground/60 transition-colors hover:text-foreground"
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         <div className="flex flex-1 overflow-hidden">
           <SmartSidebar view={view} onSelect={(v) => setView(v)} />

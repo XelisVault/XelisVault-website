@@ -46,6 +46,7 @@ const NAV_GROUPS = [
       { label: 'Mining & Delegation', href: '/#mining' },
       { label: 'VaultChat', href: '/#vaultchat' },
       { label: 'VaultLaunch · Launchpad', href: '/#vaultlaunch' },
+      { label: 'Mainnet HQ — what’s coming June 2027', href: '/mainnet' },
       { label: 'Open the Launchpad — live on mainnet', href: '/launch' },
     ],
   },
@@ -304,6 +305,18 @@ export function Nav() {
               >
                 Testnet App
               </button>
+              {/* MAINNET HQ — the June 2027 announcement world (retro pixel page) */}
+              <a
+                href="/mainnet"
+                className="hidden md:inline-flex h-9 items-center gap-2 rounded-none border border-vault/45 bg-vault/5 px-3.5 text-[12.5px] font-medium text-vault transition-all hover:border-vault hover:bg-vault/10"
+                title="Mainnet HQ — every level of what lands in June 2027, explained"
+              >
+                <span className="font-mono text-[10px]" aria-hidden>◆</span>
+                Mainnet HQ
+                <span className="font-mono text-[8.5px] font-bold uppercase tracking-[0.16em] text-vault/80 border border-vault/30 px-1.5 py-[2.5px]">
+                  2027
+                </span>
+              </a>
               <a
                 href="https://github.com/XelisVault/xelis-vault"
                 target="_blank"
@@ -403,6 +416,14 @@ export function Nav() {
                     <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary-foreground" />
                   </span>
                   Launchpad — Mainnet LIVE
+                </a>
+                <a
+                  href="/mainnet"
+                  onClick={() => setOpen(false)}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-none border border-vault/50 bg-vault/8 text-[14px] font-semibold text-vault"
+                >
+                  <span className="font-mono text-[11px]" aria-hidden>◆</span>
+                  Mainnet HQ — June 2027
                 </a>
                 <div className="flex gap-3">
                   <a

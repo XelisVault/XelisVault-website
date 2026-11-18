@@ -448,9 +448,14 @@ function OfficialTokenBanner({ coin, setView }: {
   setView: (v: AppView, id?: string) => void
 }) {
   const series = coin.curve ?? coin.pool
-  const chg = series && series.history.length >= 2 && series.history[0] > 0
-    ? ((coin.price - series.history[0]) / series.history[0]) * 100
-    : 0
+  // honest change: over the last ~1h of samples — never a dead "+0.0%"
+  // from a series that just started (null → we show the era instead)
+  const hist = series?.history ?? []
+  const pts1h = series?.pointSeconds ? Math.max(2, Math.round(3600 / series.pointSeconds)) : 0
+  const chg: number | null =
+    hist.length >= 2 && hist[Math.max(0, hist.length - pts1h)] > 0 && pts1h >= 2
+      ? ((coin.price - hist[Math.max(0, hist.length - pts1h)]) / hist[Math.max(0, hist.length - pts1h)]) * 100
+      : null
 
   return (
     <motion.section
@@ -476,7 +481,7 @@ function OfficialTokenBanner({ coin, setView }: {
               <span className="border border-vault/60 bg-vault/10 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-vault">official</span>
               <span className="border border-emerald-400/50 bg-emerald-400/5 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-emerald-400">trusted</span>
             </div>
-            <p className="mt-1.5 line-clamp-2 max-w-xl text-[12.5px] leading-relaxed text-muted-foreground">
+            <p className="mt-1.5 line-clamp-2 max-w-2xl text-[12.5px] leading-relaxed text-muted-foreground">
               {coin.description}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10.5px]">
@@ -489,6 +494,13 @@ function OfficialTokenBanner({ coin, setView }: {
               {coin.discord && (
                 <a href={coin.discord} target="_blank" rel="noreferrer" className="text-vault hover:underline">discord ↗</a>
               )}
+              <button
+                type="button"
+                onClick={() => setView('coin', coin.ticker)}
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                full record →
+              </button>
             </div>
           </div>
         </div>
@@ -497,9 +509,15 @@ function OfficialTokenBanner({ coin, setView }: {
         <div className="ml-auto flex items-center gap-5">
           <div className="text-right">
             <div className="font-display text-2xl font-semibold tabular-nums">{fmtPrice(coin.price)}</div>
-            <div className={cn('font-mono text-[11px] font-semibold tabular-nums', chg >= 0 ? 'text-emerald-400' : 'text-destructive')}>
-              {chg >= 0 ? '+' : ''}{chg.toFixed(1)}% · XEL
-            </div>
+            {chg != null ? (
+              <div className={cn('font-mono text-[11px] font-semibold tabular-nums', chg >= 0 ? 'text-emerald-400' : 'text-destructive')}>
+                {chg >= 0 ? '+' : ''}{chg.toFixed(1)}% · ~1h · XEL
+              </div>
+            ) : (
+              <div className="font-mono text-[11px] font-semibold text-emerald-400">
+                {coin.pool ? 'pool era · live' : 'curve era · live'}
+              </div>
+            )}
             <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">mcap {fmtXel(coin.marketCap)} XEL</div>
           </div>
           {coin.curve && (
@@ -538,6 +556,7 @@ export function LaunchpadView({ setView }: { setView: (v: AppView, id?: string) 
   const stats = useMainnet((s) => s.stats)
   const status = useMainnet((s) => s.status)
   const coins = useCommunity((s) => s.coins)
+  const cStats = useCommunity((s) => s.cStats)
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('all')
   const [selected, setSelected] = useState<Project | null>(null)
 
@@ -567,6 +586,13 @@ export function LaunchpadView({ setView }: { setView: (v: AppView, id?: string) 
     ? Number(stats.totalVolume) / 1e8
     : projects.reduce((acc, p) => acc + (p.curve?.volume ?? p.pool?.volume ?? 0), 0)
 
+  // the board's real activity: project track + community track in one
+  // ledger line (the community factory is where the launches are — a
+  // stats row of four serif zeros told the visitor nothing)
+  const communityCoins = coins.filter((c) => !c.official)
+  const allTrades = (stats?.totalTrades ?? 0) + (cStats?.totalTrades ?? 0)
+  const allVolume = totalVol + (cStats ? Number(cStats.totalVolume) / 1e8 : 0)
+
   return (
     <div>
       {/* the platform's own token — the flagship, before everything */}
@@ -580,24 +606,24 @@ export function LaunchpadView({ setView }: { setView: (v: AppView, id?: string) 
         <CommunityRail setView={setView} />
       </div>
 
-      {/* Header stats: the ledger band */}
-      <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+      {/* Header stats: one compact ledger line — both tracks, real activity */}
+      <div className="mt-5 flex flex-wrap items-stretch gap-px border border-border/70 bg-border/70">
         {[
-          { k: 'IN VALIDATION', v: validating.length.toString(), sub: validating.map((p) => p.ticker).join(' · ') || 'none' },
-          { k: 'ON CURVE', v: bonding.length.toString(), sub: bonding.map((p) => p.ticker).join(' · ') || 'none' },
-          { k: 'ON THE DEX', v: dexCount.toString(), sub: 'seed floors locked' },
-          { k: 'TOTAL VOLUME', v: fmtXel(totalVol), sub: 'XEL · on-chain scoreboard' },
+          { k: 'PROJECTS', v: `${projects.length}`, sub: `${validating.length} validating · ${bonding.length} on curve · ${dexCount} on dex` },
+          { k: 'COMMUNITY COINS', v: `${communityCoins.length}`, sub: `${cStats?.migratedCount ?? coins.filter((c) => c.status === 'migrated').length} migrated to the DEX` },
+          { k: 'TRADES', v: allTrades.toLocaleString('en-US'), sub: 'both tracks · on-chain counters' },
+          { k: 'TOTAL VOLUME', v: `${fmtXel(allVolume)} XEL`, sub: 'on-chain scoreboard' },
         ].map((s, i) => (
           <motion.div
             key={s.k}
-            initial={{ opacity: 0, y: 14 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05, duration: 0.4 }}
-            className="border border-border/70 bg-card/50 p-4"
+            transition={{ delay: i * 0.05, duration: 0.35 }}
+            className="min-w-[150px] flex-1 bg-card/60 px-4 py-3"
           >
-            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{s.k}</div>
-            <div className="mt-2 font-display text-2xl font-semibold tabular-nums">{s.v}</div>
-            <div className="mt-1 truncate font-mono text-[10px] text-muted-foreground">{s.sub}</div>
+            <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">{s.k}</div>
+            <div className="mt-1.5 font-mono text-lg font-semibold tabular-nums text-foreground">{s.v}</div>
+            <div className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground/80">{s.sub}</div>
           </motion.div>
         ))}
       </div>

@@ -186,6 +186,21 @@ export interface CurveFees {
 
 // ── Cross-coin caches (one session shares parses & blocks) ──────────
 
+/** Session-cache caps. Unbounded, a multi-coin walk on a long session
+ *  cached thousands of entries and squeezed mobile tabs hard; at the
+ *  cap the OLDEST entries evict (Map preserves insertion order — this
+ *  is a FIFO, which is close enough to LRU for tx/block dedup). */
+const TX_CACHE_MAX = 20_000
+const BLOCK_CACHE_MAX = 20_000
+
+function evictIfNeeded(cache: Map<string, unknown>, max: number): void {
+  while (cache.size > max) {
+    const oldest = cache.keys().next().value as string | undefined
+    if (oldest === undefined) break
+    cache.delete(oldest)
+  }
+}
+
 /** tx hash → parsed trade (any coin, cid attached) or null (= not an executed buy/sell). */
 const txCache = new Map<string, ParsedTx | null>()
 
@@ -209,8 +224,11 @@ function depositPublic(
   try { return BigInt(d.public) } catch { return null }
 }
 
-/** Parse a resolved tx into a trade of ANY coin — null when it is not an executed buy/sell. */
-function parseTrade(tx: RawTx): ParsedTx | null {
+/** Parse the resolved tx into a trade of ANY coin — null when it is
+ * not an executed buy/sell. Exported for the server-side candle
+ * archive (src/lib/server/candle-archive.ts), which reuses this exact
+ * parser so both walks agree on what a trade is. */
+export function parseTrade(tx: RawTx): ParsedTx | null {
   const inv = tx.data?.invoke_contract
   if (!inv || (inv.entry_id !== 16 && inv.entry_id !== 17)) return null
   const rawCid = inv.parameters?.[0]?.value?.value
@@ -234,14 +252,14 @@ function parseTrade(tx: RawTx): ParsedTx | null {
   return { hash: tx.hash, cid, kind, amount, executedIn: tx.executed_in_block }
 }
 
-/**
- * Resolve tx hashes through the shared cache, fetching unknown ones in
+/** Resolve tx hashes through the shared cache, fetching unknown ones in
  * BATCHED POSTs: 20 get_transactions calls of 20 hashes ride ONE HTTP
  * request (400 txs per POST — a whole walk's worth of txs is 2-3 POSTs
  * instead of ~45 sequential round-trips).
  * Returns one entry per input hash (null = not a trade).
+ * Exported for the server-side candle archive.
  */
-async function resolveTxs(hashes: string[]): Promise<(ParsedTx | null)[]> {
+export async function resolveTxs(hashes: string[]): Promise<(ParsedTx | null)[]> {
   const out: (ParsedTx | null)[] = new Array(hashes.length).fill(null)
   const need: { idx: number; hash: string }[] = []
   const seen = new Set<string>()
@@ -272,11 +290,13 @@ async function resolveTxs(hashes: string[]): Promise<(ParsedTx | null)[]> {
       out[idx] = parsed
     }
   })
+  evictIfNeeded(txCache, TX_CACHE_MAX)
   return out
 }
 
-/** topo + wall-clock timestamp of a block (cached). */
-async function blockTopoTs(hash: string): Promise<{ topo: number; ts: number } | null> {
+/** topo + wall-clock timestamp of a block (cached). Exported for the
+ * server-side candle archive. */
+export async function blockTopoTs(hash: string): Promise<{ topo: number; ts: number } | null> {
   const hit = blockCache.get(hash)
   if (hit) return hit
   const b = await rpcCall<RawBlock>(
@@ -285,11 +305,13 @@ async function blockTopoTs(hash: string): Promise<{ topo: number; ts: number } |
   if (!b || typeof b.topoheight !== 'number' || typeof b.timestamp !== 'number') return null
   const v = { topo: b.topoheight, ts: b.timestamp }
   blockCache.set(hash, v)
+  evictIfNeeded(blockCache, BLOCK_CACHE_MAX)
   return v
 }
 
-/** Attach the executed block's topo + timestamp to a parsed tx. */
-async function toTrade(p: ParsedTx): Promise<BackfillTrade | null> {
+/** Attach the executed block's topo + timestamp to a parsed tx.
+ * Exported for the server-side candle archive. */
+export async function toTrade(p: ParsedTx): Promise<BackfillTrade | null> {
   const blk = await blockTopoTs(p.executedIn)
   if (!blk) return null
   return { hash: p.hash, topo: blk.topo, tsMs: blk.ts, kind: p.kind, amount: p.amount }
@@ -415,6 +437,7 @@ async function walkTrades(
           }
         }
       }
+      evictIfNeeded(blockCache, BLOCK_CACHE_MAX)
       return gotAny
     } catch {
       return false // unreachable in practice — belt and braces
@@ -593,8 +616,10 @@ export function closeEnough(replayed: bigint, live: bigint): boolean {
  * interval)), flat between trades — the price only moves on trades.
  * Also calibrates `topoSeconds` from the real block timestamps and
  * stores the end state in `st` for future catch-ups.
+ * Exported as sampleCoinSeries for the server-side candle archive
+ * (identical sampling on both sides → identical charts).
  */
-function sampleSeries(
+export function sampleSeries(
   coin: BackfillInput,
   steps: ReplayStep[],
   endXr: bigint,
@@ -649,6 +674,8 @@ function sampleSeries(
 }
 
 // ── The backfill ────────────────────────────────────────────────────
+
+export { sampleSeries as sampleCoinSeries }
 
 /**
  * Rebuild a coin's curve price series from the chain itself.

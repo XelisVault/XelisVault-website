@@ -30,6 +30,7 @@ import {
 } from './community-reader'
 import { fetchPool, fetchPoolsBatch } from './reader'
 import { loadSeries, saveSeries, appendPoint, emptySeries, seriesPointSeconds, type ChartSeries } from './persist'
+import { fetchArchiveSeries } from './server-series'
 import { toHuman } from './chain-math'
 import { coinSpotPrice, coinMarketCap, coinContinuity, coinGraduationAnalysis } from './community-math'
 import {
@@ -58,6 +59,11 @@ export type CommunityNodeStatus = 'connecting' | 'live' | 'offline'
  *  blank chart. */
 export interface CoinBackfillState {
   phase: 'starting' | 'scanning' | 'rebuilding' | 'done' | 'error'
+  /** where the rebuild comes from: the shared server archive (Neon
+   *  PostgreSQL) or the in-browser chain walk fallback */
+  source?: 'archive' | 'chain'
+  /** archive progress 0..1 (source 'archive' only) */
+  progress?: number
   /** walk pages fetched so far (phase 'scanning') */
   pages: number
   maxPages: number
@@ -108,6 +114,10 @@ const internal: { fast: ReturnType<typeof setInterval> | null; deep: ReturnType<
 /** Backfill bookkeeping: once per coin per SUCCESS — failures are
  *  retried by the next deep scan or navigation. */
 const backfillTried = new Set<number>()
+/** Pool-era archive lookups: once per coin per session (the archive
+ *  serves them instantly or holds nothing yet — retrying changes
+ *  nothing until the next visit). */
+const poolArchiveTried = new Set<number>()
 
 /** A rebuild in one of these phases will REPLACE the coin's series on
  *  commit — the live sampler is therefore HELD while it runs (sampling
@@ -233,7 +243,29 @@ export const useCommunity = create<CommunityStore>((set, get) => ({
   ensureCoinHistory: async (cid) => {
     if (backfillTried.has(cid)) return
     const coin = get().coins.find((c) => c.cid === cid)
-    if (!coin || !coin.curve || coin.migratedTopo > 0) return // curve era only
+    if (!coin) return
+
+    // ── POOL ERA (migrated coin) — the price lives on the LaunchDEX
+    // pool and no chain walk exists for it: the archive holds the
+    // SHARED sample history (every visitor's GET keeps it warm) and
+    // the local sampler keeps the live edge. One archive GET per
+    // session — instant when it has data, nothing lost when not.
+    if (coin.migratedTopo > 0) {
+      if (poolArchiveTried.has(cid)) return
+      poolArchiveTried.add(cid)
+      const local = loadSeries('coinpool', coin.id)
+      const server = await fetchArchiveSeries('coinpool', coin.id, { maxWaitMs: 6_000 })
+      if (
+        server && server.history.length >= 2 &&
+        (!local || local.history.length < 2 || server.lastTopo > local.lastTopo)
+      ) {
+        commitCoinPoolSeries(coin.id, server, set, get)
+      }
+      return
+    }
+
+    // curve era from here on
+    if (!coin.curve) return
 
     // ── MODE A detection is SYNCHRONOUS (loadSeries only reads
     // localStorage): deciding before any await makes the loading panel
@@ -250,8 +282,38 @@ export const useCommunity = create<CommunityStore>((set, get) => ({
     if (modeA) {
       backfillTried.add(cid)
       patchBackfill(cid, {
-        phase: 'starting', startedAt: Date.now(), finishedAt: null,
+        phase: 'starting', source: 'archive', startedAt: Date.now(), finishedAt: null,
         pages: 0, foundTrades: 0,
+      }, set, get)
+
+      // ── ARCHIVE FIRST (MODE A) — ask the server before walking the
+      // chain in this browser: when the Neon archive already holds the
+      // coin's series the FULL history arrives in one request. A
+      // first-visit walk runs server-side (the route kicks it in
+      // after()) and we poll its progress; after ARCHIVE_MAX_WAIT we
+      // fall through to the in-browser walk below, unchanged.
+      const ARCHIVE_MAX_WAIT = 20_000
+      const server = await fetchArchiveSeries('coin', coin.id, {
+        maxWaitMs: ARCHIVE_MAX_WAIT,
+        onProgress: (r) => patchBackfill(cid, {
+          phase: 'scanning',
+          source: 'archive',
+          progress: r.progress ?? 0,
+          startedAt: Date.now(),
+        }, set, get),
+      })
+      if (server && server.history.length >= 2) {
+        patchBackfill(cid, {
+          phase: 'done', source: 'archive', progress: 1,
+          finishedAt: Date.now(),
+        }, set, get)
+        commitCoinSeries(coin.id, server, set, get)
+        return
+      }
+      // archive absent/still-walking → the local walk takes over
+      patchBackfill(cid, {
+        phase: 'starting', source: 'chain', progress: undefined,
+        startedAt: Date.now(),
       }, set, get)
     }
 
@@ -273,6 +335,18 @@ export const useCommunity = create<CommunityStore>((set, get) => ({
       const staleness = topo - existing!.lastTopo
       if (staleness <= COIN_STALE_TOPOS) return // live sampling is active
       backfillTried.add(cid)
+
+      // ── ARCHIVE FIRST (MODE B) — the server replays its STORED
+      // trades + the fresh top in one request; when it is fresher than
+      // the local series we are done, no window/replay here at all.
+      const server = await fetchArchiveSeries('coin', coin.id, { maxWaitMs: 0 })
+      if (
+        server && server.lastTopo > existing!.lastTopo &&
+        seriesCoversBirth(server.histStart, server.intervalTopo, coin.createdTopo)
+      ) {
+        commitCoinSeries(coin.id, server, set, get)
+        return
+      }
 
       const fresh = await fetchCoinFast(cid).catch(() => null)
       if (!fresh || fresh.xr == null || fresh.yr == null || fresh.migrated) {
@@ -406,6 +480,34 @@ function commitCoinSeries(
           ...c,
           curve: {
             ...c.curve,
+            history: series.history,
+            histStart: series.histStart,
+            points: series.points,
+            pointSeconds: seriesPointSeconds(series, TOPO_SECONDS),
+            intervalTopo: series.intervalTopo,
+          },
+        }
+      : c,
+  )
+  set({ charts, coins })
+}
+
+/** Commit a pool-era series (migrated coin) — same contract as
+ *  commitCoinSeries, on the pool side. */
+function commitCoinPoolSeries(
+  coinId: string,
+  series: ChartSeries,
+  set: SetFn,
+  get: GetFn,
+): void {
+  saveSeries('coinpool', coinId, series)
+  const charts = { ...get().charts, [`coinpool:${coinId}`]: series }
+  const coins = get().coins.map((c) =>
+    c.id === coinId && c.pool
+      ? {
+          ...c,
+          pool: {
+            ...c.pool,
             history: series.history,
             histStart: series.histStart,
             points: series.points,

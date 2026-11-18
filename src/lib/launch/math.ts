@@ -24,9 +24,14 @@ export function fmtXel(n: number, maxDecimals = 2): string {
 
 export function fmtPrice(n: number): string {
   if (!isFinite(n) || n === 0) return '0.00'
-  if (n < 0.001) return n.toExponential(2)
-  if (n < 1) return n.toFixed(5)
-  return n.toFixed(3)
+  if (n >= 1) return n.toFixed(3)
+  if (n >= 0.001) return n.toFixed(5)
+  // sub-milli prices print in PLAIN decimals — "0.0000768", never
+  // "7.68e-5": scientific notation is hostile to traders scanning a
+  // board (the chart's axis does the same, see fmtAxis in chart.tsx)
+  const trim = (s: string) => s.replace(/0+$/, '').replace(/\.$/, '')
+  if (n >= 1e-4) return trim(n.toFixed(7))
+  return trim(n.toFixed(9))
 }
 
 export function fmtPct(n: number, digits = 2): string {
